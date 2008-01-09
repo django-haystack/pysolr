@@ -105,7 +105,7 @@ class Solr(object):
 
     def _update(self, message):
         """
-        Posts the given xml message to http://<host>:>port>/solr/update and
+        Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
         """
         conn = HTTPConnection(self.host, self.port)
