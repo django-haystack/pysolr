@@ -83,7 +83,7 @@ try:
     # for python 2.5
     from xml.etree import ElementTree
 except ImportError:
-    from elemettree import ElementTree
+    from elementtree import ElementTree
 
 __all__ = ['Solr']
 
