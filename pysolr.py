@@ -90,6 +90,11 @@ __all__ = ['Solr']
 class SolrError(Exception):
     pass
 
+class Results(object):
+    def __init__(self, docs, hits):
+        self.docs = docs
+        self.hits = hits
+
 class Solr(object):
     def __init__(self, host, port=8983):
         self.host = host
@@ -182,6 +187,7 @@ class Solr(object):
         # TODO: make result retrieval lazy and allow custom result objects
         et = ElementTree.parse(response)
         result = et.find('result')
+        hits = int(result.get('numFound'))
         docs = result.findall('doc')
         results = []
         for doc in docs:
@@ -191,7 +197,7 @@ class Solr(object):
                 converter = getattr(self, converter_name)
                 result[element.get('name')] = converter(element.text)
             results.append(result)
-        return results
+        return Results(results, hits)
 
     def add(self, docs, commit=True):
         """Adds or updates documents. For now, docs is a list of dictionaies
