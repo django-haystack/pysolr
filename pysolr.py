@@ -71,6 +71,31 @@ We can delete documents from the index by id, or by supplying a query.
 >>> len(results)
 0
 
+
+Docs can also have multiple values for any particular key. This lets us use
+Solr's multiValue fields.
+
+>>> docs = [
+...     {'id': 'testdoc.5', 'cat': ['poetry', 'science'], 'name': 'document 5', 'text': u''},
+...     {'id': 'testdoc.6', 'cat': ['science-fiction',], 'name': 'document 6', 'text': u''},
+... ]
+
+>>> conn.add(docs)
+>>> results = conn.search('cat:"poetry"')
+>>> for result in results:
+...     print result['name']
+document 5
+
+>>> results = conn.search('cat:"science-fiction"')
+>>> for result in results:
+...     print result['name']
+document 6
+
+>>> results = conn.search('cat:"science"')
+>>> for result in results:
+...     print result['name']
+document 5
+
 """
 
 # TODO: unicode support is pretty sloppy. define it better.
@@ -94,6 +119,12 @@ class Results(object):
     def __init__(self, docs, hits):
         self.docs = docs
         self.hits = hits
+
+    def __len__(self):
+        return len(self.docs)
+
+    def __iter__(self):
+        return iter(self.docs)
 
 class Solr(object):
     def __init__(self, host, port=8983):
@@ -185,6 +216,7 @@ class Solr(object):
             raise SolrError(self._extract_error(response))
 
         # TODO: make result retrieval lazy and allow custom result objects
+        # also, this has become rather ugly and definitely needs some cleanup.
         et = ElementTree.parse(response)
         result = et.find('result')
         hits = int(result.get('numFound'))
@@ -193,9 +225,17 @@ class Solr(object):
         for doc in docs:
             result = {}
             for element in doc.getchildren():
-                converter_name = '%s_to_python' % element.tag
-                converter = getattr(self, converter_name)
-                result[element.get('name')] = converter(element.text)
+                if element.tag == 'arr':
+                    result_val = []
+                    for array_element in element.getchildren():
+                        converter_name = '%s_to_python' % array_element.tag
+                        converter = getattr(self, converter_name)
+                        result_val.append(converter(array_element.text))
+                else:
+                    converter_name = '%s_to_python' % element.tag
+                    converter = getattr(self, converter_name)
+                    result_val = converter(element.text)
+                result[element.get('name')] = result_val
             results.append(result)
         return Results(results, hits)
 
@@ -207,9 +247,17 @@ class Solr(object):
         for doc in docs:
             d = ElementTree.Element('doc')
             for key, value in doc.items():
-                f = ElementTree.Element('field', name=key)
-                f.text = self._from_python(value)
-                d.append(f)
+                # handle lists, tuples, and other iterabes
+                if hasattr(value, '__iter__'):
+                    for v in value:
+                        f = ElementTree.Element('field', name=key)
+                        f.text = self._from_python(v)
+                        d.append(f)
+                # handle strings and unicode
+                else:
+                    f = ElementTree.Element('field', name=key)
+                    f.text = self._from_python(value)
+                    d.append(f)
             message.append(d)
         m = ElementTree.tostring(message)
         response = self._update(m)
