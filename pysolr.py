@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-All we need to create a Solr connection is an address.
+All we need to create a Solr connection is a url.
 
->>> conn = Solr(host='127.0.0.1')
+>>> conn = Solr('http://127.0.0.1:8983/solr/')
 
 First, completely clear the index.
 
@@ -102,6 +102,7 @@ document 5
 
 from httplib import HTTPConnection
 from urllib import urlencode
+from urlparse import urlsplit
 from datetime import datetime, date
 from time import strptime, strftime
 try:
@@ -127,16 +128,19 @@ class Results(object):
         return iter(self.docs)
 
 class Solr(object):
-    def __init__(self, host, port=8983):
-        self.host = host
-        self.port = port
+    def __init__(self, url):
+        self.url = url
+        self.o = urlsplit(url)
+        self.host = self.o.hostname
+        self.port = self.o.port
+        self.path = self.o.path.rstrip('/')
 
     def _select(self, params):
         # encode the query as utf-8 so urlencode can handle it
         params['q'] = params['q'].encode('utf-8')
+        path = '%s/select/?%s' % (self.path, urlencode(params))
         conn = HTTPConnection(self.host, self.port)
-        url = '/solr/select/?%s' % urlencode(params)
-        conn.request('GET', url)
+        conn.request('GET', path)
         return conn.getresponse()
 
     def _update(self, message):
@@ -144,8 +148,9 @@ class Solr(object):
         Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
         """
+        path = '%s/update/' % self.path
         conn = HTTPConnection(self.host, self.port)
-        conn.request('POST', '/solr/update/', message, {'Content-type': 'text/xml'})
+        conn.request('POST', path, message, {'Content-type': 'text/xml'})
         return conn.getresponse()
 
     def _extract_error(self, response):
