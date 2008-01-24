@@ -130,10 +130,14 @@ class Results(object):
 class Solr(object):
     def __init__(self, url):
         self.url = url
-        self.o = urlsplit(url)
-        self.host = self.o.hostname
-        self.port = self.o.port
-        self.path = self.o.path.rstrip('/')
+        scheme, netloc, path, query, fragment = urlsplit(url)
+        netloc = netloc.split(':')
+        self.host = netloc[0]
+        if len(netloc) == 1:
+            self.host = netloc[0]
+        else:
+            self.host, self.port = netloc
+        self.path = path.rstrip('/')
 
     def _select(self, params):
         # encode the query as utf-8 so urlencode can handle it
