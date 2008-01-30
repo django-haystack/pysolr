@@ -134,7 +134,7 @@ class Solr(object):
         netloc = netloc.split(':')
         self.host = netloc[0]
         if len(netloc) == 1:
-            self.host = netloc[0]
+            self.host, self.port = netloc[0], None
         else:
             self.host, self.port = netloc
         self.path = path.rstrip('/')
