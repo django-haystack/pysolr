@@ -229,9 +229,13 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, sort=None, start=0, rows=20):
+    def search(self, q, sort=None, start=None, rows=None):
         """Performs a search and returns the results."""
-        params = {'q': q, 'start': start, 'rows': rows}
+        params = {'q': q}
+        if start:
+            params['start'] = start
+        if rows:
+            params['rows'] = rows
         if sort:
             params['sort'] = sort
         response = self._select(params)
