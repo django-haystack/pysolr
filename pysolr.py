@@ -104,7 +104,7 @@ from httplib import HTTPConnection
 from urllib import urlencode
 from urlparse import urlsplit
 from datetime import datetime, date
-from time import strptime, strftime
+from time import strptime
 try:
     # for python 2.5
     from xml.etree import ElementTree
