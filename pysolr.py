@@ -213,6 +213,20 @@ class Solr(object):
         # this throws away fractions of a second
         return datetime(*strptime(value[:-5], "%Y-%m-%dT%H:%M:%S")[0:6])
 
+    def float_to_python(self, value):
+        """
+        Convert a 'float' field from solr's xml format to python and return it.
+        """
+        return float(value)
+
+    def double_to_python(self, value):
+        """
+        Convert a 'double' field from solr's xml format to python and return
+        it. Since Python does not have separate type for double, this is the
+        same as float.
+        """
+        return self.float_to_python(value)
+
     # API Methods ############################################################
 
     def search(self, q, sort=None, start=0, rows=20):
