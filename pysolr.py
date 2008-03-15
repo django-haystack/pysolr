@@ -2,7 +2,8 @@
 """
 All we need to create a Solr connection is a url.
 
->>> conn = Solr('http://127.0.0.1:8983/solr/')
+>>> #conn = Solr('http://127.0.0.1:8983/solr/')
+>>> conn = Solr('http://127.0.0.1:8080/solr/default/')
 
 First, completely clear the index.
 
@@ -107,9 +108,13 @@ from datetime import datetime, date
 from time import strptime
 try:
     # for python 2.5
-    from xml.etree import ElementTree
+    from xml.etree import cElementTree as ET
 except ImportError:
-    from elementtree import ElementTree
+    try:
+        # use cElementTree if available
+        import cElementTree as ET
+    except ImportError:
+        from elementtree import ElementTree as ET
 
 __all__ = ['Solr']
 
@@ -162,7 +167,7 @@ class Solr(object):
         Extract the actual error message from a solr response. Unfortunately,
         this means scraping the html.
         """
-        et = ElementTree.parse(response)
+        et = ET.parse(response)
         return et.findtext('body/pre')
 
     # Converters #############################################################
@@ -244,7 +249,7 @@ class Solr(object):
 
         # TODO: make result retrieval lazy and allow custom result objects
         # also, this has become rather ugly and definitely needs some cleanup.
-        et = ElementTree.parse(response)
+        et = ET.parse(response)
         result = et.find('result')
         hits = int(result.get('numFound'))
         docs = result.findall('doc')
@@ -270,23 +275,23 @@ class Solr(object):
         """Adds or updates documents. For now, docs is a list of dictionaies
         where each key is the field name and each value is the value to index.
         """
-        message = ElementTree.Element('add')
+        message = ET.Element('add')
         for doc in docs:
-            d = ElementTree.Element('doc')
+            d = ET.Element('doc')
             for key, value in doc.items():
                 # handle lists, tuples, and other iterabes
                 if hasattr(value, '__iter__'):
                     for v in value:
-                        f = ElementTree.Element('field', name=key)
+                        f = ET.Element('field', name=key)
                         f.text = self._from_python(v)
                         d.append(f)
                 # handle strings and unicode
                 else:
-                    f = ElementTree.Element('field', name=key)
+                    f = ET.Element('field', name=key)
                     f.text = self._from_python(value)
                     d.append(f)
             message.append(d)
-        m = ElementTree.tostring(message)
+        m = ET.tostring(message)
         response = self._update(m)
         if response.status != 200:
             raise SolrError(self._extract_error(response))
