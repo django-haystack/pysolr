@@ -112,7 +112,7 @@ try:
 except ImportError:
     try:
         # use etree from lxml if it is installed
-        from lxml.etree import ElementTree as ET
+        from lxml import etree as ET
     except ImportError:
         try:
             # use cElementTree if available
