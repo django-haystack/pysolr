@@ -111,10 +111,17 @@ try:
     from xml.etree import cElementTree as ET
 except ImportError:
     try:
-        # use cElementTree if available
-        import cElementTree as ET
+        # use etree from lxml if it is installed
+        from lxml.etree import ElementTree as ET
     except ImportError:
-        from elementtree import ElementTree as ET
+        try:
+            # use cElementTree if available
+            import cElementTree as ET
+        except ImportError:
+            try:
+                from elementtree import ElementTree as ET
+            except ImportError:
+                raise ImportError("No suitable ElementTree implementation was found.")
 
 __all__ = ['Solr']
 
