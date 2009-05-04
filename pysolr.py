@@ -2,8 +2,7 @@
 """
 All we need to create a Solr connection is a url.
 
->>> #conn = Solr('http://127.0.0.1:8983/solr/')
->>> conn = Solr('http://127.0.0.1:8080/solr/default/')
+>>> conn = Solr('http://127.0.0.1:8983/solr/')
 
 First, completely clear the index.
 
@@ -123,15 +122,29 @@ except ImportError:
             except ImportError:
                 raise ImportError("No suitable ElementTree implementation was found.")
 
+try:
+    # For Python < 2.6 or people using a newer version of simplejson
+    import simplejson as json
+except ImportError:
+    # For Python >= 2.6
+    import json
+
+__author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
+__version__ = (2, 0, 0)
+
+def get_version():
+    return "%s.%s.%s" % __version__
 
 class SolrError(Exception):
     pass
 
 class Results(object):
-    def __init__(self, docs, hits):
+    def __init__(self, docs, hits, highlighting={}, facets={}):
         self.docs = docs
         self.hits = hits
+        self.highlighting = highlighting
+        self.facets = facets
 
     def __len__(self):
         return len(self.docs)
@@ -140,7 +153,8 @@ class Results(object):
         return iter(self.docs)
 
 class Solr(object):
-    def __init__(self, url):
+    def __init__(self, url, decoder=None):
+        self.decoder = decoder or json.JSONDecoder()
         self.url = url
         scheme, netloc, path, query, fragment = urlsplit(url)
         netloc = netloc.split(':')
@@ -154,7 +168,17 @@ class Solr(object):
     def _select(self, params):
         # encode the query as utf-8 so urlencode can handle it
         params['q'] = params['q'].encode('utf-8')
-        path = '%s/select/?%s' % (self.path, urlencode(params))
+        params['wt'] = 'json' # specify json encoding of results
+        path = '%s/select/?%s' % (self.path, urlencode(params, True))
+        conn = HTTPConnection(self.host, self.port)
+        conn.request('GET', path)
+        return conn.getresponse()
+    
+    def _mlt(self, params):
+        # encode the query as utf-8 so urlencode can handle it
+        params['q'] = params['q'].encode('utf-8')
+        params['wt'] = 'json' # specify json encoding of results
+        path = '%s/mlt/?%s' % (self.path, urlencode(params, True))
         conn = HTTPConnection(self.host, self.port)
         conn.request('GET', path)
         return conn.getresponse()
@@ -175,9 +199,9 @@ class Solr(object):
         this means scraping the html.
         """
         et = ET.parse(response)
-        return et.findtext('body/pre')
+        return "[%s] %s" % (response.reason, et.findtext('body/h1'))
 
-    # Converters #############################################################
+    # Conversion #############################################################
 
     def _from_python(self, value):
         """
@@ -197,86 +221,47 @@ class Solr(object):
             value = unicode(value)
         return value
 
-    def bool_to_python(self, value):
-        """
-        Convert a 'bool' field from solr's xml format to python and return it.
-        """
-        if value == 'true':
-            return True
-        elif value == 'false':
-            return False
-
-    def str_to_python(self, value):
-        """
-        Convert an 'str' field from solr's xml format to python and return it.
-        """
-        return unicode(value)
-
-    def int_to_python(self, value):
-        """
-        Convert an 'int' field from solr's xml format to python and return it.
-        """
-        return int(value)
-
-    def date_to_python(self, value):
-        """
-        Convert a 'date' field from solr's xml format to python and return it.
-        """
-        # this throws away fractions of a second
-        return datetime(*strptime(value[:-5], "%Y-%m-%dT%H:%M:%S")[0:6])
-
-    def float_to_python(self, value):
-        """
-        Convert a 'float' field from solr's xml format to python and return it.
-        """
-        return float(value)
-
-    def double_to_python(self, value):
-        """
-        Convert a 'double' field from solr's xml format to python and return
-        it. Since Python does not have separate type for double, this is the
-        same as float.
-        """
-        return self.float_to_python(value)
-
     # API Methods ############################################################
 
-    def search(self, q, sort=None, start=None, rows=None):
+    def search(self, q, **kwargs):
         """Performs a search and returns the results."""
         params = {'q': q}
-        if start:
-            params['start'] = start
-        if rows:
-            params['rows'] = rows
-        if sort:
-            params['sort'] = sort
+        params.update(kwargs)
         response = self._select(params)
+        
         if response.status != 200:
             raise SolrError(self._extract_error(response))
 
         # TODO: make result retrieval lazy and allow custom result objects
-        # also, this has become rather ugly and definitely needs some cleanup.
-        et = ET.parse(response)
-        result = et.find('result')
-        hits = int(result.get('numFound'))
-        docs = result.findall('doc')
-        results = []
-        for doc in docs:
-            result = {}
-            for element in doc.getchildren():
-                if element.tag == 'arr':
-                    result_val = []
-                    for array_element in element.getchildren():
-                        converter_name = '%s_to_python' % array_element.tag
-                        converter = getattr(self, converter_name)
-                        result_val.append(converter(array_element.text))
-                else:
-                    converter_name = '%s_to_python' % element.tag
-                    converter = getattr(self, converter_name)
-                    result_val = converter(element.text)
-                result[element.get('name')] = result_val
-            results.append(result)
-        return Results(results, hits)
+        result = self.decoder.decode(response.read())
+        result_kwargs = {}
+        
+        if result.get('highlighting'):
+            result_kwargs['highlighting'] = result['highlighting']
+        
+        if result.get('facet_counts'):
+            result_kwargs['facets'] = result['facet_counts']
+        
+        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+    
+    def more_like_this(self, q, mltfl, **kwargs):
+        """
+        Finds and returns results similar to the provided query.
+        
+        Requires Solr 1.3+.
+        """
+        params = {
+            'q': q,
+            'mlt.fl': mltfl,
+        }
+        params.update(kwargs)
+        response = self._mlt(params)
+        
+        if response.status != 200:
+            raise SolrError(self._extract_error(response))
+
+        result = self.decoder.decode(response.read())
+        return Results(result['response']['docs'], result['response']['numFound'])
 
     def add(self, docs, commit=True):
         """Adds or updates documents. For now, docs is a list of dictionaies
