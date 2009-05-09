@@ -104,7 +104,7 @@ from httplib import HTTPConnection
 from urllib import urlencode
 from urlparse import urlsplit
 from datetime import datetime, date
-from time import strptime
+import re
 try:
     # for python 2.5
     from xml.etree import cElementTree as ET
@@ -128,13 +128,19 @@ try:
 except ImportError:
     # For Python >= 2.6
     import json
+try:
+    set
+except NameError:
+    from sets import Set as set
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 0)
+__version__ = (2, 0, 1)
 
 def get_version():
     return "%s.%s.%s" % __version__
+
+DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2}).\d+Z$')
 
 class SolrError(Exception):
     pass
@@ -219,6 +225,40 @@ class Solr(object):
                 value = 'false'
         else:
             value = unicode(value)
+        return value
+    
+    def _to_python(self, value):
+        """
+        Converts values from Solr to native Python values.
+        """
+        if value == 'true':
+            return True
+        elif value == 'false':
+            return False
+        
+        possible_datetime = DATETIME_REGEX.search(value)
+        
+        if possible_datetime:
+            date_values = possible_datetime.groupdict()
+            
+            for dk, dv in date_values.items():
+                date_values[dk] = int(dv)
+            
+            return datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
+        
+        try:
+            # This is slightly gross but it's hard to tell otherwise what the
+            # string's original type might have been. Be careful who you trust.
+            converted_value = eval(value)
+            
+            # Try to handle most built-in types.
+            if isinstance(converted_value, (list, tuple, set, dict, int, float, long, complex)):
+                return converted_value
+        except:
+            # If it fails (SyntaxError or its ilk) or we don't trust it,
+            # continue on.
+            pass
+        
         return value
 
     # API Methods ############################################################
