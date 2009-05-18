@@ -135,7 +135,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 1)
+__version__ = (2, 0, 2)
 
 def get_version():
     return "%s.%s.%s" % __version__
@@ -231,20 +231,27 @@ class Solr(object):
         """
         Converts values from Solr to native Python values.
         """
+        if isinstance(value, (int, float, long, complex)):
+            return value
+        
+        if isinstance(value, (list, tuple)):
+            value = value[0]
+        
         if value == 'true':
             return True
         elif value == 'false':
             return False
         
-        possible_datetime = DATETIME_REGEX.search(value)
+        if isinstance(value, basestring):
+            possible_datetime = DATETIME_REGEX.search(value)
         
-        if possible_datetime:
-            date_values = possible_datetime.groupdict()
+            if possible_datetime:
+                date_values = possible_datetime.groupdict()
             
-            for dk, dv in date_values.items():
-                date_values[dk] = int(dv)
+                for dk, dv in date_values.items():
+                    date_values[dk] = int(dv)
             
-            return datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
+                return datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
         
         try:
             # This is slightly gross but it's hard to tell otherwise what the
