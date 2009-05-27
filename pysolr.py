@@ -135,12 +135,12 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 2)
+__version__ = (2, 0, 3)
 
 def get_version():
     return "%s.%s.%s" % __version__
 
-DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2}).\d+Z$')
+DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
 
 class SolrError(Exception):
     pass
@@ -215,9 +215,9 @@ class Solr(object):
         we send to solr.
         """
         if isinstance(value, datetime):
-            value = value.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
         elif isinstance(value, date):
-            value = value.strftime('%Y-%m-%dT00:00:00.000Z')
+            value = value.strftime('%Y-%m-%dT00:00:00Z')
         elif isinstance(value, bool):
             if value:
                 value = 'true'
