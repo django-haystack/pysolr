@@ -144,7 +144,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 4)
+__version__ = (2, 0, 5)
 
 def get_version():
     return "%s.%s.%s" % __version__
@@ -155,11 +155,12 @@ class SolrError(Exception):
     pass
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting={}, facets={}):
+    def __init__(self, docs, hits, highlighting={}, facets={}, spellcheck={}):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting
         self.facets = facets
+        self.spellcheck = spellcheck
 
     def __len__(self):
         return len(self.docs)
@@ -312,6 +313,9 @@ class Solr(object):
         
         if result.get('facet_counts'):
             result_kwargs['facets'] = result['facet_counts']
+        
+        if result.get('spellcheck'):
+            result_kwargs['spellcheck'] = result['spellcheck']
         
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
     
