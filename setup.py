@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name = "pysolr",
-    version = "2.0.1",
+    version = "2.0.5",
     description = "Lightweight python wrapper for Apache Solr.",
     author = 'Joseph Kocherhans',
     author_email = 'jkocherhans@gmail.com',
@@ -14,5 +14,6 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search'
-    ]
+    ],
+    url = 'http://code.google.com/p/pysolr/'
 )
