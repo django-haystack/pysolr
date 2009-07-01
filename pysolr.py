@@ -219,12 +219,22 @@ class Solr(object):
         path = '%s/mlt/?%s' % (self.path, urlencode(params, True))
         return self._send_request('GET', path)
 
-    def _update(self, message):
+    def _update(self, message, clean_ctrl_chars=True):
         """
         Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
+        
+        Passing `sanitize` as False will prevent the message from being cleaned
+        of control characters (default True). This is done by default because
+        these characters would cause Solr to fail to parse the XML. Only pass
+        False if you're positive your data is clean.
         """
         path = '%s/update/' % self.path
+        
+        # Clean the message of ctrl characters.
+        if clean_ctrl_chars:
+            message = sanitize(message)
+        
         return self._send_request('POST', path, message, {'Content-type': 'text/xml'})
 
     def _extract_error(self, headers, response):
@@ -385,6 +395,50 @@ class Solr(object):
 
     def optimize(self):
         response = self._update('<optimize />')
+
+
+# Using two-tuples to preserve order.
+REPLACEMENTS = (
+    # Nuke nasty control characters.
+    ('\x00', ''), # Start of heading
+    ('\x01', ''), # Start of heading
+    ('\x02', ''), # Start of text
+    ('\x03', ''), # End of text
+    ('\x04', ''), # End of transmission
+    ('\x05', ''), # Enquiry
+    ('\x06', ''), # Acknowledge
+    ('\x07', ''), # Ring terminal bell
+    ('\x08', ''), # Backspace
+    ('\x0b', ''), # Vertical tab
+    ('\x0c', ''), # Form feed
+    ('\x0e', ''), # Shift out
+    ('\x0f', ''), # Shift in
+    ('\x10', ''), # Data link escape
+    ('\x11', ''), # Device control 1
+    ('\x12', ''), # Device control 2
+    ('\x13', ''), # Device control 3
+    ('\x14', ''), # Device control 4
+    ('\x15', ''), # Negative acknowledge
+    ('\x16', ''), # Synchronous idle
+    ('\x17', ''), # End of transmission block
+    ('\x18', ''), # Cancel
+    ('\x19', ''), # End of medium
+    ('\x1a', ''), # Substitute character
+    ('\x1b', ''), # Escape
+    ('\x1c', ''), # File separator
+    ('\x1d', ''), # Group separator
+    ('\x1e', ''), # Record separator
+    ('\x1f', ''), # Unit separator
+)
+
+def sanitize(data):
+    fixed_string = data
+    
+    for bad, good in REPLACEMENTS:
+        fixed_string = fixed_string.replace(bad, good)
+    
+    return fixed_string
+
 
 if __name__ == "__main__":
     import doctest
