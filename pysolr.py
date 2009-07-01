@@ -242,8 +242,8 @@ class Solr(object):
         Extract the actual error message from a solr response. Unfortunately,
         this means scraping the html.
         """
-        et = ET.fromstring(response)
-        return "[%s] %s" % (headers.get('reason'), et.findtext('body/h1'))
+        jetty_br = '<br/>                                                \n'
+        return "[Reason: %s]\n%s" % (headers.get('reason'), response.replace(jetty_br, ''))
 
     # Conversion #############################################################
 
