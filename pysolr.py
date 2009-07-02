@@ -144,7 +144,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 7)
+__version__ = (2, 0, 8)
 
 def get_version():
     return "%s.%s.%s" % __version__
@@ -201,7 +201,7 @@ class Solr(object):
             response = conn.getresponse()
             
             if response.status != 200:
-                raise SolrError(self._extract_error(response, response.read()))
+                raise SolrError(self._extract_error(dict(response.getheaders()), response.read()))
             
             return response.read()
 
