@@ -144,7 +144,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 8)
+__version__ = (2, 0, 9)
 
 def get_version():
     return "%s.%s.%s" % __version__
@@ -343,6 +343,13 @@ class Solr(object):
         response = self._mlt(params)
         
         result = self.decoder.decode(response)
+        
+        if result['response'] is None:
+            result['response'] = {
+                'docs': [],
+                'numFound': 0,
+            }
+        
         return Results(result['response']['docs'], result['response']['numFound'])
 
     def add(self, docs, commit=True):
