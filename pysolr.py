@@ -102,8 +102,14 @@ document 5
 
 from urllib import urlencode
 from urlparse import urlsplit
-from datetime import datetime, date
 import re
+
+try:
+    # Use Django's implementation if available because it can handle dates before 1900.
+    from django.utils.datetime_safe import datetime, date
+except ImportError:
+    # Fall back to the default
+    from datetime import datetime, date
 
 try:
     # for python 2.5
@@ -144,7 +150,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 9)
+__version__ = (2, 0, 10)
 
 def get_version():
     return "%s.%s.%s" % __version__
