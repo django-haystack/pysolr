@@ -258,10 +258,11 @@ class Solr(object):
         Converts python values to a form suitable for insertion into the xml
         we send to solr.
         """
-        if isinstance(value, datetime):
-            value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
-        elif isinstance(value, date):
-            value = value.strftime('%Y-%m-%dT00:00:00Z')
+        if hasattr(value, 'strftime'):
+            if hasattr(value, 'hour'):
+                value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
+            else:
+                value = value.strftime('%Y-%m-%dT00:00:00Z')
         elif isinstance(value, bool):
             if value:
                 value = 'true'
