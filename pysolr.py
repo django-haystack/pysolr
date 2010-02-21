@@ -214,9 +214,21 @@ class Solr(object):
     def _select(self, params):
         # encode the query as utf-8 so urlencode can handle it
         params['q'] = params['q'].encode('utf-8')
-        params['wt'] = 'json' # specify json encoding of results
-        path = '%s/select/?%s' % (self.path, urlencode(params, True))
-        return self._send_request('GET', path)
+        # specify json encoding of results
+        params['wt'] = 'json'
+        
+        if len(params['q']) < 1024:
+            # Typical case.
+            path = '%s/select/?%s' % (self.path, urlencode(params, True))
+            return self._send_request('GET', path)
+        else:
+            # Handles very long queries by submitting as a POST.
+            path = '%s/select/?%s' % (self.path,)
+            headers = {
+                'Content-type': 'application/x-www-form-urlencoded',
+            }
+            body = urlencode(params, False)
+            return self._send_request('POST', path, body=body, headers=headers)
     
     def _mlt(self, params):
         # encode the query as utf-8 so urlencode can handle it
