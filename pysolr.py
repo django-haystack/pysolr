@@ -101,7 +101,7 @@ document 5
 # TODO: unicode support is pretty sloppy. define it better.
 
 from urllib import urlencode
-from urlparse import urlsplit
+from urlparse import urlsplit, urlunsplit
 import re
 
 try:
@@ -179,6 +179,7 @@ class Solr(object):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.scheme, netloc, path, query, fragment = urlsplit(url)
+        self.base_url = urlunsplit((self.scheme, netloc, '', '', ''))
         netloc = netloc.split(':')
         self.host = netloc[0]
         if len(netloc) == 1:
@@ -190,9 +191,8 @@ class Solr(object):
     
     def _send_request(self, method, path, body=None, headers=None):
         if TIMEOUTS_AVAILABLE:
-            url = self.url.replace(self.path, '')
             http = Http(timeout=self.timeout)
-            headers, response = http.request(url + path, method=method, body=body, headers=headers)
+            headers, response = http.request(self.base_url + path, method=method, body=body, headers=headers)
             
             if int(headers['status']) != 200:
                 raise SolrError(self._extract_error(headers, response))
