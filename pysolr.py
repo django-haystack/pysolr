@@ -150,10 +150,10 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 11)
+__version__ = (2, 0, 12, 'beta')
 
 def get_version():
-    return "%s.%s.%s" % __version__
+    return "%s.%s.%s" % __version__[0:3]
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
 
@@ -391,7 +391,7 @@ class Solr(object):
                     f.text = self._from_python(value)
                     d.append(f)
             message.append(d)
-        m = ET.tostring(message)
+        m = ET.tostring(message, 'utf-8')
         response = self._update(m)
         # TODO: Supposedly, we can put a <commit /> element in the same post body
         # as the add element. That isn't working for some reason, and it would save us
