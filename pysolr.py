@@ -100,16 +100,10 @@ document 5
 
 # TODO: unicode support is pretty sloppy. define it better.
 
+from datetime import datetime
+import re
 from urllib import urlencode
 from urlparse import urlsplit, urlunsplit
-import re
-
-try:
-    # Use Django's implementation if available because it can handle dates before 1900.
-    from django.utils.datetime_safe import datetime, date
-except ImportError:
-    # Fall back to the default
-    from datetime import datetime, date
 
 try:
     # for python 2.5
@@ -272,9 +266,9 @@ class Solr(object):
         """
         if hasattr(value, 'strftime'):
             if hasattr(value, 'hour'):
-                value = value.strftime('%Y-%m-%dT%H:%M:%SZ')
+                value = "%sZ" % value.isoformat()
             else:
-                value = value.strftime('%Y-%m-%dT00:00:00Z')
+                value = "%sT00:00:00Z" % value.isoformat()
         elif isinstance(value, bool):
             if value:
                 value = 'true'
@@ -376,6 +370,7 @@ class Solr(object):
         where each key is the field name and each value is the value to index.
         """
         message = ET.Element('add')
+        
         for doc in docs:
             d = ET.Element('doc')
             for key, value in doc.items():
@@ -394,7 +389,9 @@ class Solr(object):
                     f = ET.Element('field', name=key)
                     f.text = self._from_python(value)
                     d.append(f)
+            
             message.append(d)
+        
         m = ET.tostring(message, 'utf-8')
         response = self._update(m)
         # TODO: Supposedly, we can put a <commit /> element in the same post body
@@ -413,6 +410,7 @@ class Solr(object):
             m = '<delete><id>%s</id></delete>' % id
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
+        
         response = self._update(m)
         # TODO: Supposedly, we can put a <commit /> element in the same post body
         # as the delete element. That isn't working for some reason, and it would save us
