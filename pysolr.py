@@ -379,6 +379,10 @@ class Solr(object):
         for doc in docs:
             d = ET.Element('doc')
             for key, value in doc.items():
+                if key == 'boost':
+                    d.set('boost', str(value))
+                    continue
+                
                 # handle lists, tuples, and other iterabes
                 if hasattr(value, '__iter__'):
                     for v in value:
