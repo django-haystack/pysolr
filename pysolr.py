@@ -155,12 +155,13 @@ class SolrError(Exception):
     pass
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
+        self.stats = stats or {}
 
     def __len__(self):
         return len(self.docs)
@@ -339,6 +340,9 @@ class Solr(object):
         
         if result.get('spellcheck'):
             result_kwargs['spellcheck'] = result['spellcheck']
+        
+        if result.get('stats'):
+            result_kwargs['stats'] = result['stats']
         
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
     
