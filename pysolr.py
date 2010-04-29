@@ -319,9 +319,19 @@ class Solr(object):
             pass
         
         return value
-
+    
+    def _is_null_value(self, value):
+        """
+        Check if a given value is ``null``.
+        
+        Criteria for this is based on values that shouldn't be included
+        in the Solr ``add`` request at all.
+        """
+        # TODO: This should probably be removed when solved in core Solr level?
+        return (value is None) or (isinstance(value, basestring) and len(value) == 0)
+    
     # API Methods ############################################################
-
+    
     def search(self, q, **kwargs):
         """Performs a search and returns the results."""
         params = {'q': q}
@@ -377,6 +387,7 @@ class Solr(object):
         
         for doc in docs:
             d = ET.Element('doc')
+            
             for key, value in doc.items():
                 if key == 'boost':
                     d.set('boost', str(value))
@@ -385,11 +396,17 @@ class Solr(object):
                 # handle lists, tuples, and other iterabes
                 if hasattr(value, '__iter__'):
                     for v in value:
+                        if self._is_null_value(value):
+                            continue
+                        
                         f = ET.Element('field', name=key)
                         f.text = self._from_python(v)
                         d.append(f)
                 # handle strings and unicode
                 else:
+                    if self._is_null_value(value):
+                        continue
+                    
                     f = ET.Element('field', name=key)
                     f.text = self._from_python(value)
                     d.append(f)
