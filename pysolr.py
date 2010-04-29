@@ -102,7 +102,8 @@ document 5
 
 from datetime import datetime
 import re
-from urllib import urlencode
+import urllib
+import urllib2
 from urlparse import urlsplit, urlunsplit
 
 try:
@@ -214,7 +215,7 @@ class Solr(object):
         
         if len(params['q']) < 1024:
             # Typical case.
-            path = '%s/select/?%s' % (self.path, urlencode(params, True))
+            path = '%s/select/?%s' % (self.path, urllib.urlencode(params, True))
             return self._send_request('GET', path)
         else:
             # Handles very long queries by submitting as a POST.
@@ -222,14 +223,14 @@ class Solr(object):
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded',
             }
-            body = urlencode(params, False)
+            body = urllib.urlencode(params, False)
             return self._send_request('POST', path, body=body, headers=headers)
     
     def _mlt(self, params):
         # encode the query as utf-8 so urlencode can handle it
         params['q'] = params['q'].encode('utf-8')
         params['wt'] = 'json' # specify json encoding of results
-        path = '%s/mlt/?%s' % (self.path, urlencode(params, True))
+        path = '%s/mlt/?%s' % (self.path, urllib.urlencode(params, True))
         return self._send_request('GET', path)
 
     def _update(self, message, clean_ctrl_chars=True):
@@ -444,6 +445,109 @@ class Solr(object):
 
     def optimize(self):
         response = self._update('<optimize />')
+
+
+class SolrCoreAdmin(object):
+    """
+    Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
+    
+    Operations offered by Solr are:
+       1. STATUS
+       2. CREATE
+       3. RELOAD
+       4. RENAME
+       5. ALIAS
+       6. SWAP
+       7. UNLOAD
+       8. LOAD (not currently implemented)
+    """
+    def __init__(self, url, *args, **kwargs):
+        super(SolrCoreAdmin, self).__init__(*args, **kwargs)
+        self.url = url
+    
+    def _get_url(self, url, params={}, headers={}):
+        request = urllib2.Request(url, data=urllib.urlencode(params), headers=headers)
+        # Let ``socket.error``, ``urllib2.HTTPError`` and ``urllib2.URLError``
+        # propagate up the stack.
+        response = urllib2.urlopen(request)
+        return response.read()
+    
+    def status(self, core=None):
+        """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
+        params = {
+            'action': 'STATUS',
+        }
+        
+        if core is not None:
+            params.update(core=core)
+        
+        return self._get_url(self.url, params=params)
+    
+    def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml'):
+        """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
+        params = {
+            'action': 'STATUS',
+            'name': name,
+            'config': config,
+            'schema': schema,
+        }
+        
+        if instance_dir is None:
+            params.update(instanceDir=name)
+        else:
+            params.update(instanceDir=instance_dir)
+        
+        return self._get_url(self.url, params=params)
+    
+    def reload(self, core):
+        """http://wiki.apache.org/solr/CoreAdmin#head-3f125034c6a64611779442539812067b8b430930"""
+        params = {
+            'action': 'RELOAD',
+            'core': core,
+        }
+        return self._get_url(self.url, params=params)
+    
+    def rename(self, core, other):
+        """http://wiki.apache.org/solr/CoreAdmin#head-9473bee1abed39e8583ba45ef993bebb468e3afe"""
+        params = {
+            'action': 'RENAME',
+            'core': core,
+            'other': other,
+        }
+        return self._get_url(self.url, params=params)
+    
+    def alias(self, core, other):
+        """
+        http://wiki.apache.org/solr/CoreAdmin#head-8bf9004eaa4d86af23d2758aafb0d31e2e8fe0d2
+        
+        Experimental feature in Solr 1.3
+        """
+        params = {
+            'action': 'ALIAS',
+            'core': core,
+            'other': other,
+        }
+        return self._get_url(self.url, params=params)
+    
+    def swap(self, core, other):
+        """http://wiki.apache.org/solr/CoreAdmin#head-928b872300f1b66748c85cebb12a59bb574e501b"""
+        params = {
+            'action': 'SWAP',
+            'core': core,
+            'other': other,
+        }
+        return self._get_url(self.url, params=params)
+    
+    def unload(self, core):
+        """http://wiki.apache.org/solr/CoreAdmin#head-f5055a885932e2c25096a8856de840b06764d143"""
+        params = {
+            'action': 'UNLOAD',
+            'core': core,
+        }
+        return self._get_url(self.url, params=params)
+        
+    def load(self, core):
+        raise NotImplementedError('Solr 1.4 and below do not support this operation.')
 
 
 # Using two-tuples to preserve order.
