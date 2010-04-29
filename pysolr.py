@@ -253,11 +253,58 @@ class Solr(object):
 
     def _extract_error(self, headers, response):
         """
-        Extract the actual error message from a solr response. Unfortunately,
-        this means scraping the html.
+        Extract the actual error message from a solr response.
         """
-        jetty_br = '<br/>                                                \n'
-        return "[Reason: %s]\n%s" % (headers.get('reason'), response.replace(jetty_br, ''))
+        reason = headers.get('reason', None)
+        full_html = None
+        
+        if reason is None:
+            reason, full_html = self._scrape_response(headers, response)
+        
+        msg = "[Reason: %s]" % reason
+        
+        if reason is None:
+            msg += "\n%s" % full_html
+        
+        return msg
+    
+    def _scrape_response(self, headers, response):
+        """
+        Scrape the html response.
+        """
+        # identify the responding server
+        server_type = None
+        server_string = headers.get('server', None)
+        
+        if 'jetty' in server_string.lower():
+            server_type = 'jetty'
+        
+        reason = None
+        full_html = ''
+        dom_tree = None
+        
+        try:
+            dom_tree = ET.fromstring(response)
+            reason_node = None
+            
+            # html page might be different for every server
+            if server_type == 'jetty':
+                reason_node = dom_tree.find('body/pre')
+            
+            if reason_node is not None:
+                reason = reason_node.text
+            
+            if reason is None:
+                full_html = ET.tostring(dom_tree)
+        except SyntaxError, e:
+            full_html = "%s" % response
+        
+        full_html = full_html.replace('\n', '')
+        full_html = full_html.replace('\r', '')
+        full_html = full_html.replace('<br/>', '')
+        full_html = full_html.replace('<br />', '')
+        full_html = full_html.strip()
+        return reason, full_html
 
     # Conversion #############################################################
 
