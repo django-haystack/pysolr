@@ -241,7 +241,7 @@ class Solr(object):
             # Handles very long queries by submitting as a POST.
             path = '%s/select/?%s' % (self.path,)
             headers = {
-                'Content-type': 'application/x-www-form-urlencoded',
+                'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
             body = urllib.urlencode(params, False)
             return self._send_request('POST', path, body=body, headers=headers)
@@ -269,7 +269,7 @@ class Solr(object):
         if clean_ctrl_chars:
             message = sanitize(message)
         
-        return self._send_request('POST', path, message, {'Content-type': 'text/xml'})
+        return self._send_request('POST', path, message, {'Content-type': 'text/xml; charset=utf-8'})
 
     def _extract_error(self, headers, response):
         """
