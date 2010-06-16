@@ -239,7 +239,7 @@ class Solr(object):
             return self._send_request('GET', path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = '%s/select/?%s' % (self.path,)
+            path = '%s/select/' % (self.path,)
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
