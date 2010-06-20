@@ -253,7 +253,7 @@ class Solr(object):
         path = '%s/mlt/?%s' % (self.path, urllib.urlencode(params, True))
         return self._send_request('GET', path)
 
-    def _update(self, message, clean_ctrl_chars=True):
+    def _update(self, message, clean_ctrl_chars=True, commit=True):
         """
         Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
@@ -265,12 +265,18 @@ class Solr(object):
         """
         path = '%s/update/' % self.path
         
+        # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
+        # ``commit=true`` to the URL and have the commit happen without a
+        # second request.
+        if commit:
+            path += '?commit=true'
+        
         # Clean the message of ctrl characters.
         if clean_ctrl_chars:
             message = sanitize(message)
         
         return self._send_request('POST', path, message, {'Content-type': 'text/xml; charset=utf-8'})
-
+    
     def _extract_error(self, headers, response):
         """
         Extract the actual error message from a solr response.
@@ -325,9 +331,9 @@ class Solr(object):
         full_html = full_html.replace('<br />', '')
         full_html = full_html.strip()
         return reason, full_html
-
+    
     # Conversion #############################################################
-
+    
     def _from_python(self, value):
         """
         Converts python values to a form suitable for insertion into the xml
@@ -446,7 +452,7 @@ class Solr(object):
             }
         
         return Results(result['response']['docs'], result['response']['numFound'])
-
+    
     def add(self, docs, commit=True, boost=None):
         """Adds or updates documents. For now, docs is a list of dictionaries
         where each key is the field name and each value is the value to index.
@@ -489,13 +495,8 @@ class Solr(object):
             message.append(d)
         
         m = ET.tostring(message, 'utf-8')
-        response = self._update(m)
-        # TODO: Supposedly, we can put a <commit /> element in the same post body
-        # as the add element. That isn't working for some reason, and it would save us
-        # an extra trip to the server. This works for now.
-        if commit:
-            self.commit()
-
+        response = self._update(m, commit=commit)
+    
     def delete(self, id=None, q=None, commit=True, fromPending=True, fromCommitted=True):
         """Deletes documents."""
         if id is None and q is None:
@@ -507,16 +508,11 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
         
-        response = self._update(m)
-        # TODO: Supposedly, we can put a <commit /> element in the same post body
-        # as the delete element. That isn't working for some reason, and it would save us
-        # an extra trip to the server. This works for now.
-        if commit:
-            self.commit()
-
+        response = self._update(m, commit=commit)
+    
     def commit(self):
         response = self._update('<commit />')
-
+    
     def optimize(self):
         response = self._update('<optimize />')
 
