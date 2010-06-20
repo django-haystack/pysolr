@@ -121,7 +121,9 @@ document 7
 # TODO: unicode support is pretty sloppy. define it better.
 
 from datetime import datetime
+import logging
 import re
+import time
 import urllib
 import urllib2
 from urlparse import urlsplit, urlunsplit
@@ -165,15 +167,36 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 12)
+__version__ = (2, 0, 13, 'beta')
 
 def get_version():
-    return "%s.%s.%s" % __version__[0:3]
+    return "%s.%s.%s" % __version__[:3]
+
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
 
+
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+
+# Add the ``NullHandler`` to avoid logging by default while still allowing
+# others to attach their own handlers.
+LOG = logging.getLogger('pysolr')
+h = NullHandler()
+LOG.addHandler(h)
+
+# For debugging...
+if False:
+    LOG.setLevel(logging.DEBUG)
+    stream = logging.StreamHandler()
+    LOG.addHandler(stream)
+
+
 class SolrError(Exception):
     pass
+
 
 class Results(object):
     def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None):
@@ -190,6 +213,7 @@ class Results(object):
     def __iter__(self):
         return iter(self.docs)
 
+
 class Solr(object):
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
@@ -204,6 +228,10 @@ class Solr(object):
             self.host, self.port = netloc
         self.path = path.rstrip('/')
         self.timeout = timeout
+        self.log = self._get_log()
+    
+    def _get_log(self):
+        return LOG
     
     def _send_request(self, method, path, body=None, headers=None):
         if TIMEOUTS_AVAILABLE:
@@ -211,13 +239,21 @@ class Solr(object):
             url = self.base_url + path
             
             try:
+                start_time = time.time()
+                self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, body[:10]))
                 headers, response = http.request(url, method=method, body=body, headers=headers)
+                end_time = time.time()
+                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, body[:10], end_time - start_time))
             except AttributeError:
                 # For httplib2.
-                raise SolrError("Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url))
+                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url)
+                self.log.error(error_message)
+                raise SolrError(error_message)
             
             if int(headers['status']) != 200:
-                raise SolrError(self._extract_error(headers, response))
+                error_message = self._extract_error(headers, response)
+                self.log.error(error_message)
+                raise SolrError(error_message)
             
             return response
         else:
@@ -225,11 +261,17 @@ class Solr(object):
                 headers = {}
             
             conn = HTTPConnection(self.host, self.port)
+            start_time = time.time()
+            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, body[:10]))
             conn.request(method, path, body, headers)
             response = conn.getresponse()
+            end_time = time.time()
+            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds." % (self.host, self.port, path, method, body[:10], end_time - start_time))
             
             if response.status != 200:
-                raise SolrError(self._extract_error(dict(response.getheaders()), response.read()))
+                error_message = self._extract_error(dict(response.getheaders()), response.read())
+                self.log.error(error_message)
+                raise SolrError(error_message)
             
             return response.read()
 
@@ -456,6 +498,7 @@ class Solr(object):
         if result.get('stats'):
             result_kwargs['stats'] = result['stats']
         
+        self.log.debug("Found '%s' search results." % result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
     
     def more_like_this(self, q, mltfl, **kwargs):
@@ -479,12 +522,15 @@ class Solr(object):
                 'numFound': 0,
             }
         
+        self.log.debug("Found '%s' MLT results." % result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'])
     
     def add(self, docs, commit=True, boost=None):
         """Adds or updates documents. For now, docs is a list of dictionaries
         where each key is the field name and each value is the value to index.
         """
+        start_time = time.time()
+        self.log.debug("Starting to build add request...")
         message = ET.Element('add')
         
         for doc in docs:
@@ -523,6 +569,8 @@ class Solr(object):
             message.append(d)
         
         m = ET.tostring(message, 'utf-8')
+        end_time = time.time()
+        self.log.debug("Built add request of %s docs in %0.2f seconds." % (len(docs), end_time - start_time))
         response = self._update(m, commit=commit)
     
     def delete(self, id=None, q=None, commit=True, fromPending=True, fromCommitted=True):
