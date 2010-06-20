@@ -305,25 +305,47 @@ class Solr(object):
         if 'jetty' in server_string.lower():
             server_type = 'jetty'
         
+        if 'coyote' in server_string.lower():
+            # TODO: During the pysolr 3 effort, make this no longer a
+            #       conditional and consider using ``lxml.html`` instead.
+            from BeautifulSoup import BeautifulSoup
+            server_type = 'tomcat'
+        
         reason = None
         full_html = ''
         dom_tree = None
         
-        try:
-            dom_tree = ET.fromstring(response)
-            reason_node = None
+        if server_type == 'tomcat':
+            # Tomcat doesn't produce a valid XML response
+            soup = BeautifulSoup(response)
+            body_node = soup.find('body')
+            p_nodes = body_node.findAll('p')
             
-            # html page might be different for every server
-            if server_type == 'jetty':
-                reason_node = dom_tree.find('body/pre')
-            
-            if reason_node is not None:
-                reason = reason_node.text
+            for p_node in p_nodes:
+                children = p_node.findChildren()
+                
+                if len(children) >= 2 and 'message' in children[0].renderContents().lower():
+                    reason = children[1].renderContents()
             
             if reason is None:
-                full_html = ET.tostring(dom_tree)
-        except SyntaxError, e:
-            full_html = "%s" % response
+                full_html = soup.prettify()
+        else:
+            # Let's assume others do produce a valid XML response
+            try:
+                dom_tree = ET.fromstring(response)
+                reason_node = None
+                
+                # html page might be different for every server
+                if server_type == 'jetty':
+                    reason_node = dom_tree.find('body/pre')
+                
+                if reason_node is not None:
+                    reason = reason_node.text
+                
+                if reason is None:
+                    full_html = ET.tostring(dom_tree)
+            except SyntaxError, e:
+                full_html = "%s" % response
         
         full_html = full_html.replace('\n', '')
         full_html = full_html.replace('\r', '')
