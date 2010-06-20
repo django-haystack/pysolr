@@ -208,7 +208,13 @@ class Solr(object):
     def _send_request(self, method, path, body=None, headers=None):
         if TIMEOUTS_AVAILABLE:
             http = Http(timeout=self.timeout)
-            headers, response = http.request(self.base_url + path, method=method, body=body, headers=headers)
+            url = self.base_url + path
+            
+            try:
+                headers, response = http.request(url, method=method, body=body, headers=headers)
+            except AttributeError:
+                # For httplib2.
+                raise SolrError("Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url))
             
             if int(headers['status']) != 200:
                 raise SolrError(self._extract_error(headers, response))
