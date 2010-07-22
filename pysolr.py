@@ -608,6 +608,9 @@ class Solr(object):
                             continue
                         
                         if boost and v in boost:
+                            if not isinstance(boost, basestring):
+                                boost[v] = str(boost[v])
+                            
                             f = ET.Element('field', name=key, boost=boost[v])
                         else:
                             f = ET.Element('field', name=key)
@@ -620,6 +623,9 @@ class Solr(object):
                         continue
                     
                     if boost and key in boost:
+                        if not isinstance(boost, basestring):
+                            boost[v] = str(boost[v])
+                        
                         f = ET.Element('field', name=key, boost=boost[key])
                     else:
                         f = ET.Element('field', name=key)
