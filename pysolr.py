@@ -420,7 +420,7 @@ class Solr(object):
             else:
                 value = 'false'
         else:
-            value = unicode(value)
+            value = unicode(value, errors='replace')
         return value
     
     def _to_python(self, value):
