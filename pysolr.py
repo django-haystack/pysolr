@@ -300,7 +300,14 @@ class Solr(object):
         params['wt'] = 'json' # specify json encoding of results
         path = '%s/mlt/?%s' % (self.path, urllib.urlencode(params, True))
         return self._send_request('GET', path)
-
+    
+    def _suggest_terms(self, params):
+        # encode the query as utf-8 so urlencode can handle it
+        params['terms.prefix'] = params['terms.prefix'].encode("utf-8")
+        params['wt'] = 'json' # specify json encoding of results
+        path = '%s/terms/?%s' % (self.path, urllib.urlencode(params, True))
+        return self._send_request('GET', path)
+    
     def _update(self, message, clean_ctrl_chars=True, commit=True):
         """
         Posts the given xml message to http://<host>:<port>/solr/update and
@@ -524,6 +531,39 @@ class Solr(object):
         
         self.log.debug("Found '%s' MLT results." % result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'])
+    
+    def suggest_terms(self, fields, prefix, **kwargs):
+        """
+        Accepts a list of field names and a prefix
+        
+        Returns a dictionary keyed on field name containing a list of
+        ``(term, count)`` pairs
+        
+        Requires Solr 1.4+.
+        """
+        params = {
+            'terms.fl': fields,
+            'terms.prefix': prefix,
+        }
+        params.update(kwargs)
+        response = self._suggest_terms(params)
+        result = self.decoder.decode(response)
+        terms = result.get("terms", {})
+        res = {}
+        
+        while terms:
+            # The raw values are a flat list: ["dance",23,"dancers",10,"dancing",8,"dancer",6]]
+            field = terms.pop(0)
+            values = terms.pop(0)
+            tmp = list()
+            
+            while values:
+                tmp.append((values.pop(0), values.pop(0)))
+            
+            res[field] = tmp
+        
+        self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
+        return res
     
     def add(self, docs, commit=True, boost=None):
         """Adds or updates documents. For now, docs is a list of dictionaries
