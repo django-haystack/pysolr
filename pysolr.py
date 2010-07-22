@@ -194,6 +194,32 @@ if False:
     LOG.addHandler(stream)
 
 
+
+def safe_urlencode(params, doseq=0):
+    """
+    UTF-8-safe version of safe_urlencode
+    
+    The stdlib safe_urlencode prior to Python 3.x chokes on UTF-8 values
+    which can't fail down to ascii.
+    """
+    if hasattr(params, "items"):
+        params = params.items()
+    
+    new_params = list()
+    
+    for k, v in params:
+        k = k.encode("utf-8")
+        
+        if isinstance(v, basestring):
+            new_params.append((k, v.encode("utf-8")))
+        elif isinstance(v, (list, tuple)):
+            new_params.append((k, [i.encode("utf-8") for i in v]))
+        else:
+            new_params.append((k, unicode(v)))
+    
+    return urllib.urlencode(new_params, doseq)
+
+
 class SolrError(Exception):
     pass
 
@@ -276,14 +302,12 @@ class Solr(object):
             return response.read()
 
     def _select(self, params):
-        # encode the query as utf-8 so urlencode can handle it
-        params['q'] = params['q'].encode('utf-8')
         # specify json encoding of results
         params['wt'] = 'json'
         
         if len(params['q']) < 1024:
             # Typical case.
-            path = '%s/select/?%s' % (self.path, urllib.urlencode(params, True))
+            path = '%s/select/?%s' % (self.path, safe_urlencode(params, True))
             return self._send_request('GET', path)
         else:
             # Handles very long queries by submitting as a POST.
@@ -291,21 +315,17 @@ class Solr(object):
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
-            body = urllib.urlencode(params, False)
+            body = safe_urlencode(params, False)
             return self._send_request('POST', path, body=body, headers=headers)
     
     def _mlt(self, params):
-        # encode the query as utf-8 so urlencode can handle it
-        params['q'] = params['q'].encode('utf-8')
         params['wt'] = 'json' # specify json encoding of results
-        path = '%s/mlt/?%s' % (self.path, urllib.urlencode(params, True))
+        path = '%s/mlt/?%s' % (self.path, safe_urlencode(params, True))
         return self._send_request('GET', path)
     
     def _suggest_terms(self, params):
-        # encode the query as utf-8 so urlencode can handle it
-        params['terms.prefix'] = params['terms.prefix'].encode("utf-8")
         params['wt'] = 'json' # specify json encoding of results
-        path = '%s/terms/?%s' % (self.path, urllib.urlencode(params, True))
+        path = '%s/terms/?%s' % (self.path, safe_urlencode(params, True))
         return self._send_request('GET', path)
     
     def _update(self, message, clean_ctrl_chars=True, commit=True):
@@ -652,7 +672,7 @@ class SolrCoreAdmin(object):
         self.url = url
     
     def _get_url(self, url, params={}, headers={}):
-        request = urllib2.Request(url, data=urllib.urlencode(params), headers=headers)
+        request = urllib2.Request(url, data=safe_urlencode(params), headers=headers)
         # Let ``socket.error``, ``urllib2.HTTPError`` and ``urllib2.URLError``
         # propagate up the stack.
         response = urllib2.urlopen(request)
