@@ -305,7 +305,7 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         
-        if len(params['q']) < 1024:
+        if sum([len(p) for p in params]) < 1024:
             # Typical case.
             path = '%s/select/?%s' % (self.path, safe_urlencode(params, True))
             return self._send_request('GET', path)
