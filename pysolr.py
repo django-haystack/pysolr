@@ -446,8 +446,10 @@ class Solr(object):
                 value = 'true'
             else:
                 value = 'false'
-        else:
+        elif isinstance(value, str):
             value = unicode(value, errors='replace')
+        else:
+            value = unicode(value)
         return value
     
     def _to_python(self, value):
