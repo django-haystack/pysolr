@@ -315,7 +315,7 @@ class Solr(object):
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
-            body = safe_urlencode(params, False)
+            body = safe_urlencode(params, True)
             return self._send_request('POST', path, body=body, headers=headers)
     
     def _mlt(self, params):
