@@ -167,7 +167,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 13, 'beta')
+__version__ = (2, 0, 13)
 
 def get_version():
     return "%s.%s.%s" % __version__[:3]
@@ -304,10 +304,11 @@ class Solr(object):
     def _select(self, params):
         # specify json encoding of results
         params['wt'] = 'json'
+        params_encoded = safe_urlencode(params, True)
         
-        if sum([len(p) for p in params]) < 1024:
+        if len(params_encoded) < 1024:
             # Typical case.
-            path = '%s/select/?%s' % (self.path, safe_urlencode(params, True))
+            path = '%s/select/?%s' % (self.path, params_encoded)
             return self._send_request('GET', path)
         else:
             # Handles very long queries by submitting as a POST.
@@ -315,8 +316,7 @@ class Solr(object):
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
-            body = safe_urlencode(params, True)
-            return self._send_request('POST', path, body=body, headers=headers)
+            return self._send_request('POST', path, body=params_encoded, headers=headers)
     
     def _mlt(self, params):
         params['wt'] = 'json' # specify json encoding of results
