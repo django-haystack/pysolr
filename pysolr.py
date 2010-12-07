@@ -377,14 +377,15 @@ class Solr(object):
         server_type = None
         server_string = headers.get('server', None)
         
-        if 'jetty' in server_string.lower():
-            server_type = 'jetty'
+        if server_string:
+            if 'jetty' in server_string.lower():
+                server_type = 'jetty'
         
-        if 'coyote' in server_string.lower():
-            # TODO: During the pysolr 3 effort, make this no longer a
-            #       conditional and consider using ``lxml.html`` instead.
-            from BeautifulSoup import BeautifulSoup
-            server_type = 'tomcat'
+            if 'coyote' in server_string.lower():
+                # TODO: During the pysolr 3 effort, make this no longer a
+                #       conditional and consider using ``lxml.html`` instead.
+                from BeautifulSoup import BeautifulSoup
+                server_type = 'tomcat'
         
         reason = None
         full_html = ''
