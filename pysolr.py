@@ -167,7 +167,7 @@ except NameError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 0, 13)
+__version__ = (2, 0, 14, 'beta')
 
 def get_version():
     return "%s.%s.%s" % __version__[:3]
@@ -375,7 +375,7 @@ class Solr(object):
         """
         # identify the responding server
         server_type = None
-        server_string = headers.get('server', None)
+        server_string = headers.get('server', '')
         
         if 'jetty' in server_string.lower():
             server_type = 'jetty'
