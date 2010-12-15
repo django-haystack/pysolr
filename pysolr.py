@@ -637,7 +637,7 @@ class Solr(object):
             
             message.append(d)
         
-        m = ET.tostring(message, 'utf-8')
+        m = ET.tostring(message, encoding='utf-8')
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds." % (len(docs), end_time - start_time))
         response = self._update(m, commit=commit)
