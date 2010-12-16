@@ -1,4 +1,4 @@
-pysolr (2.0.13) unstable; urgency=low
+pysolr (2.0.13-1) unstable; urgency=low
 
   [ Daniel Lindsley ]
   * Added basic logging support. Thanks to sjaday for the suggestion.
