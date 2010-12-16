@@ -1,0 +1,25 @@
+pysolr (2.0.13) unstable; urgency=low
+
+  [ Daniel Lindsley ]
+  * Added basic logging support. Thanks to sjaday for the suggestion.
+  * Slicing ``None`` doesn't work. Make it a string...
+  * If invalid characters are found, replace them. Thanks to stugots for
+    the report and fix.
+  * Added term suggestion. Requires Solr 1.4+. Thanks to acdha for the
+    patch!
+  * All params are now safely encoded. Thanks to acdha for the patch!
+  * Boost values are now coerced into a string. Thanks to notanumber for
+    the patch!
+  * Fixed a bug where additional parameters could cause the URL to be
+    longer than 1024 even if the query is not. Thanks to zyegfryed for
+    the report & patch!
+  * Fixed the long URL support to correctly deal with sequences.
+  * Fixed the case where the data being converted would be clean
+    unicode. Thanks to acdha for submitting another version of this
+    patch.
+  * Fixed a bug in the weighting when given a string field that's
+    weighted. Thanks to akaihola for the report.
+  * Cleaned up how parameters are checked. Thanks to zyegfryed for the
+    patch. v2.0.13.
+
+ -- Jorge A Gallegos <kad@digg.com>  Thu, 16 Dec 2010 12:21:00 -0800

@@ -1,0 +1,18 @@
+Source: pysolr
+Section: libs
+Priority: extra
+Maintainer: Jorge A Gallegos <kad@digg.com>
+Build-Depends: cdbs, debhelper (>= 7)
+Build-Depends-Indep: python-dev, python-support, python-setuptools
+Standards-Version: 3.7.3
+Homepage: https://github.com/toastdriven/pysolr
+
+Package: python-pysolr
+Architecture: any
+Section: libs
+Depends: ${python:Depends}
+Suggests: python-httplib2, python-beautifulsoup
+Description: lightweight Python wrapper for Apache Solr.
+ It provides an interface that queries the server and returns
+ results based on the query.
+
