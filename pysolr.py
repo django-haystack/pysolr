@@ -587,14 +587,15 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
     
-    def add(self, docs, commit=True, boost=None):
+    def add(self, docs, commit=True, boost=None, commitWithin=None):
         """Adds or updates documents. For now, docs is a list of dictionaries
         where each key is the field name and each value is the value to index.
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
         message = ET.Element('add')
-        
+        if commitWithin:
+            message.set('commitWithin', commitWithin)
         for doc in docs:
             d = ET.Element('doc')
             
