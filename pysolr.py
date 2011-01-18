@@ -225,13 +225,14 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
         self.stats = stats or {}
+        self.qtime = qtime
 
     def __len__(self):
         return len(self.docs)
@@ -534,6 +535,9 @@ class Solr(object):
         
         if result.get('stats'):
             result_kwargs['stats'] = result['stats']
+
+        if result.get('responseHeader', {}).get('QTime'):
+            result_kwargs['qtime'] = result['responseHeader']['QTime']
         
         self.log.debug("Found '%s' search results." % result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
