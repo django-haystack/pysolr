@@ -508,7 +508,10 @@ class Solr(object):
     def search(self, q, **kwargs):
         """Performs a search and returns the results."""
         params = {'q': q}
-        params.update(kwargs)
+        params.update(
+            (key.replace('_', '.'),
+             str(value).lower() if isinstance(value, bool) else value)
+            for (key, value) in kwargs.iteritems())
         response = self._select(params)
         
         # TODO: make result retrieval lazy and allow custom result objects
