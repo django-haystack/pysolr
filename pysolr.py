@@ -536,7 +536,7 @@ class Solr(object):
         if result.get('stats'):
             result_kwargs['stats'] = result['stats']
 
-        if result.get('responseHeader', {}).get('QTime'):
+        if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
         
         self.log.debug("Found '%s' search results." % result['response']['numFound'])
