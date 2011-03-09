@@ -251,7 +251,7 @@ class Solr(object):
         if len(netloc) == 1:
             self.host, self.port = netloc[0], None
         else:
-            self.host, self.port = netloc
+            self.host, self.port = netloc[0], int(netloc[1])
         self.path = path.rstrip('/')
         self.timeout = timeout
         self.log = self._get_log()
