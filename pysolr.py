@@ -328,7 +328,7 @@ class Solr(object):
         path = '%s/terms/?%s' % (self.path, safe_urlencode(params, True))
         return self._send_request('GET', path)
     
-    def _update(self, message, clean_ctrl_chars=True, commit=True):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
         """
         Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
@@ -343,8 +343,16 @@ class Solr(object):
         # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
         # ``commit=true`` to the URL and have the commit happen without a
         # second request.
+        query_vars = []
         if commit:
-            path += '?commit=true'
+            query_vars.append('commit=true')
+        if waitFlush is not None:
+            query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
+        if waitSearcher is not None:
+            query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
+        if query_vars:
+            path = '%s?%s' % (path, '&'.join(query_vars))
+            
         
         # Clean the message of ctrl characters.
         if clean_ctrl_chars:
@@ -587,7 +595,7 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
     
-    def add(self, docs, commit=True, boost=None, commitWithin=None):
+    def add(self, docs, commit=True, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
         """Adds or updates documents. For now, docs is a list of dictionaries
         where each key is the field name and each value is the value to index.
         """
@@ -641,9 +649,9 @@ class Solr(object):
         m = ET.tostring(message, encoding='utf-8')
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds." % (len(docs), end_time - start_time))
-        response = self._update(m, commit=commit)
+        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
     
-    def delete(self, id=None, q=None, commit=True, fromPending=True, fromCommitted=True):
+    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
         """Deletes documents."""
         if id is None and q is None:
             raise ValueError('You must specify "id" or "q".')
@@ -654,13 +662,21 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
         
-        response = self._update(m, commit=commit)
+        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
     
-    def commit(self):
-        response = self._update('<commit />')
+    def commit(self, waitFlush=None, waitSearcher=None, expungeDeletes=None):
+        if expungeDeletes is not None:
+            msg = '<commit expungeDeletes="%s" />' % str(bool(expungeDeletes)).lower()
+        else:
+            msg = '<commit />'
+        response = self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
     
-    def optimize(self):
-        response = self._update('<optimize />')
+    def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
+        if maxSegments:
+            msg = '<commit maxSegments="%d" />' % maxSegments
+        else:
+            msg = '<commit />'
+        response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
 
 
 class SolrCoreAdmin(object):
