@@ -1,0 +1,25 @@
+Primaries:
+
+* Joseph Kocherhans
+* Daniel Lindsley
+* Jacob Kaplan-Moss
+
+
+Contributors:
+
+* initcrash for a patch regarding datetime formatting.
+* maciekp.lists for a patch correcting URL construction.
+* jarek & dekstop for a patch regarding sending Unicode documents.
+* Tomasz.Wegrzanowski for a patch to enable document boosting.
+* thomas.j.lee for a patch to add stats support.
+* Chak for a patch regarding empty string being unnecessarily sent.
+* james.colin.brady for a patch to enable working with the cores.
+* anti-social for a patch on charset sending.
+* akaihola for a patch regarding long queries.
+* bochecha for various patches.
+* stugots for an invalid character patch.
+* notanumber for a field boosting patch.
+* acdha for various patches.
+* zyegfryed for various patches.
+* girasquid for a patch related to server string.
+* David Cramer (dcramer) for various patches.
