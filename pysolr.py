@@ -225,9 +225,10 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None):
+    def __init__(self, docs, hits, debug=None, highlighting=None, facets=None, spellcheck=None, stats=None):
         self.docs = docs
         self.hits = hits
+        self.debug = debug or {}
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
@@ -522,6 +523,9 @@ class Solr(object):
         # TODO: make result retrieval lazy and allow custom result objects
         result = self.decoder.decode(response)
         result_kwargs = {}
+
+        if result.get('debug'):
+            result_kwargs['debug'] = result['debug']
         
         if result.get('highlighting'):
             result_kwargs['highlighting'] = result['highlighting']
