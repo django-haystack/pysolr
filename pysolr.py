@@ -225,7 +225,7 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -233,10 +233,11 @@ class Results(object):
         self.spellcheck = spellcheck or {}
         self.stats = stats or {}
         self.qtime = qtime
-
+        self.debug = debug or {}
+    
     def __len__(self):
         return len(self.docs)
-
+    
     def __iter__(self):
         return iter(self.docs)
 
@@ -524,6 +525,9 @@ class Solr(object):
         result = self.decoder.decode(response)
         result_kwargs = {}
         
+        if result.get('debug'):
+            result_kwargs['debug'] = result['debug']
+        
         if result.get('highlighting'):
             result_kwargs['highlighting'] = result['highlighting']
         
@@ -535,7 +539,7 @@ class Solr(object):
         
         if result.get('stats'):
             result_kwargs['stats'] = result['stats']
-
+        
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
         
