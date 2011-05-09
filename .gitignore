@@ -1,5 +1,3 @@
 *.pyc
-*.egg-info/
-*.egg/
 dist/
 MANIFEST

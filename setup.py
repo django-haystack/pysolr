@@ -1,13 +1,4 @@
-#!/usr/bin/env python
-
-try:
-    from setuptools import setup, find_packages
-    from setuptools.command.test import test
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages
-    from setuptools.command.test import test
+from distutils.core import setup
 
 setup(
     name = "pysolr",
@@ -16,7 +7,6 @@ setup(
     author = 'Daniel Lindsley',
     author_email = 'daniel@toastdriven.com',
     py_modules = ['pysolr'],
-    test_suite='runtests.runtests',
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
