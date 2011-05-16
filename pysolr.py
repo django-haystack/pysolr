@@ -126,7 +126,7 @@ import logging
 import re
 import time
 import urllib
-import urllib2
+
 from urlparse import urlsplit, urlunsplit
 
 try:
@@ -154,12 +154,12 @@ except ImportError:
     import json
 
 try:
-    # Desirable from a timeout perspective.
-    from httplib2 import Http
-    TIMEOUTS_AVAILABLE = True
+    import restkit
 except ImportError:
-    from httplib import HTTPConnection
-    TIMEOUTS_AVAILABLE = False
+    raise ImportError("""restkit is not installed.
+
+    pip install restkit
+    """)
 
 try:
     set
@@ -291,46 +291,20 @@ class Solr(object):
         return LOG
     
     def _send_request(self, method, path, body=None, headers=None):
-        if TIMEOUTS_AVAILABLE:
-            http = Http(timeout=self.timeout)
-            url = self.base_url + path
-            
-            try:
-                start_time = time.time()
-                self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
-                headers, response = http.request(url, method=method, body=body, headers=headers)
-                end_time = time.time()
-                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
-            except AttributeError:
-                # For httplib2.
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url)
-                self.log.error(error_message)
-                raise SolrError(error_message)
-            
-            if int(headers['status']) != 200:
-                error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
-                raise SolrError(error_message)
-            
-            return response
-        else:
-            if headers is None:
-                headers = {}
-            
-            conn = HTTPConnection(self.host, self.port)
-            start_time = time.time()
-            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
-            conn.request(method, path, body, headers)
-            response = conn.getresponse()
-            end_time = time.time()
-            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds." % (self.host, self.port, path, method, str(body)[:10], end_time - start_time))
-            
-            if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
-                raise SolrError(error_message)
-            
-            return response.read()
+        url = self.base_url + path
+        
+        start_time = time.time()
+        self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
+        response = restkit.request(url, method=method, body=body,
+                headers=headers)
+        end_time = time.time()
+        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
+
+        if response.status_int != 200:
+            error_message = self._extract_error(response) 
+            self.log.error(error_message)
+            raise SolrError(error_message)
+        return response.body_string()
 
     def _select(self, params):
         # specify json encoding of results
@@ -391,15 +365,18 @@ class Solr(object):
         
         return self._send_request('POST', path, message, {'Content-type': 'text/xml; charset=utf-8'})
     
-    def _extract_error(self, headers, response):
+    def _extract_error(self, response):
         """
         Extract the actual error message from a solr response.
         """
-        reason = headers.get('reason', None)
+        stare = re.compile("(\d{3})\s*(\w*)")
+        matchs = stare.match(response.status)
+
+        reason =  matchs.group(2)
         full_html = None
         
-        if reason is None:
-            reason, full_html = self._scrape_response(headers, response)
+        if not reason:
+            reason, full_html = self._scrape_response(response)
         
         msg = "[Reason: %s]" % reason
         
@@ -408,13 +385,13 @@ class Solr(object):
         
         return msg
     
-    def _scrape_response(self, headers, response):
+    def _scrape_response(self, response):
         """
         Scrape the html response.
         """
         # identify the responding server
         server_type = None
-        server_string = headers.get('server', '')
+        server_string = response.headers.iget('server', '')
         
         if 'jetty' in server_string.lower():
             server_type = 'jetty'
@@ -431,7 +408,7 @@ class Solr(object):
         
         if server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response
-            soup = BeautifulSoup(response)
+            soup = BeautifulSoup(response.body_string())
             body_node = soup.find('body')
             p_nodes = body_node.findAll('p')
             
@@ -446,7 +423,7 @@ class Solr(object):
         else:
             # Let's assume others do produce a valid XML response
             try:
-                dom_tree = ET.fromstring(response)
+                dom_tree = ET.fromstring(response.body_string())
                 reason_node = None
                 
                 # html page might be different for every server
@@ -735,11 +712,8 @@ class SolrCoreAdmin(object):
         self.url = url
     
     def _get_url(self, url, params={}, headers={}):
-        request = urllib2.Request(url, data=safe_urlencode(params), headers=headers)
-        # Let ``socket.error``, ``urllib2.HTTPError`` and ``urllib2.URLError``
-        # propagate up the stack.
-        response = urllib2.urlopen(request)
-        return response.read()
+        response = restkit.request(url, body=params, headers=headers)
+        return response.body_string()
     
     def status(self, core=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
