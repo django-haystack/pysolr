@@ -416,10 +416,10 @@ class Solr(object):
         server_type = None
         server_string = headers.get('server', '')
         
-        if 'jetty' in server_string.lower():
+        if server_string and 'jetty' in server_string.lower():
             server_type = 'jetty'
         
-        if 'coyote' in server_string.lower():
+        if server_string and 'coyote' in server_string.lower():
             # TODO: During the pysolr 3 effort, make this no longer a
             #       conditional and consider using ``lxml.html`` instead.
             from BeautifulSoup import BeautifulSoup
