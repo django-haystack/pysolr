@@ -477,9 +477,9 @@ class Solr(object):
         """
         if hasattr(value, 'strftime'):
             if hasattr(value, 'hour'):
-                value = "%sZ" % value.isoformat()
+                value = '"%sZ"' % value.isoformat()
             else:
-                value = "%sT00:00:00Z" % value.isoformat()
+                value = '"%sT00:00:00Z"' % value.isoformat()
         elif isinstance(value, bool):
             if value:
                 value = 'true'
