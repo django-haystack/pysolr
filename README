@@ -21,7 +21,7 @@ Requirements
 
 * Python 2.4+ (tested under Python 2.6+)
 * **Optional** - ``lxml`` (Python 2.4.X and below)
-* **Optional** - ``simplejson`` (Python 2.4.X and below)
+* **Optional** - ``simplejson`` (Python 2.5.X and below)
 * **Optional** - ``httplib2`` for timeout support
 * **Optional** - ``BeautifulSoup`` for Tomcat error support
 
