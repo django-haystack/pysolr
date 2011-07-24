@@ -125,6 +125,7 @@ import htmlentitydefs
 import logging
 import re
 import time
+import types
 import urllib
 import urllib2
 from urlparse import urlsplit, urlunsplit
@@ -618,10 +619,15 @@ class Solr(object):
         terms = result.get("terms", {})
         res = {}
         
-        while terms:
-            # The raw values are a flat list: ["dance",23,"dancers",10,"dancing",8,"dancer",6]]
-            field = terms.pop(0)
-            values = terms.pop(0)
+        # in Solr 1.x the value of terms is a flat list: 
+        #   ["field_name", ["dance",23,"dancers",10,"dancing",8,"dancer",6]]
+        #
+        # in Solr 3.x the value of terms is a dict: 
+        #   {"field_name": ["dance",23,"dancers",10,"dancing",8,"dancer",6]}
+        if isinstance(terms, types.ListType):
+            terms = dict(zip(terms[0::2], terms[1::2]))
+    
+        for field, values in terms.iteritems():
             tmp = list()
             
             while values:
