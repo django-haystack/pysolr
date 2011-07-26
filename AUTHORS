@@ -25,3 +25,4 @@ Contributors:
 * David Cramer (dcramer) for various patches.
 * dourvais for a query time patch.
 * soypunk for a debug patch.
+* cordmata for a patch to handle how Solr 3.X returns suggestions.
