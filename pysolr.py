@@ -167,6 +167,14 @@ try:
 except NameError:
     from sets import Set as set
 
+try:
+    # TODO: perhaps refactor to requests when https://github.com/kennethreitz/requests/issues/68 lands?
+    from poster.encode import multipart_encode
+    POSTER_AVAILABLE = True
+except ImportError:
+    POSTER_AVAILABLE = False
+
+
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
 __version__ = (2, 1, 0, 'beta')
@@ -720,6 +728,80 @@ class Solr(object):
         else:
             msg = '<commit />'
         response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
+
+    def extract(self, file_obj, extractOnly=True):
+        """
+        POSTs a file to the Solr ExtractingRequestHandler so rich content can
+        be processed using Apache Tika. See the Solr wiki for details:
+
+            http://wiki.apache.org/solr/ExtractingRequestHandler
+
+        The ExtractingRequestHandler has a very simply model: it extracts
+        contents and metadata from the uploaded file and inserts it directly
+        into the index. This is rarely useful as it allows no way to store
+        additional data or otherwise customize the record. Instead, by default
+        we'll use the extract-only mode to extract the data without indexing it
+        so the caller has the opportunity to process it as appropriate; call
+        with ``extractOnly=False`` if you want to insert with no additional
+        processing.
+
+        Returns None if metadata cannot be extracted; otherwise returns a
+        dictionary containing at least two keys:
+
+            :contents:
+                        Extracted full-text content, if applicable
+            :metadata:
+                        key:value pairs of text strings
+        """
+        if not POSTER_AVAILABLE:
+            raise RuntimeError("Solr rich content extraction requires `poster` to be installed")
+
+        # The poster library unfortunately defaults to mime-type None when
+        # the file lacks a name and that causes it to send the file contents
+        # as a gigantic string rather than a separate MIME part, which breaks
+        # and spews the contents in the Solr request log:
+        if not hasattr(file_obj, "name"):
+            raise ValueError("extract() requires file-like objects which have a defined name property")
+
+        params = {
+            "extractOnly": "true" if extractOnly else "false",
+            "lowernames": "true",
+            "wt": "json",
+            # We'll provide the file using its true name as Tika may use that
+            # as a file type hint:
+            file_obj.name: file_obj,
+        }
+
+        body_generator, headers = multipart_encode(params)
+
+        try:
+            resp = self._send_request('POST', "%s/update/extract" % self.path,
+                                      "".join(body_generator), headers)
+        except (IOError, SolrError),  e:
+            self.log.error("Failed to extract document metadata: %s", e,
+                           exc_info=e)
+            raise
+
+        try:
+            data = json.loads(resp)
+        except ValueError, e:
+            self.log.error("Failed to load JSON response: %s", e,
+                           exc_info=e)
+            raise
+
+        data['contents'] = data.pop(file_obj.name, None)
+        data['metadata'] = metadata = {}
+
+        raw_metadata = data.pop("%s_metadata" % file_obj.name, None)
+
+        if raw_metadata:
+            # The raw format is somewhat annoying: it's a flat list of
+            # alternating keys and value lists
+            while raw_metadata:
+                metadata[raw_metadata.pop()] = raw_metadata.pop()
+
+        return data
+
 
 
 class SolrCoreAdmin(object):
