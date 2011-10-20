@@ -372,7 +372,8 @@ class Solr(object):
         # to barf.
         watchwords = ['AND', 'OR']
         for word in watchwords:
-            params_encoded = params_encoded.replace(word.lower(), word)
+            params_encoded = params_encoded.replace('+%s+' % word.lower(),
+                                                    '+%s+' % word)
         field = re.search(r'&group\.query=(?P<field>\w+).*', params_encoded)
         if field is not None:
             params_encoded = params_encoded.replace(
