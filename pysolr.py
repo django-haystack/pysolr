@@ -610,8 +610,8 @@ class Solr(object):
                                    **result_kwargs).groups
         else:
             count = result['response']['numFound']
-            results = [Results(result['response']['docs'], count,
-                               **result_kwargs)]
+            results = Results(result['response']['docs'], count,
+                              **result_kwargs)
 
         self.log.debug("Found '%s' result groups." % count)
         return results
