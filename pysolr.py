@@ -281,7 +281,7 @@ class Results(object):
         return iter(self.docs)
 
 
-class GroupedResults(Results):
+class GroupedResults(object):
     """
     This class returns a list of Results instances in order to handle
     the semantic differences between grouped and non-grouped results.
