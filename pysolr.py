@@ -289,10 +289,10 @@ class GroupedResults(object):
     """
     def __init__(self, groups, **kwargs):
         self.groups = []
-
         for group in groups:
-            self.groups.append(Results(group['doclist']['docs'],
-                                       group['doclist']['numFound'], **kwargs))
+            self.groups.append(Results(groups[group]['doclist']['docs'],
+                                       groups[group]['doclist']['numFound'],
+                                       **kwargs))
         
     def __len__(self):
         return len(self.groups)
