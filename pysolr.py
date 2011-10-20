@@ -263,7 +263,8 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None,
+                 spellcheck=None, stats=None, qtime=None, debug=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -280,6 +281,29 @@ class Results(object):
         return iter(self.docs)
 
 
+class GroupedResults(Results):
+    def __init__(self, groups, **kwargs):
+        self.groups = []
+        self.total_hits = 0
+        self.highlighting = highlighting or {}
+        self.facets = facets or {}
+        self.spellcheck = spellcheck or {}
+        self.stats = stats or {}
+        self.qtime = qtime
+        self.debug = debug or {}
+
+        for group in groups:
+            self.total_hits += group['doclist']['numFound']
+            self.groups.append(Results(group['doclist']['docs'],
+                                       group['doclist']['numFound'], **kwargs)
+        
+    def __len__(self):
+        return len(self.groups)
+
+    def __iter__(self):
+        return iter(self.groups)
+
+    
 class Solr(object):
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
