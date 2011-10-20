@@ -287,9 +287,8 @@ class GroupedResults(Results):
     the semantic differences between grouped and non-grouped results.
     
     """
-    def __init__(self, groups, total_hits, **kwargs):
+    def __init__(self, groups, **kwargs):
         self.groups = []
-        self.total_hits = total_hits
 
         for group in groups:
             self.groups.append(Results(group['doclist']['docs'],
@@ -607,7 +606,7 @@ class Solr(object):
             field = result['grouped'].keys()[0]
             result_kwargs['group'] = result['group']
             count = sum([r['doclist']['numFound'] for r in results])
-            results = GroupResults(result['grouped'][field]['groups'], count,
+            results = GroupResults(result['grouped'][field]['groups'],
                                    **result_kwargs).groups
         else:
             count = result['response']['numFound']
