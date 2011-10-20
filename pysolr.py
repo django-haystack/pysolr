@@ -282,20 +282,18 @@ class Results(object):
 
 
 class GroupedResults(Results):
-    def __init__(self, groups, **kwargs):
+    """
+    This class returns a list of Results instances in order to handle
+    the semantic differences between grouped and non-grouped results.
+    
+    """
+    def __init__(self, groups, total_hits, **kwargs):
         self.groups = []
-        self.total_hits = 0
-        self.highlighting = highlighting or {}
-        self.facets = facets or {}
-        self.spellcheck = spellcheck or {}
-        self.stats = stats or {}
-        self.qtime = qtime
-        self.debug = debug or {}
+        self.total_hits = total_hits
 
         for group in groups:
-            self.total_hits += group['doclist']['numFound']
             self.groups.append(Results(group['doclist']['docs'],
-                                       group['doclist']['numFound'], **kwargs)
+                                       group['doclist']['numFound'], **kwargs))
         
     def __len__(self):
         return len(self.groups)
@@ -604,9 +602,19 @@ class Solr(object):
 
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
+                               
+        if result.get('group'):
+            field = result['grouped'].keys()[0]
+            result_kwargs['group'] = result['group']
+            count = sum([r['doclist']['numFound'] for r in results])
+            results = GroupResults(result['grouped'][field]['groups'], count,
+                                   **result_kwargs)
+        else:
+            count = result['response']['numFound']
+            results = Results(result['response']['docs'], count, **result_kwargs)
 
-        self.log.debug("Found '%s' search results." % result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+        self.log.debug("Found '%s' result groups." % count)
+        return results
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
