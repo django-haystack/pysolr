@@ -366,7 +366,27 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
-
+        # Since we can't have multiple 'group.query' keys in params,
+        # we (I think) have to use regex matching after url encoding,
+        # otherwise our = and & symbols get urlencoded which causes Solr
+        # to barf.
+        watchwords = ['AND', 'OR']
+        for word in watchwords:
+            params_encoded = params_encoded.replace(word.lower(), word)
+        field = re.search(r'&group\.query=(?P<field>\w+).*', params_encoded)
+        if field is not None:
+            params_encoded = params_encoded.replace(
+                '%s' % field.group("field") + '%5C%3A',
+                "%s:" % field.group("field")
+            )
+            
+        comma_groups = re.search(r'&group\.query=(?P<groups>.*?)&',
+                                params_encoded)
+        if comma_groups is not None:
+            comma_groups = comma_groups.group("groups")
+            group_queries = comma_groups.replace('%2C', '&group.query=')
+            params_encoded = params_encoded.replace(comma_groups, group_queries)
+        
         if len(params_encoded) < 1024:
             # Typical case.
             path = '%s/select/?%s' % (self.path, params_encoded)
