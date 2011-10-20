@@ -622,12 +622,11 @@ class Solr(object):
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
                                
-        if result.get('group'):
-            field = result['grouped'].keys()[0]
-            result_kwargs['group'] = result['group']
-            count = sum([r['doclist']['numFound'] for r in results])
-            results = GroupResults(result['grouped'][field]['groups'],
-                                   **result_kwargs).groups
+        if result.get('grouped'):
+            group_queries = result['grouped'].keys()
+            count = sum([result['grouped'][r]['doclist']['numFound'] for r in
+                         result['grouped']])
+            results = GroupedResults(result['grouped'], **result_kwargs).groups
         else:
             count = result['response']['numFound']
             results = Results(result['response']['docs'], count,
