@@ -264,7 +264,8 @@ class SolrError(Exception):
 
 class Results(object):
     def __init__(self, docs, hits, highlighting=None, facets=None,
-                 spellcheck=None, stats=None, qtime=None, debug=None):
+                 spellcheck=None, stats=None, qtime=None, debug=None,
+                 group=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -273,6 +274,8 @@ class Results(object):
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        if group:
+            self.group = group
 
     def __len__(self):
         return len(self.docs)
@@ -292,7 +295,7 @@ class GroupedResults(object):
         for group in groups:
             self.groups.append(Results(groups[group]['doclist']['docs'],
                                        groups[group]['doclist']['numFound'],
-                                       **kwargs))
+                                       group=group, **kwargs))
         
     def __len__(self):
         return len(self.groups)
@@ -376,16 +379,19 @@ class Solr(object):
                                                     '+%s+' % word)
         field = re.search(r'&group\.query=(?P<field>\w+).*', params_encoded)
         if field is not None:
+            # Unencode field names used in the query, e.g. "text:Foobar"
+            # gets encoded as "text\:Foobar" or "text%5C%3AFoobar" which
+            # is a deal-breaker.
             params_encoded = params_encoded.replace(
                 '%s' % field.group("field") + '%5C%3A',
                 "%s:" % field.group("field")
             )
             
         comma_groups = re.search(r'&group\.query=(?P<groups>.*?)&',
-                                params_encoded)
+                                 params_encoded)
         if comma_groups is not None:
             comma_groups = comma_groups.group("groups")
-            group_queries = comma_groups.replace('%2C', '&group.query=')
+            group_queries = comma_groups.replace('%40%40%40', '&group.query=')
             params_encoded = params_encoded.replace(comma_groups, group_queries)
         
         if len(params_encoded) < 1024:
