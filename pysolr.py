@@ -369,10 +369,6 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
-        # Since we can't have multiple 'group.query' keys in params,
-        # we (I think) have to use regex matching after url encoding,
-        # otherwise our = and & symbols get urlencoded which causes Solr
-        # to barf.
         watchwords = ['AND', 'OR']
         for word in watchwords:
             params_encoded = params_encoded.replace('+%s+' % word.lower(),
@@ -389,6 +385,14 @@ class Solr(object):
             
         comma_groups = re.search(r'&group\.query=(?P<groups>.*?)&',
                                  params_encoded)
+        
+        # Since we can't have multiple 'group.query' keys in params,
+        # we (I think) have to use regex matching after url encoding,
+        # otherwise our = and & symbols get urlencoded which causes Solr
+        # to barf. I decided somewhat arbitrarily to use "@@@" as the
+        # standin for "&group.query=". Could probably be factored out
+        # to a more convenient & accessible location for use by API
+        # consumers.
         if comma_groups is not None:
             comma_groups = comma_groups.group("groups")
             group_queries = comma_groups.replace('%40%40%40', '&group.query=')
