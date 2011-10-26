@@ -369,10 +369,6 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
-        watchwords = ['AND', 'OR']
-        for word in watchwords:
-            params_encoded = params_encoded.replace('+%s+' % word.lower(),
-                                                    '+%s+' % word)
         field = re.search(r'&group\.query=(?P<field>\w+).*', params_encoded)
         if field is not None:
             # Unencode field names used in the query, e.g. "text:Foobar"
