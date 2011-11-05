@@ -326,7 +326,10 @@ class Solr(object):
             if headers is None:
                 headers = {}
 
-            conn = HTTPConnection(self.host, self.port)
+            if self.scheme=='http':
+                conn = HTTPConnection(self.host, self.port)
+            elif self.scheme=='https':
+                conn = HTTPSConnection(self.host, self.port)
             start_time = time.time()
             self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
             conn.request(method, path, body, headers)
