@@ -159,7 +159,7 @@ try:
     from httplib2 import Http
     TIMEOUTS_AVAILABLE = True
 except ImportError:
-    from httplib import HTTPConnection
+    from httplib import HTTPConnection, HTTPSConnection
     TIMEOUTS_AVAILABLE = False
 
 try:
