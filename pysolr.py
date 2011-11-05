@@ -154,13 +154,16 @@ except ImportError:
     # For Python >= 2.6
     import json
 
+TIMEOUT_AVAILABLE = True
 try:
     # Desirable from a timeout perspective.
     from httplib2 import Http
-    TIMEOUTS_AVAILABLE = True
+    HTTPLIB2_AVAILABLE = True
 except ImportError:
     from httplib import HTTPConnection
-    TIMEOUTS_AVAILABLE = False
+    HTTPLIB2_AVAILABLE = False
+    # timeout added in Python 2.6
+    TIMEOUT_AVAILABLE = 'timeout' in HTTPConnection.__init__.im_func.func_code.co_varnames
 
 try:
     set
@@ -300,7 +303,7 @@ class Solr(object):
         return LOG
 
     def _send_request(self, method, path, body=None, headers=None):
-        if TIMEOUTS_AVAILABLE:
+        if HTTPLIB2_AVAILABLE:
             http = Http(timeout=self.timeout)
             url = self.base_url + path
 
@@ -326,7 +329,10 @@ class Solr(object):
             if headers is None:
                 headers = {}
 
-            conn = HTTPConnection(self.host, self.port)
+            params = {}
+            if TIMEOUT_AVAILABLE:
+                params['timeout'] = self.timeout
+            conn = HTTPConnection(self.host, self.port, **params)
             start_time = time.time()
             self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
             conn.request(method, path, body, headers)
