@@ -768,7 +768,7 @@ class Solr(object):
             raise ValueError("extract() requires file-like objects which have a defined name property")
 
         params = {
-            "extractOnly": "true" if extractOnly else "false",
+            "extractOnly": extractOnly and "true" or "false",
             "lowernames": "true",
             "wt": "json",
             # We'll provide the file using its true name as Tika may use that
