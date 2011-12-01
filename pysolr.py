@@ -263,7 +263,9 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None,
+                 spellcheck=None, stats=None, qtime=None, debug=None,
+                 group=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -272,6 +274,8 @@ class Results(object):
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        if group:
+            self.group = group
 
     def __len__(self):
         return len(self.docs)
@@ -280,6 +284,26 @@ class Results(object):
         return iter(self.docs)
 
 
+class GroupedResults(object):
+    """
+    This class returns a list of Results instances in order to handle
+    the semantic differences between grouped and non-grouped results.
+    
+    """
+    def __init__(self, groups, **kwargs):
+        self.groups = []
+        for group in groups:
+            self.groups.append(Results(groups[group]['doclist']['docs'],
+                                       groups[group]['doclist']['numFound'],
+                                       group=group, **kwargs))
+        
+    def __len__(self):
+        return len(self.groups)
+
+    def __iter__(self):
+        return iter(self.groups)
+
+    
 class Solr(object):
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
@@ -349,7 +373,7 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
-
+        
         if len(params_encoded) < 1024:
             # Typical case.
             path = '%s/select/?%s' % (self.path, params_encoded)
@@ -584,9 +608,19 @@ class Solr(object):
 
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
+                               
+        if result.get('grouped'):
+            group_queries = result['grouped'].keys()
+            count = sum([result['grouped'][r]['doclist']['numFound'] for r in
+                         result['grouped']])
+            results = GroupedResults(result['grouped'], **result_kwargs).groups
+        else:
+            count = result['response']['numFound']
+            results = Results(result['response']['docs'], count,
+                              **result_kwargs)
 
-        self.log.debug("Found '%s' search results." % result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+        self.log.debug("Found '%s' result groups." % count)
+        return results
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
