@@ -369,30 +369,6 @@ class Solr(object):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
-        field = re.search(r'&group\.query=(?P<field>\w+).*', params_encoded)
-        if field is not None:
-            # Unencode field names used in the query, e.g. "text:Foobar"
-            # gets encoded as "text\:Foobar" or "text%5C%3AFoobar" which
-            # is a deal-breaker.
-            params_encoded = params_encoded.replace(
-                '%s' % field.group("field") + '%5C%3A',
-                "%s:" % field.group("field")
-            )
-            
-        comma_groups = re.search(r'&group\.query=(?P<groups>.*?)&',
-                                 params_encoded)
-        
-        # Since we can't have multiple 'group.query' keys in params,
-        # we (I think) have to use regex matching after url encoding,
-        # otherwise our = and & symbols get urlencoded which causes Solr
-        # to barf. I decided somewhat arbitrarily to use "@@@" as the
-        # standin for "&group.query=". Could probably be factored out
-        # to a more convenient & accessible location for use by API
-        # consumers.
-        if comma_groups is not None:
-            comma_groups = comma_groups.group("groups")
-            group_queries = comma_groups.replace('%40%40%40', '&group.query=')
-            params_encoded = params_encoded.replace(comma_groups, group_queries)
         
         if len(params_encoded) < 1024:
             # Typical case.
