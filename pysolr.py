@@ -330,7 +330,11 @@ class Solr(object):
         headers,response = request.headers, request.content
 
         if request.status_code != 200:
-            error_message = self._extract_error(headers, response)
+            if not any((headers, response)):
+                error_message = 'Request timed out.'
+            else:
+                error_message = self._extract_error(headers, response)
+
             self.log.error(error_message)
             raise SolrError(error_message)
 
