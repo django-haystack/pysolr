@@ -847,7 +847,7 @@ class SolrCoreAdmin(object):
     def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml'):
         """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
         params = {
-            'action': 'STATUS',
+            'action': 'CREATE',
             'name': name,
             'config': config,
             'schema': schema,
