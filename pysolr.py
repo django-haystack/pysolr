@@ -130,6 +130,8 @@ import urllib
 import urllib2
 from urlparse import urlsplit, urlunsplit
 
+import requests
+
 try:
     # for python 2.5
     from xml.etree import cElementTree as ET
@@ -153,14 +155,6 @@ try:
 except ImportError:
     # For Python >= 2.6
     import json
-
-try:
-    # Desirable from a timeout perspective.
-    from httplib2 import Http
-    TIMEOUTS_AVAILABLE = True
-except ImportError:
-    from httplib import HTTPConnection, HTTPSConnection
-    TIMEOUTS_AVAILABLE = False
 
 try:
     set
@@ -281,8 +275,9 @@ class Results(object):
 
 
 class Solr(object):
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, auth=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
+        self.auth = auth
         self.url = url
         self.scheme, netloc, path, query, fragment = urlsplit(url)
         self.base_url = urlunsplit((self.scheme, netloc, '', '', ''))
@@ -300,50 +295,23 @@ class Solr(object):
         return LOG
 
     def _send_request(self, method, path, body=None, headers=None):
-        if TIMEOUTS_AVAILABLE:
-            http = Http(timeout=self.timeout)
-            url = self.base_url + path
+        url = self.base_url + path
+        start_time = time.time()
+        self.log.debug("Starting request to '%s' (%s) with body '%s'..." %
+                       (url, method, str(body)[:10]))
+        request = requests.request(method, url, data=body, headers=headers,
+                                   timeout=self.timeout, auth=self.auth)
+        end_time = time.time()
+        headers, response = request.headers, request.content
 
-            try:
-                start_time = time.time()
-                self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
-                headers, response = http.request(url, method=method, body=body, headers=headers)
-                end_time = time.time()
-                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
-            except AttributeError:
-                # For httplib2.
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url)
-                self.log.error(error_message)
-                raise SolrError(error_message)
-
-            if int(headers['status']) != 200:
+        if request.status_code != 200:
+            if not any((headers, response)):
+                error_message = 'Request timed out.'
+            else:
                 error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
-                raise SolrError(error_message)
 
-            return response
-        else:
-            if headers is None:
-                headers = {}
-
-            if self.scheme == 'http':
-                conn = HTTPConnection(self.host, self.port)
-            elif self.scheme == 'https':
-                conn = HTTPSConnection(self.host, self.port)
-
-            start_time = time.time()
-            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
-            conn.request(method, path, body, headers)
-            response = conn.getresponse()
-            end_time = time.time()
-            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds." % (self.host, self.port, path, method, str(body)[:10], end_time - start_time))
-
-            if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
-                raise SolrError(error_message)
-
-            return response.read()
+            self.log.error(error_message)
+            raise SolrError(error_message)
 
     def _select(self, params):
         # specify json encoding of results
