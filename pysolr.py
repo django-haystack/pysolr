@@ -295,19 +295,22 @@ class Solr(object):
         self.path = path.rstrip('/')
         self.timeout = timeout
         self.log = self._get_log()
-
+        if TIMEOUTS_AVAILABLE:
+            self.http = Http(timeout=self.timeout)
+        else:
+            self.http = None
+        
     def _get_log(self):
         return LOG
 
     def _send_request(self, method, path, body=None, headers=None):
         if TIMEOUTS_AVAILABLE:
-            http = Http(timeout=self.timeout)
             url = self.base_url + path
 
             try:
                 start_time = time.time()
                 self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
-                headers, response = http.request(url, method=method, body=body, headers=headers)
+                headers, response = self.http.request(url, method=method, body=body, headers=headers)
                 end_time = time.time()
                 self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
             except AttributeError:
