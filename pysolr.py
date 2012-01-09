@@ -561,6 +561,7 @@ class Solr(object):
 
     def search(self, q, **kwargs):
         """Performs a search and returns the results."""
+        self.log.info("JESSE running a search in pysolr")
         params = {'q': q}
         params.update(kwargs)
         response = self._select(params)
