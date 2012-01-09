@@ -263,7 +263,7 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None, partial_results=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -272,6 +272,7 @@ class Results(object):
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        self.partial_results = partial_results
 
     def __len__(self):
         return len(self.docs)
@@ -281,7 +282,7 @@ class Results(object):
 
 
 class Solr(object):
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, partial_results_retries=0):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.scheme, netloc, path, query, fragment = urlsplit(url)
@@ -294,6 +295,7 @@ class Solr(object):
             self.host, self.port = netloc[0], int(netloc[1])
         self.path = path.rstrip('/')
         self.timeout = timeout
+        self.partial_results_retries = partial_results_retries
         self.log = self._get_log()
 
     def _get_log(self):
@@ -563,30 +565,44 @@ class Solr(object):
         params.update(kwargs)
         response = self._select(params)
 
-        # TODO: make result retrieval lazy and allow custom result objects
-        result = self.decoder.decode(response)
-        result_kwargs = {}
+        # Track and loop through retries if the results are partial.
+        remaining_attempts = self.partial_results_retries
+        while True:
 
-        if result.get('debug'):
-            result_kwargs['debug'] = result['debug']
+            # TODO: make result retrieval lazy and allow custom result objects
+            result = self.decoder.decode(response)
+            result_kwargs = {}
 
-        if result.get('highlighting'):
-            result_kwargs['highlighting'] = result['highlighting']
+            is_partial = result.get('responseHeader', {}).get('partialResults', False)
+            if is_partial:
+                if remaining_attempts > 0:
+                    remaining_attempts -= 1
+                    self.log.info("Received partial results from query %s. Retrying with %s remaining attempts." % (params, remaining_attempts))
+                    continue
+                else:
+                    self.log.warn("Returning partial results from query %s.")
+            result_kwargs['partial_results'] = is_partial
 
-        if result.get('facet_counts'):
-            result_kwargs['facets'] = result['facet_counts']
+            if result.get('debug'):
+                result_kwargs['debug'] = result['debug']
 
-        if result.get('spellcheck'):
-            result_kwargs['spellcheck'] = result['spellcheck']
+            if result.get('highlighting'):
+                result_kwargs['highlighting'] = result['highlighting']
 
-        if result.get('stats'):
-            result_kwargs['stats'] = result['stats']
+            if result.get('facet_counts'):
+                result_kwargs['facets'] = result['facet_counts']
 
-        if 'QTime' in result.get('responseHeader', {}):
-            result_kwargs['qtime'] = result['responseHeader']['QTime']
+            if result.get('spellcheck'):
+                result_kwargs['spellcheck'] = result['spellcheck']
 
-        self.log.debug("Found '%s' search results." % result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+            if result.get('stats'):
+                result_kwargs['stats'] = result['stats']
+
+            if 'QTime' in result.get('responseHeader', {}):
+                result_kwargs['qtime'] = result['responseHeader']['QTime']
+
+            self.log.debug("Found '%s' search results." % result['response']['numFound'])
+            return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
