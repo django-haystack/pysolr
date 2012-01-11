@@ -130,6 +130,8 @@ import urllib
 import urllib2
 from urlparse import urlsplit, urlunsplit
 
+CACHE_WARMING_TIME = 0.1 # seconds between retries
+
 try:
     # for python 2.5
     from xml.etree import cElementTree as ET
@@ -561,14 +563,13 @@ class Solr(object):
 
     def search(self, q, **kwargs):
         """Performs a search and returns the results."""
-        self.log.info("JESSE running a search in pysolr")
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params)
 
         # Track and loop through retries if the results are partial.
         remaining_attempts = self.partial_results_retries
         while True:
+            response = self._select(params)
 
             # TODO: make result retrieval lazy and allow custom result objects
             result = self.decoder.decode(response)
@@ -578,32 +579,34 @@ class Solr(object):
             if is_partial:
                 if remaining_attempts > 0:
                     remaining_attempts -= 1
-                    self.log.info("Received partial results from query %s. Retrying with %s remaining attempts." % (params, remaining_attempts))
+                    msg = "Received partial results from query. Retrying with %s remaining attempts in %s seconds." %  (remaining_attempts, CACHE_WARMING_TIME)
+                    self.log.info(msg, extra={'params': params})
                     continue
                 else:
-                    self.log.warn("Returning partial results from query %s.")
-            result_kwargs['partial_results'] = is_partial
+                    self.log.warning("Returning partial results from query.", extra={'params': params})
+            break
+        result_kwargs['partial_results'] = is_partial
 
-            if result.get('debug'):
-                result_kwargs['debug'] = result['debug']
+        if result.get('debug'):
+            result_kwargs['debug'] = result['debug']
 
-            if result.get('highlighting'):
-                result_kwargs['highlighting'] = result['highlighting']
+        if result.get('highlighting'):
+            result_kwargs['highlighting'] = result['highlighting']
 
-            if result.get('facet_counts'):
-                result_kwargs['facets'] = result['facet_counts']
+        if result.get('facet_counts'):
+            result_kwargs['facets'] = result['facet_counts']
 
-            if result.get('spellcheck'):
-                result_kwargs['spellcheck'] = result['spellcheck']
+        if result.get('spellcheck'):
+            result_kwargs['spellcheck'] = result['spellcheck']
 
-            if result.get('stats'):
-                result_kwargs['stats'] = result['stats']
+        if result.get('stats'):
+            result_kwargs['stats'] = result['stats']
 
-            if 'QTime' in result.get('responseHeader', {}):
-                result_kwargs['qtime'] = result['responseHeader']['QTime']
+        if 'QTime' in result.get('responseHeader', {}):
+            result_kwargs['qtime'] = result['responseHeader']['QTime']
 
-            self.log.debug("Found '%s' search results." % result['response']['numFound'])
-            return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+        self.log.debug("Found '%s' search results." % result['response']['numFound'])
+        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
