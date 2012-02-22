@@ -737,7 +737,7 @@ class Solr(object):
             msg = '<commit />'
         response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
 
-    def extract(self, file_obj, extractOnly=True):
+    def extract(self, file_obj, extractOnly=True, **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -779,6 +779,7 @@ class Solr(object):
             # as a file type hint:
             file_obj.name: file_obj,
         }
+        params.update(kwargs)
 
         body_generator, headers = multipart_encode(params)
 
