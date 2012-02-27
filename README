@@ -24,6 +24,7 @@ Requirements
 * **Optional** - ``simplejson`` (Python 2.5.X and below)
 * **Optional** - ``httplib2`` for timeout support
 * **Optional** - ``BeautifulSoup`` for Tomcat error support
+* **Optional** - ``poster`` for Solr rich content extraction
 
 
 Installation
