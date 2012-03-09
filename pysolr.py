@@ -263,7 +263,8 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None,
+            spellcheck=None, stats=None, qtime=None, debug=None, grouped=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -272,6 +273,7 @@ class Results(object):
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        self.grouped = grouped or {}
 
     def __len__(self):
         return len(self.docs)
@@ -588,6 +590,9 @@ class Solr(object):
 
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
+
+        if result.get('grouped'):
+            result_kwargs['grouped'] = result['grouped']
 
         self.log.debug("Found '%s' search results.", result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
