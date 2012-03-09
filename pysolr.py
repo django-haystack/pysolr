@@ -594,8 +594,14 @@ class Solr(object):
         if result.get('grouped'):
             result_kwargs['grouped'] = result['grouped']
 
-        self.log.debug("Found '%s' search results.", result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+        response = result.get('response') or {}
+        numFound = response.get('numFound', 0)
+        self.log.debug("Found '%s' search results.", numFound)
+        return Results(
+            response.get('docs', ()),
+            numFound,
+            **result_kwargs
+        )
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
