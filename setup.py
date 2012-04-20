@@ -16,5 +16,8 @@ setup(
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search'
     ],
-    url = 'http://github.com/toastdriven/pysolr/'
+    url = 'http://github.com/toastdriven/pysolr/',
+    extra_requires={
+        'tomcat': ['BeautifulSoup'],
+    }
 )
