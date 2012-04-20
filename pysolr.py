@@ -130,6 +130,8 @@ import urllib
 import urllib2
 from urlparse import urlsplit, urlunsplit
 
+CACHE_WARMING_TIME = 0.1 # seconds between retries
+
 try:
     # for python 2.5
     from xml.etree import cElementTree as ET
@@ -263,7 +265,7 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None, partial_results=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -272,6 +274,7 @@ class Results(object):
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        self.partial_results = partial_results
 
     def __len__(self):
         return len(self.docs)
@@ -281,7 +284,7 @@ class Results(object):
 
 
 class Solr(object):
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, partial_results_retries=0):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.scheme, netloc, path, query, fragment = urlsplit(url)
@@ -294,6 +297,7 @@ class Solr(object):
             self.host, self.port = netloc[0], int(netloc[1])
         self.path = path.rstrip('/')
         self.timeout = timeout
+        self.partial_results_retries = partial_results_retries
         self.log = self._get_log()
 
     def _get_log(self):
@@ -565,11 +569,27 @@ class Solr(object):
         """Performs a search and returns the results."""
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params)
 
-        # TODO: make result retrieval lazy and allow custom result objects
-        result = self.decoder.decode(response)
-        result_kwargs = {}
+        # Track and loop through retries if the results are partial.
+        remaining_attempts = self.partial_results_retries
+        while True:
+            response = self._select(params)
+
+            # TODO: make result retrieval lazy and allow custom result objects
+            result = self.decoder.decode(response)
+            result_kwargs = {}
+
+            is_partial = result.get('responseHeader', {}).get('partialResults', False)
+            if is_partial:
+                if remaining_attempts > 0:
+                    remaining_attempts -= 1
+                    msg = "Received partial results from query. Retrying with %s remaining attempts in %s seconds." %  (remaining_attempts, CACHE_WARMING_TIME)
+                    self.log.info(msg, extra={'params': params})
+                    continue
+                else:
+                    self.log.warning("Returning partial results from query.", extra={'params': params})
+            break
+        result_kwargs['partial_results'] = is_partial
 
         if result.get('debug'):
             result_kwargs['debug'] = result['debug']
