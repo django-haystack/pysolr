@@ -121,6 +121,7 @@ document 7
 # TODO: unicode support is pretty sloppy. define it better.
 
 from datetime import datetime
+import cgi
 import htmlentitydefs
 import logging
 import re
@@ -309,6 +310,8 @@ class Solr(object):
                 self.log.debug("Starting request to '%s' (%s) with body '%s'...",
                                url, method, str(body)[:10])
                 headers, response = http.request(url, method=method, body=body, headers=headers)
+                status_code = int(headers['status'])
+
                 end_time = time.time()
                 self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
                               url, method, str(body)[:10], end_time - start_time)
@@ -317,13 +320,6 @@ class Solr(object):
                 params = (url, self.base_url)
                 self.log.error(error_message, *params)
                 raise SolrError(error_message % params)
-
-            if int(headers['status']) != 200:
-                error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
-                raise SolrError(error_message)
-
-            return response
         else:
             if headers is None:
                 headers = {}
@@ -338,16 +334,18 @@ class Solr(object):
                            self.host, self.port, path, method, str(body)[:10])
             conn.request(method, path, body, headers)
             response = conn.getresponse()
+            headers = dict(response.getheaders())
+            status_code = response.status
+            response = response.read()
             end_time = time.time()
             self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds.",
                           self.host, self.port, path, method, str(body)[:10], end_time - start_time)
 
-            if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
-                raise SolrError(error_message)
-
-            return response.read()
+        if status_code != 200:
+            error_message = self._extract_error(headers, response)
+            self.log.error(error_message)
+            raise SolrError(error_message)
+        return response
 
     def _select(self, params):
         # specify json encoding of results
@@ -412,6 +410,7 @@ class Solr(object):
         """
         Extract the actual error message from a solr response.
         """
+        response = get_unicode_from_response(headers, response).encode('utf-8')
         reason = headers.get('reason', None)
         full_html = None
 
@@ -958,6 +957,40 @@ def sanitize(data):
 
     return fixed_string
 
+def get_unicode_from_response(headers, response):
+    """Returns the requested content back in unicode."""
+
+
+    # Try charset from content-type
+    encoding = get_encoding_from_headers(headers)
+
+    if encoding:
+        try:
+            return unicode(response, encoding)
+        except UnicodeError:
+            pass
+
+    # Fall back:
+    try:
+        return unicode(response, encoding, errors='replace')
+    except TypeError:
+        return response
+
+def get_encoding_from_headers(headers):
+    """Returns encodings from given HTTP Header Dict.
+
+    :param headers: dictionary to extract encoding from.
+    """
+
+    content_type = headers.get('content-type')
+
+    if not content_type:
+        return None
+
+    content_type, params = cgi.parse_header(content_type)
+
+    if 'charset' in params:
+        return params['charset'].strip("'\"")
 
 if __name__ == "__main__":
     import doctest
