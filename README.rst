@@ -6,6 +6,13 @@ pysolr
 interface that queries the server and returns results based on the query.
 
 
+Status
+======
+
+.. image:: https://secure.travis-ci.org/toastdriven/pysolr.png
+   :target: https://secure.travis-ci.org/toastdriven/pysolr
+
+
 Features
 ========
 
