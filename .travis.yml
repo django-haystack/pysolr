@@ -1,0 +1,21 @@
+language: python
+
+python:
+  - 2.5
+  - 2.6
+  - 2.7
+
+install:
+    - pip install simplejson nose
+    - curl -O http://apache.mirrors.tds.net/lucene/solr/3.5.0/apache-solr-3.5.0.tgz
+    - tar xvzf apache-solr-3.5.0.tgz && SOLR_PATH=`pwd`/apache-solr-3.5.0/example
+
+before_script:
+    - cd $SOLR_PATH && java -jar start.jar &
+
+script: sleep 10 && python setup.py test
+
+branches:
+  only:
+    - testing
+
