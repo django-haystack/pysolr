@@ -349,34 +349,34 @@ class Solr(object):
 
             return response.read()
 
-    def _select(self, params):
+    def _select(self, params, handler="select"):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
 
         if len(params_encoded) < 1024:
             # Typical case.
-            path = '%s/select/?%s' % (self.path, params_encoded)
+            path = '%s/%s/?%s' % (self.path, handler, params_encoded)
             return self._send_request('GET', path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = '%s/select/' % (self.path,)
+            path = '%s/%s/' % (self.path, handler)
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
             return self._send_request('POST', path, body=params_encoded, headers=headers)
 
-    def _mlt(self, params):
+    def _mlt(self, params, handler="mlt"):
         params['wt'] = 'json' # specify json encoding of results
-        path = '%s/mlt/?%s' % (self.path, safe_urlencode(params, True))
+        path = '%s/%s/?%s' % (self.path, handler, safe_urlencode(params, True))
         return self._send_request('GET', path)
 
-    def _suggest_terms(self, params):
+    def _suggest_terms(self, params, handler="terms"):
         params['wt'] = 'json' # specify json encoding of results
-        path = '%s/terms/?%s' % (self.path, safe_urlencode(params, True))
+        path = '%s/%s/?%s' % (self.path, handler, safe_urlencode(params, True))
         return self._send_request('GET', path)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None, handler="update"):
         """
         Posts the given xml message to http://<host>:<port>/solr/update and
         returns the result.
@@ -386,7 +386,7 @@ class Solr(object):
         these characters would cause Solr to fail to parse the XML. Only pass
         False if you're positive your data is clean.
         """
-        path = '%s/update/' % self.path
+        path = '%s/%s/' % (self.path, handler)
 
         # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
         # ``commit=true`` to the URL and have the commit happen without a
@@ -561,11 +561,11 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, q, handler="select", **kwargs):
         """Performs a search and returns the results."""
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params)
+        response = self._select(params, handler)
 
         # TODO: make result retrieval lazy and allow custom result objects
         result = self.decoder.decode(response)
@@ -592,7 +592,7 @@ class Solr(object):
         self.log.debug("Found '%s' search results.", result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
 
-    def more_like_this(self, q, mltfl, **kwargs):
+    def more_like_this(self, q, mltfl, handler="mlt", **kwargs):
         """
         Finds and returns results similar to the provided query.
 
@@ -603,7 +603,7 @@ class Solr(object):
             'mlt.fl': mltfl,
         }
         params.update(kwargs)
-        response = self._mlt(params)
+        response = self._mlt(params, handler)
 
         result = self.decoder.decode(response)
 
@@ -616,7 +616,7 @@ class Solr(object):
         self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'])
 
-    def suggest_terms(self, fields, prefix, **kwargs):
+    def suggest_terms(self, fields, prefix, handler="terms", **kwargs):
         """
         Accepts a list of field names and a prefix
 
@@ -630,7 +630,7 @@ class Solr(object):
             'terms.prefix': prefix,
         }
         params.update(kwargs)
-        response = self._suggest_terms(params)
+        response = self._suggest_terms(params, handler=handler)
         result = self.decoder.decode(response)
         terms = result.get("terms", {})
         res = {}
@@ -654,7 +654,7 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
 
-    def add(self, docs, commit=True, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
+    def add(self, docs, commit=True, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None, handler="update"):
         """Adds or updates documents. For now, docs is a list of dictionaries
         where each key is the field name and each value is the value to index.
         """
@@ -708,9 +708,9 @@ class Solr(object):
         m = ET.tostring(message, encoding='utf-8')
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
-        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
+    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None, handler="update"):
         """Deletes documents."""
         if id is None and q is None:
             raise ValueError('You must specify "id" or "q".')
@@ -721,23 +721,23 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def commit(self, waitFlush=None, waitSearcher=None, expungeDeletes=None):
+    def commit(self, waitFlush=None, waitSearcher=None, expungeDeletes=None, handler="update"):
         if expungeDeletes is not None:
             msg = '<commit expungeDeletes="%s" />' % str(bool(expungeDeletes)).lower()
         else:
             msg = '<commit />'
-        response = self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        response = self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
+    def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None, handler="update"):
         if maxSegments:
             msg = '<commit maxSegments="%d" />' % maxSegments
         else:
             msg = '<commit />'
-        response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
+        response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def extract(self, file_obj, extractOnly=True, **kwargs):
+    def extract(self, file_obj, extractOnly=True, handler="update/extract", **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -784,7 +784,7 @@ class Solr(object):
         body_generator, headers = multipart_encode(params)
 
         try:
-            resp = self._send_request('POST', "%s/update/extract" % self.path,
+            resp = self._send_request('POST', "%s/%s" % (self.path, handler),
                                       "".join(body_generator), headers)
         except (IOError, SolrError),  e:
             self.log.error("Failed to extract document metadata: %s", e,
