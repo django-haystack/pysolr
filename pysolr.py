@@ -159,7 +159,7 @@ try:
     from httplib2 import Http
     TIMEOUTS_AVAILABLE = True
 except ImportError:
-    from httplib import HTTPConnection, HTTPSConnection
+    from httplib import HTTPConnection
     TIMEOUTS_AVAILABLE = False
 
 try:
@@ -263,9 +263,10 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, max_score=1, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
         self.docs = docs
         self.hits = hits
+        self.max_score = max_score
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
@@ -306,17 +307,15 @@ class Solr(object):
 
             try:
                 start_time = time.time()
-                self.log.debug("Starting request to '%s' (%s) with body '%s'...",
-                               url, method, str(body)[:10])
+                self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
                 headers, response = http.request(url, method=method, body=body, headers=headers)
                 end_time = time.time()
-                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
-                              url, method, str(body)[:10], end_time - start_time)
+                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
             except AttributeError:
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
-                params = (url, self.base_url)
-                self.log.error(error_message, *params)
-                raise SolrError(error_message % params)
+                # For httplib2.
+                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url)
+                self.log.error(error_message)
+                raise SolrError(error_message)
 
             if int(headers['status']) != 200:
                 error_message = self._extract_error(headers, response)
@@ -328,19 +327,13 @@ class Solr(object):
             if headers is None:
                 headers = {}
 
-            if self.scheme == 'http':
-                conn = HTTPConnection(self.host, self.port)
-            elif self.scheme == 'https':
-                conn = HTTPSConnection(self.host, self.port)
-
+            conn = HTTPConnection(self.host, self.port)
             start_time = time.time()
-            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'...",
-                           self.host, self.port, path, method, str(body)[:10])
+            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
             conn.request(method, path, body, headers)
             response = conn.getresponse()
             end_time = time.time()
-            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds.",
-                          self.host, self.port, path, method, str(body)[:10], end_time - start_time)
+            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds." % (self.host, self.port, path, method, str(body)[:10], end_time - start_time))
 
             if response.status != 200:
                 error_message = self._extract_error(dict(response.getheaders()), response.read())
@@ -589,8 +582,13 @@ class Solr(object):
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
 
-        self.log.debug("Found '%s' search results.", result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'], **result_kwargs)
+        max_score = 1
+        if result['response'].has_key('maxScore'):
+
+            max_score = result['response']['maxScore']
+        self.log.debug("Found '%s' search results." % result['response']['numFound'])
+
+        return Results(result['response']['docs'], result['response']['numFound'], max_score=max_score, **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
@@ -613,7 +611,7 @@ class Solr(object):
                 'numFound': 0,
             }
 
-        self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
+        self.log.debug("Found '%s' MLT results." % result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'])
 
     def suggest_terms(self, fields, prefix, **kwargs):
@@ -707,7 +705,7 @@ class Solr(object):
 
         m = ET.tostring(message, encoding='utf-8')
         end_time = time.time()
-        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
+        self.log.debug("Built add request of %s docs in %0.2f seconds." % (len(docs), end_time - start_time))
         response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
@@ -737,7 +735,7 @@ class Solr(object):
             msg = '<commit />'
         response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
 
-    def extract(self, file_obj, extractOnly=True, **kwargs):
+    def extract(self, file_obj, extractOnly=True):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -779,7 +777,6 @@ class Solr(object):
             # as a file type hint:
             file_obj.name: file_obj,
         }
-        params.update(kwargs)
 
         body_generator, headers = multipart_encode(params)
 
