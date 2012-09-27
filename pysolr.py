@@ -323,7 +323,8 @@ class Solr(object):
 
             if int(headers['status']) != 200:
                 error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
+                self.log.error(error_message, extra={'data': {'headers': headers,
+                                                              'response': response}})
                 raise SolrError(error_message)
 
             return response
@@ -346,8 +347,11 @@ class Solr(object):
                           self.host, self.port, path, method, str(body)[:10], end_time - start_time)
 
             if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
+                resp_headers = dict(response.getheaders())
+                resp_body = response.read()
+                error_message = self._extract_error(resp_headers, resp_body)
+                self.log.error(error_message, extra={'data': {'headers': resp_headers,
+                                                              'response': resp_body}})
                 raise SolrError(error_message)
 
             return response.read()
