@@ -318,7 +318,7 @@ class Solr(object):
             except AttributeError:
                 error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
                 params = (url, self.base_url)
-                self.log.error(error_message, *params)
+                self.log.error(error_message, *params, exc_info=True)
                 raise SolrError(error_message % params)
 
             if int(headers['status']) != 200:
