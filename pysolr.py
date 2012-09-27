@@ -476,6 +476,8 @@ class Solr(object):
                 # html page might be different for every server
                 if server_type == 'jetty':
                     reason_node = dom_tree.find('body/pre')
+                else:
+                    reason_node = dom_tree.find('head/title')
 
                 if reason_node is not None:
                     reason = reason_node.text
