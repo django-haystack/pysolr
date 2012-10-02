@@ -318,12 +318,13 @@ class Solr(object):
             except AttributeError:
                 error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
                 params = (url, self.base_url)
-                self.log.error(error_message, *params)
+                self.log.error(error_message, *params, exc_info=True)
                 raise SolrError(error_message % params)
 
             if int(headers['status']) != 200:
                 error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
+                self.log.error(error_message, extra={'data': {'headers': headers,
+                                                              'response': response}})
                 raise SolrError(error_message)
 
             return response
@@ -346,8 +347,11 @@ class Solr(object):
                           self.host, self.port, path, method, str(body)[:10], end_time - start_time)
 
             if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
+                resp_headers = dict(response.getheaders())
+                resp_body = response.read()
+                error_message = self._extract_error(resp_headers, resp_body)
+                self.log.error(error_message, extra={'data': {'headers': resp_headers,
+                                                              'response': resp_body}})
                 raise SolrError(error_message)
 
             return response.read()
@@ -472,6 +476,8 @@ class Solr(object):
                 # html page might be different for every server
                 if server_type == 'jetty':
                     reason_node = dom_tree.find('body/pre')
+                else:
+                    reason_node = dom_tree.find('head/title')
 
                 if reason_node is not None:
                     reason = reason_node.text
@@ -796,14 +802,14 @@ class Solr(object):
                                       "".join(body_generator), headers)
         except (IOError, SolrError),  e:
             self.log.error("Failed to extract document metadata: %s", e,
-                           exc_info=e)
+                           exc_info=True)
             raise
 
         try:
             data = json.loads(resp)
         except ValueError, e:
             self.log.error("Failed to load JSON response: %s", e,
-                           exc_info=e)
+                           exc_info=True)
             raise
 
         data['contents'] = data.pop(file_obj.name, None)
