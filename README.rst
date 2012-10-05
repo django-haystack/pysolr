@@ -2,8 +2,15 @@
 pysolr
 ======
 
-``pysolr`` is a lightweight Python wrapper for Apache Solr. It provides an
+``pysolr`` is a lightweight Python wrapper for `Apache Solr`_. It provides an
 interface that queries the server and returns results based on the query.
+
+
+Status
+======
+
+.. image:: https://secure.travis-ci.org/toastdriven/pysolr.png
+   :target: https://secure.travis-ci.org/toastdriven/pysolr
 
 
 Features
@@ -11,8 +18,8 @@ Features
 
 * Basic operations such as selecting, updating & deleting.
 * Index optimization.
-* "More Like This" support (if setup in Solr).
-* Spelling correction (if setup in Solr).
+* `"More Like This" <http://wiki.apache.org/solr/MoreLikeThis>`_ support (if set up in Solr).
+* `Spelling correction <http://wiki.apache.org/solr/SpellCheckComponent>`_ (if set up in Solr).
 * Timeout support.
 
 
@@ -38,3 +45,6 @@ LICENSE
 =======
 
 ``pysolr`` is licensed under the New BSD license.
+
+
+.. _`Apache Solr`: http://lucene.apache.org/solr/
