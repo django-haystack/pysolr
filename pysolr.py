@@ -342,7 +342,15 @@ class Solr(object):
             start_time = time.time()
             self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'...",
                            self.host, self.port, path, method, str(body)[:10])
-            conn.request(method, path, body, headers)
+
+            try:
+                conn.request(method, path, body, headers)
+            except IOError:
+                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
+                params = (path, self.base_url)
+                self.log.error(error_message, *params, exc_info=True)
+                raise SolrError(error_message % params)
+
             response = conn.getresponse()
             end_time = time.time()
             self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds.",
