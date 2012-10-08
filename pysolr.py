@@ -604,7 +604,7 @@ class Solr(object):
 
         max_score = 1
         if result['response'].has_key('maxScore'):
-            max_score = result['response']['maxScore']
+            result_kwargs['max_score'] = result['response']['maxScore']
 
         response = result.get('response') or {}
         numFound = response.get('numFound', 0)
