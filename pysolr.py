@@ -263,11 +263,12 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None,
+    def __init__(self, docs, hits, max_score=1, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
                  grouped=None):
         self.docs = docs
         self.hits = hits
+        self.max_score = max_score
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
@@ -600,6 +601,10 @@ class Solr(object):
 
         if result.get('grouped'):
             result_kwargs['grouped'] = result['grouped']
+
+        max_score = 1
+        if result['response'].has_key('maxScore'):
+            max_score = result['response']['maxScore']
 
         response = result.get('response') or {}
         numFound = response.get('numFound', 0)
