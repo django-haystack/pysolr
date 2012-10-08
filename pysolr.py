@@ -159,7 +159,7 @@ try:
     from httplib2 import Http
     TIMEOUTS_AVAILABLE = True
 except ImportError:
-    from httplib import HTTPConnection
+    from httplib import HTTPConnection, HTTPSConnection
     TIMEOUTS_AVAILABLE = False
 
 try:
@@ -263,16 +263,18 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, max_score=1, highlighting=None, facets=None, spellcheck=None, stats=None, qtime=None, debug=None):
+    def __init__(self, docs, hits, highlighting=None, facets=None,
+                 spellcheck=None, stats=None, qtime=None, debug=None,
+                 grouped=None):
         self.docs = docs
         self.hits = hits
-        self.max_score = max_score
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
         self.stats = stats or {}
         self.qtime = qtime
         self.debug = debug or {}
+        self.grouped = grouped or {}
 
     def __len__(self):
         return len(self.docs)
@@ -307,19 +309,22 @@ class Solr(object):
 
             try:
                 start_time = time.time()
-                self.log.debug("Starting request to '%s' (%s) with body '%s'..." % (url, method, str(body)[:10]))
+                self.log.debug("Starting request to '%s' (%s) with body '%s'...",
+                               url, method, str(body)[:10])
                 headers, response = http.request(url, method=method, body=body, headers=headers)
                 end_time = time.time()
-                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds." % (url, method, str(body)[:10], end_time - start_time))
+                self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
+                              url, method, str(body)[:10], end_time - start_time)
             except AttributeError:
-                # For httplib2.
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..." % (url, self.base_url)
-                self.log.error(error_message)
-                raise SolrError(error_message)
+                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
+                params = (url, self.base_url)
+                self.log.error(error_message, *params, exc_info=True)
+                raise SolrError(error_message % params)
 
             if int(headers['status']) != 200:
                 error_message = self._extract_error(headers, response)
-                self.log.error(error_message)
+                self.log.error(error_message, extra={'data': {'headers': headers,
+                                                              'response': response}})
                 raise SolrError(error_message)
 
             return response
@@ -327,17 +332,26 @@ class Solr(object):
             if headers is None:
                 headers = {}
 
-            conn = HTTPConnection(self.host, self.port)
+            if self.scheme == 'http':
+                conn = HTTPConnection(self.host, self.port)
+            elif self.scheme == 'https':
+                conn = HTTPSConnection(self.host, self.port)
+
             start_time = time.time()
-            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'..." % (self.host, self.port, path, method, str(body)[:10]))
+            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'...",
+                           self.host, self.port, path, method, str(body)[:10])
             conn.request(method, path, body, headers)
             response = conn.getresponse()
             end_time = time.time()
-            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds." % (self.host, self.port, path, method, str(body)[:10], end_time - start_time))
+            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds.",
+                          self.host, self.port, path, method, str(body)[:10], end_time - start_time)
 
             if response.status != 200:
-                error_message = self._extract_error(dict(response.getheaders()), response.read())
-                self.log.error(error_message)
+                resp_headers = dict(response.getheaders())
+                resp_body = response.read()
+                error_message = self._extract_error(resp_headers, resp_body)
+                self.log.error(error_message, extra={'data': {'headers': resp_headers,
+                                                              'response': resp_body}})
                 raise SolrError(error_message)
 
             return response.read()
@@ -462,6 +476,8 @@ class Solr(object):
                 # html page might be different for every server
                 if server_type == 'jetty':
                     reason_node = dom_tree.find('body/pre')
+                else:
+                    reason_node = dom_tree.find('head/title')
 
                 if reason_node is not None:
                     reason = reason_node.text
@@ -582,13 +598,13 @@ class Solr(object):
         if 'QTime' in result.get('responseHeader', {}):
             result_kwargs['qtime'] = result['responseHeader']['QTime']
 
-        max_score = 1
-        if result['response'].has_key('maxScore'):
+        if result.get('grouped'):
+            result_kwargs['grouped'] = result['grouped']
 
-            max_score = result['response']['maxScore']
-        self.log.debug("Found '%s' search results." % result['response']['numFound'])
-
-        return Results(result['response']['docs'], result['response']['numFound'], max_score=max_score, **result_kwargs)
+        response = result.get('response') or {}
+        numFound = response.get('numFound', 0)
+        self.log.debug("Found '%s' search results.", numFound)
+        return Results(response.get('docs', ()), numFound, **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
@@ -611,7 +627,7 @@ class Solr(object):
                 'numFound': 0,
             }
 
-        self.log.debug("Found '%s' MLT results." % result['response']['numFound'])
+        self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
         return Results(result['response']['docs'], result['response']['numFound'])
 
     def suggest_terms(self, fields, prefix, **kwargs):
@@ -705,7 +721,7 @@ class Solr(object):
 
         m = ET.tostring(message, encoding='utf-8')
         end_time = time.time()
-        self.log.debug("Built add request of %s docs in %0.2f seconds." % (len(docs), end_time - start_time))
+        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
         response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
@@ -735,7 +751,7 @@ class Solr(object):
             msg = '<commit />'
         response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
 
-    def extract(self, file_obj, extractOnly=True):
+    def extract(self, file_obj, extractOnly=True, **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -777,6 +793,7 @@ class Solr(object):
             # as a file type hint:
             file_obj.name: file_obj,
         }
+        params.update(kwargs)
 
         body_generator, headers = multipart_encode(params)
 
@@ -785,14 +802,14 @@ class Solr(object):
                                       "".join(body_generator), headers)
         except (IOError, SolrError),  e:
             self.log.error("Failed to extract document metadata: %s", e,
-                           exc_info=e)
+                           exc_info=True)
             raise
 
         try:
             data = json.loads(resp)
         except ValueError, e:
             self.log.error("Failed to load JSON response: %s", e,
-                           exc_info=e)
+                           exc_info=True)
             raise
 
         data['contents'] = data.pop(file_obj.name, None)
