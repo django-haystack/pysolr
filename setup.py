@@ -1,4 +1,7 @@
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 setup(
     name = "pysolr",
@@ -17,7 +20,8 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search'
     ],
     url = 'http://github.com/toastdriven/pysolr/',
-    extra_requires={
+    tests_require=['nose'],
+    extras_require={
         'tomcat': ['BeautifulSoup'],
     }
 )
