@@ -235,10 +235,10 @@ def unescape_html(text):
 
 def safe_urlencode(params, doseq=0):
     """
-    UTF-8-safe version of safe_urlencode
+    UTF-8 safe version of safe_urlencode()
 
-    The stdlib safe_urlencode prior to Python 3.x chokes on UTF-8 values
-    which can't fail down to ascii.
+    The stdlib safe_urlencode() prior to Python 3.x chokes on unicode
+    strings which cannot be converted to ascii.
     """
     if hasattr(params, "items"):
         params = params.items()
@@ -253,7 +253,7 @@ def safe_urlencode(params, doseq=0):
         elif isinstance(v, (list, tuple)):
             new_params.append((k, [i.encode("utf-8") for i in v]))
         else:
-            new_params.append((k, unicode(v)))
+            new_params.append((k, unicode(v).encode('utf-8')))
 
     return urllib.urlencode(new_params, doseq)
 
