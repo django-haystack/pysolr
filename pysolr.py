@@ -128,6 +128,7 @@ import time
 import types
 import urllib
 import urllib2
+import base64
 from urlparse import urlsplit, urlunsplit
 
 try:
@@ -287,15 +288,15 @@ class Solr(object):
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
-        self.scheme, netloc, path, query, fragment = urlsplit(url)
-        self.base_url = urlunsplit((self.scheme, netloc, '', '', ''))
-        netloc = netloc.split(':')
-        self.host = netloc[0]
-        if len(netloc) == 1:
-            self.host, self.port = netloc[0], None
-        else:
-            self.host, self.port = netloc[0], int(netloc[1])
-        self.path = path.rstrip('/')
+        result = urlsplit(url)
+        self.scheme = result.scheme
+        self.host = result.hostname
+        self.port = result.port
+        if result.username is not None and result.password is not None:
+            self.auth = 'Basic ' + base64.encodestring(result.username + ':' +
+                                                                    result.password)
+        self.base_url = urlunsplit((self.scheme, result.netloc, '', '', ''))
+        self.path = result.path.rstrip('/')
         self.timeout = timeout
         self.log = self._get_log()
 
@@ -303,6 +304,10 @@ class Solr(object):
         return LOG
 
     def _send_request(self, method, path, body=None, headers=None):
+        if headers is None:
+            headers = {}
+        if self.auth is not None:
+            headers['Authorization'] = self.auth
         if TIMEOUTS_AVAILABLE:
             http = Http(timeout=self.timeout)
             url = self.base_url + path
@@ -331,8 +336,6 @@ class Solr(object):
 
             return response
         else:
-            if headers is None:
-                headers = {}
 
             if self.scheme == 'http':
                 conn = HTTPConnection(self.host, self.port)
