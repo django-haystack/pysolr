@@ -305,6 +305,10 @@ class Solr(object):
     def _send_request(self, method, path, body=None, headers=None):
         if TIMEOUTS_AVAILABLE:
             http = Http(timeout=self.timeout)
+            
+            if self.http_user is not None:
+                http.add_credentials( self.http_user, self.http_password)
+            
             url = self.base_url + path
 
             self.log.debug("Starting request to '%s' (%s) with body '%s'...",
@@ -577,6 +581,10 @@ class Solr(object):
         """
         # TODO: This should probably be removed when solved in core Solr level?
         return (value is None) or (isinstance(value, basestring) and len(value) == 0)
+
+    def set_credentials(self, username, password):
+        self.http_user = username
+        self.http_password = password
 
     # API Methods ############################################################
 
@@ -856,11 +864,24 @@ class SolrCoreAdmin(object):
         self.url = url
 
     def _get_url(self, url, params={}, headers={}):
+        params.update(wt='json')
+
+        params.update(wt='json')
+
+        passman = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passman.add_password(None, url, self.http_user, self.http_password)
+        authhandler = urllib2.HTTPBasicAuthHandler(passman)
+        opener = urllib2.build_opener(authhandler)
+        urllib2.install_opener(opener)
+
         request = urllib2.Request(url, data=safe_urlencode(params), headers=headers)
-        # Let ``socket.error``, ``urllib2.HTTPError`` and ``urllib2.URLError``
-        # propagate up the stack.
+
         response = urllib2.urlopen(request)
         return response.read()
+
+    def set_credentials(self, username, password):
+        self.http_user = username
+        self.http_password = password
 
     def status(self, core=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
@@ -873,10 +894,10 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml'):
+    def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml', dataDir=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
         params = {
-            'action': 'STATUS',
+            'action': 'CREATE',
             'name': name,
             'config': config,
             'schema': schema,
@@ -886,6 +907,9 @@ class SolrCoreAdmin(object):
             params.update(instanceDir=name)
         else:
             params.update(instanceDir=instance_dir)
+
+        if dataDir is not None:
+            params.update(dataDir=dataDir)
 
         return self._get_url(self.url, params=params)
 
