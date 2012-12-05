@@ -449,6 +449,7 @@ class Solr(object):
         # identify the responding server
         server_type = None
         server_string = headers.get('server', '')
+        content_type = headers.get('content-type', '')
 
         if server_string and 'jetty' in server_string.lower():
             server_type = 'jetty'
@@ -459,11 +460,36 @@ class Solr(object):
             from BeautifulSoup import BeautifulSoup
             server_type = 'tomcat'
 
+        # Solr 4 handle errors by itself
+        if content_type.startswith('application/json'):
+            server_type = 'solr4_json'
+
+        if content_type.startswith('application/xml'):
+            server_type = 'solr4_xml'
+
         reason = None
         full_html = ''
         dom_tree = None
 
-        if server_type == 'tomcat':
+        if server_type == 'solr4_json':
+            try:
+                data = json.loads(response)
+                reason = data['error']['msg']
+            except (ValueError, KeyError):
+                pass
+        elif server_type == 'solr4_xml':
+            try:
+                tree = ET.fromstring(response)
+                lst_nodes = tree.findall('lst')
+
+                for lst_node in lst_nodes:
+                    if lst_node.get('name') == 'error':
+                        msg_node = lst_node.find('str')
+                        if msg_node is not None and msg_node.get('name') == 'msg':
+                            reason = msg_node.text
+            except SyntaxError, e:
+                pass
+        elif server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response
             soup = BeautifulSoup(response)
             body_node = soup.find('body')
@@ -474,9 +500,6 @@ class Solr(object):
 
                 if len(children) >= 2 and 'message' in children[0].renderContents().lower():
                     reason = children[1].renderContents()
-
-            if reason is None:
-                full_html = soup.prettify()
         else:
             # Let's assume others do produce a valid XML response
             try:
@@ -495,7 +518,10 @@ class Solr(object):
                 if reason is None:
                     full_html = ET.tostring(dom_tree)
             except SyntaxError, e:
-                full_html = "%s" % response
+                pass
+
+        if reason is None:
+            full_html = "%s" % response
 
         full_html = full_html.replace('\n', '')
         full_html = full_html.replace('\r', '')
