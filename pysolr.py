@@ -474,7 +474,8 @@ class Solr(object):
         if server_type == 'solr4_json':
             try:
                 data = json.loads(response)
-                reason = data['error']['msg']
+                error = data['error']
+                reason = error.get('msg') or error.get('trace')
             except (ValueError, KeyError):
                 pass
         elif server_type == 'solr4_xml':
@@ -485,8 +486,9 @@ class Solr(object):
                 for lst_node in lst_nodes:
                     if lst_node.get('name') == 'error':
                         msg_node = lst_node.find('str')
-                        if msg_node is not None and msg_node.get('name') == 'msg':
+                        if msg_node is not None and msg_node.get('name') in ('msg', 'trace'):
                             reason = msg_node.text
+                            break
             except SyntaxError, e:
                 pass
         elif server_type == 'tomcat':
