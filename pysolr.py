@@ -177,7 +177,7 @@ except ImportError:
 
 __author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
 __all__ = ['Solr']
-__version__ = (2, 1, 0, 'beta')
+__version__ = (2, 1, 0)
 
 def get_version():
     return "%s.%s.%s" % __version__[:3]
