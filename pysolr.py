@@ -674,34 +674,24 @@ class Solr(object):
                 doc_elem.set('boost', force_unicode(value))
                 continue
 
-            # handle lists & tuples
+            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
             if isinstance(value, (list, tuple)):
-                for bit in value:
-                    if self._is_null_value(value):
-                        continue
-
-                    if boost and bit in boost:
-                        boost[bit] = force_unicode(boost[bit])
-
-                        field = ET.Element('field', name=key, boost=boost[bit])
-                    else:
-                        field = ET.Element('field', name=key)
-
-                    field.text = self._from_python(bit)
-                    doc_elem.append(field)
-            # handle strings and unicode
+                values = value
             else:
-                if self._is_null_value(value):
+                values = (value, )
+
+            for bit in values:
+                if self._is_null_value(bit):
                     continue
 
+                attrs = {'name': key}
+
                 if boost and key in boost:
-                    boost[key] = force_unicode(boost[key])
+                    attrs['boost'] = force_unicode(boost[key])
 
-                    field = ET.Element('field', name=key, boost=boost[key])
-                else:
-                    field = ET.Element('field', name=key)
+                field = ET.Element('field', **attrs)
+                field.text = self._from_python(bit)
 
-                field.text = self._from_python(value)
                 doc_elem.append(field)
 
         return doc_elem
