@@ -95,3 +95,27 @@ LICENSE
 =======
 
 ``pysolr`` is licensed under the New BSD license.
+
+
+Running Tests
+=============
+
+Setup looks like::
+
+    curl -O http://apache.osuosl.org/lucene/solr/4.1.0/solr-4.1.0.tgz
+    tar xvzf solr-4.1.0.tgz
+    cp -r solr-4.1.0/example solr4
+    rm -rf solr-4.1.0*
+    cd solr4
+    rm -rf example-DIH exampledocs
+    mv solr solrsinglecoreanduseless
+    mv multicore solr
+    cp -r solrsinglecoreanduseless/collection1/conf/* solr/core0/conf/
+    cp -r solrsinglecoreanduseless/collection1/conf/* solr/core1/conf/
+    # Now run Solr.
+    java -jar start.jar
+
+Running the tests::
+
+    python -m unittest2 tests
+    python3 -m unittest tests
