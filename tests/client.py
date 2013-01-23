@@ -2,8 +2,9 @@
 from __future__ import unicode_literals
 
 import datetime
-from pysolr import Solr, Results, SolrError, unescape_html, safe_urlencode, \
-                   force_unicode, force_bytes, sanitize, json, ET, IS_PY3
+
+from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
+                   force_unicode, force_bytes, sanitize, json, ET, IS_PY3)
 
 try:
     import unittest2 as unittest
@@ -14,6 +15,11 @@ try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
+
+if IS_PY3:
+    from io import StringIO
+else:
+    from StringIO import StringIO
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -404,4 +410,33 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(self.solr.search('doc')), 4)
 
     def test_extract(self):
-        self.fail("Dear Chris, Please fix me. Love, pysolr")
+        fake_f = StringIO("""
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="haystack-test" content="test 1234">
+                    <title>Test Title ☃&#x2603;</title>
+                </head>
+                    <body>foobar</body>
+            </html>
+        """)
+        fake_f.name = "test.html"
+        extracted = self.solr.extract(fake_f)
+
+        # Verify documented response structure:
+        self.assertIn('contents', extracted)
+        self.assertIn('metadata', extracted)
+
+        self.assertIn('foobar', extracted['contents'])
+
+        m = extracted['metadata']
+
+        self.assertEqual([fake_f.name], m['stream_name'])
+
+        self.assertIn('haystack-test', m, "HTML metadata should have been extracted!")
+        self.assertEqual(['test 1234'], m['haystack-test'])
+
+        # Note the underhanded use of a double snowman to verify both that Tika
+        # correctly decoded entities and that our UTF-8 characters survived the
+        # round-trip:
+        self.assertEqual(['Test Title ☃☃'], m['title'])
