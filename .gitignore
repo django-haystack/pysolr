@@ -3,3 +3,4 @@ dist/
 MANIFEST
 solr4
 env
+pysolr.egg-info/
