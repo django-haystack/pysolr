@@ -97,10 +97,14 @@ def force_unicode(value):
         # Python 3.X
         if isinstance(value, bytes):
             value = value.decode('utf-8', errors='replace')
+        elif not isinstance(value, str):
+            value = str(value)
     else:
         # Python 2.X
         if isinstance(value, str):
             value = value.decode('utf-8', errors='replace')
+        elif not isinstance(value, basestring):
+            value = unicode(value)
 
     return value
 

@@ -36,6 +36,10 @@ class UtilsTestCase(unittest.TestCase):
         # Don't mangle, it's already Unicode.
         self.assertEqual(force_unicode('Hello ☃'), 'Hello ☃')
 
+        self.assertEqual(force_unicode(1), '1', "force_unicode() should convert ints")
+        self.assertEqual(force_unicode(1.0), '1.0', "force_unicode() should convert floats")
+        self.assertEqual(force_unicode(None), 'None', 'force_unicode() should convert None')
+
     def test_force_bytes(self):
         self.assertEqual(force_bytes('Hello ☃'), b'Hello \xe2\x98\x83')
         # Don't mangle, it's already a bytestring.
