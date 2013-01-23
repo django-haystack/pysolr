@@ -237,13 +237,15 @@ class Solr(object):
         # No path? No problem.
         return self.url
 
-    def _send_request(self, method, path='', body=None, headers=None):
+    def _send_request(self, method, path='', body=None, headers=None, files=None):
         url = self._create_full_url(path)
         method = method.lower()
         log_body = body
 
         if log_body is None:
             log_body = ''
+        elif not isinstance(log_body, str):
+            log_body = repr(body)
 
         self.log.debug("Starting request to '%s' (%s) with body '%s'...",
                        url, method, log_body[:10])
@@ -268,7 +270,8 @@ class Solr(object):
                 for k, v in headers.items():
                     bytes_headers[force_bytes(k)] = force_bytes(v)
 
-            resp = requests_method(url, data=bytes_body, headers=bytes_headers, timeout=self.timeout)
+            resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
+                                   timeout=self.timeout)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, [url, err], exc_info=True)
@@ -858,8 +861,8 @@ class Solr(object):
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
-            resp = self._send_request('post', "update/extract",
-                                      headers=params,
+            resp = self._send_request('post', 'update/extract',
+                                      body=params,
                                       files={'file': (file_obj.name, file_obj)})
         except (IOError, SolrError) as err:
             self.log.error("Failed to extract document metadata: %s", err,

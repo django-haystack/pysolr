@@ -105,6 +105,9 @@ Setup looks like::
     curl -O http://apache.osuosl.org/lucene/solr/4.1.0/solr-4.1.0.tgz
     tar xvzf solr-4.1.0.tgz
     cp -r solr-4.1.0/example solr4
+    # Used by the content extraction and clustering handlers:
+    mv solr-4.1.0/dist solr4/
+    mv solr-4.1.0/contrib solr4/
     rm -rf solr-4.1.0*
     cd solr4
     rm -rf example-DIH exampledocs
@@ -112,6 +115,9 @@ Setup looks like::
     mv multicore solr
     cp -r solrsinglecoreanduseless/collection1/conf/* solr/core0/conf/
     cp -r solrsinglecoreanduseless/collection1/conf/* solr/core1/conf/
+    # Fix paths for the content extraction handler:
+    perl -p -i -e 's|<lib dir="../../../contrib/|<lib dir="../../contrib/|'g solr/*/conf/solrconfig.xml
+    perl -p -i -e 's|<lib dir="../../../dist/|<lib dir="../../dist/|'g solr/*/conf/solrconfig.xml
     # Now run Solr.
     java -jar start.jar
 
