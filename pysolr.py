@@ -7,7 +7,6 @@ import logging
 import re
 import requests
 import time
-import types
 
 try:
     # Prefer lxml, if installed.
@@ -149,7 +148,7 @@ def unescape_html(text):
                 text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
-        return text # leave as is
+        return text  # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
 
@@ -221,9 +220,10 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, auth=None):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
+        self.auth = auth
         self.timeout = timeout
         self.log = self._get_log()
 
@@ -271,7 +271,7 @@ class Solr(object):
                     bytes_headers[force_bytes(k)] = force_bytes(v)
 
             resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
-                                   timeout=self.timeout)
+                                   timeout=self.timeout, auth=self.auth)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, [url, err], exc_info=True)
@@ -1010,6 +1010,7 @@ REPLACEMENTS = (
     (b'\x1e', b''), # Record separator
     (b'\x1f', b''), # Unit separator
 )
+
 
 def sanitize(data):
     fixed_string = force_bytes(data)
