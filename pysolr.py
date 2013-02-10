@@ -274,7 +274,7 @@ class Solr(object):
                                    timeout=self.timeout)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
-            self.log.error(error_message, [url, err], exc_info=True)
+            self.log.error(error_message, url, err, exc_info=True)
             raise SolrError(error_message % [url, err])
         except requests.exceptions.ConnectionError as err:
             error_message = "Failed to connect to server at '%s', are you sure that URL is correct? Checking it in a browser might help: %s"
