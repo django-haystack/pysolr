@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name="pysolr",
-    version="3.0.3",
+    version="3.0.4",
     description="Lightweight python wrapper for Apache Solr.",
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
