@@ -50,7 +50,7 @@ except NameError:
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (3, 0, 1)
+__version__ = (3, 0, 5)
 
 
 def get_version():
@@ -275,7 +275,7 @@ class Solr(object):
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
-            raise SolrError(error_message % [url, err])
+            raise SolrError(error_message % (url, err))
         except requests.exceptions.ConnectionError as err:
             error_message = "Failed to connect to server at '%s', are you sure that URL is correct? Checking it in a browser might help: %s"
             params = (url, err)
