@@ -232,7 +232,7 @@ class Solr(object):
 
     def _create_full_url(self, path=''):
         if len(path):
-            return '/'.join([self.url, path.lstrip('/')])
+            return '/'.join([self.url.rstrip('/'), path.lstrip('/')])
 
         # No path? No problem.
         return self.url

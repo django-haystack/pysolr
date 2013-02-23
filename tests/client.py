@@ -440,3 +440,10 @@ class SolrTestCase(unittest.TestCase):
         # correctly decoded entities and that our UTF-8 characters survived the
         # round-trip:
         self.assertEqual(['Test Title ☃☃'], m['title'])
+
+    def test_full_url(self):
+        self.solr.url = 'http://localhost:8983/solr/'
+        full_url = self.solr._create_full_url(path='/update')
+
+        # Make sure trailing and leading slashes do not collide:
+        self.assertEqual(full_url, 'http://localhost:8983/solr/update')
