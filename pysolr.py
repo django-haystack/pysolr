@@ -203,24 +203,8 @@ class Results(object):
     def __iter__(self):
         return iter(self.docs)
 
+class SolrRequestHandler(object):
 
-class Solr(object):
-    """
-    The main object for working with Solr.
-
-    Optionally accepts ``decoder`` for an alternate JSON decoder instance.
-    Default is ``json.JSONDecoder()``.
-
-    Optionally accepts ``timeout`` for wait seconds until giving up on a
-    request. Default is ``60`` seconds.
-
-    Usage::
-
-        solr = pysolr.Solr('http://localhost:8983/solr')
-        # With a 10 second timeout.
-        solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
-
-    """
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
@@ -293,70 +277,6 @@ class Solr(object):
             raise SolrError(error_message)
 
         return force_unicode(resp.content)
-
-    def _select(self, params):
-        # specify json encoding of results
-        params['wt'] = 'json'
-        params_encoded = safe_urlencode(params, True)
-
-        if len(params_encoded) < 1024:
-            # Typical case.
-            path = 'select/?%s' % params_encoded
-            return self._send_request('get', path)
-        else:
-            # Handles very long queries by submitting as a POST.
-            path = 'select/'
-            headers = {
-                'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
-            }
-            return self._send_request('post', path, body=params_encoded, headers=headers)
-
-    def _mlt(self, params):
-        # specify json encoding of results
-        params['wt'] = 'json'
-        path = 'mlt/?%s' % safe_urlencode(params, True)
-        return self._send_request('get', path)
-
-    def _suggest_terms(self, params):
-        # specify json encoding of results
-        params['wt'] = 'json'
-        path = 'terms/?%s' % safe_urlencode(params, True)
-        return self._send_request('get', path)
-
-    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
-        """
-        Posts the given xml message to http://<self.url>/update and
-        returns the result.
-
-        Passing `sanitize` as False will prevent the message from being cleaned
-        of control characters (default True). This is done by default because
-        these characters would cause Solr to fail to parse the XML. Only pass
-        False if you're positive your data is clean.
-        """
-        path = 'update/'
-
-        # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
-        # ``commit=true`` to the URL and have the commit happen without a
-        # second request.
-        query_vars = []
-
-        if commit is not None:
-            query_vars.append('commit=%s' % str(bool(commit)).lower())
-
-        if waitFlush is not None:
-            query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
-
-        if waitSearcher is not None:
-            query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
-
-        if query_vars:
-            path = '%s?%s' % (path, '&'.join(query_vars))
-
-        # Clean the message of ctrl characters.
-        if clean_ctrl_chars:
-            message = sanitize(message)
-
-        return self._send_request('post', path, message, {'Content-type': 'text/xml; charset=utf-8'})
 
     def _extract_error(self, resp):
         """
@@ -435,6 +355,89 @@ class Solr(object):
         full_html = full_html.replace('<br />', '')
         full_html = full_html.strip()
         return reason, full_html
+
+
+class Solr(SolrRequestHandler):
+    """
+    The main object for working with Solr.
+
+    Optionally accepts ``decoder`` for an alternate JSON decoder instance.
+    Default is ``json.JSONDecoder()``.
+
+    Optionally accepts ``timeout`` for wait seconds until giving up on a
+    request. Default is ``60`` seconds.
+
+    Usage::
+
+        solr = pysolr.Solr('http://localhost:8983/solr')
+        # With a 10 second timeout.
+        solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
+
+    """
+    def _select(self, params):
+        # specify json encoding of results
+        params['wt'] = 'json'
+        params_encoded = safe_urlencode(params, True)
+
+        if len(params_encoded) < 1024:
+            # Typical case.
+            path = 'select/?%s' % params_encoded
+            return self._send_request('get', path)
+        else:
+            # Handles very long queries by submitting as a POST.
+            path = 'select/'
+            headers = {
+                'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+            }
+            return self._send_request('post', path, body=params_encoded, headers=headers)
+
+    def _mlt(self, params):
+        # specify json encoding of results
+        params['wt'] = 'json'
+        path = 'mlt/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
+
+    def _suggest_terms(self, params):
+        # specify json encoding of results
+        params['wt'] = 'json'
+        path = 'terms/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
+
+    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
+        """
+        Posts the given xml message to http://<self.url>/update and
+        returns the result.
+
+        Passing `sanitize` as False will prevent the message from being cleaned
+        of control characters (default True). This is done by default because
+        these characters would cause Solr to fail to parse the XML. Only pass
+        False if you're positive your data is clean.
+        """
+        path = 'update/'
+
+        # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
+        # ``commit=true`` to the URL and have the commit happen without a
+        # second request.
+        query_vars = []
+
+        if commit is not None:
+            query_vars.append('commit=%s' % str(bool(commit)).lower())
+
+        if waitFlush is not None:
+            query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
+
+        if waitSearcher is not None:
+            query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
+
+        if query_vars:
+            path = '%s?%s' % (path, '&'.join(query_vars))
+
+        # Clean the message of ctrl characters.
+        if clean_ctrl_chars:
+            message = sanitize(message)
+
+        return self._send_request('post', path, message, {'Content-type': 'text/xml; charset=utf-8'})
+
 
     # Conversion #############################################################
 
@@ -890,7 +893,7 @@ class Solr(object):
         return data
 
 
-class SolrCoreAdmin(object):
+class SolrCoreAdmin(SolrRequestHandler):
     """
     Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
 
@@ -904,13 +907,15 @@ class SolrCoreAdmin(object):
        7. UNLOAD
        8. LOAD (not currently implemented)
     """
-    def __init__(self, url, *args, **kwargs):
-        super(SolrCoreAdmin, self).__init__(*args, **kwargs)
-        self.url = url
 
-    def _get_url(self, url, params={}, headers={}):
-        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
-        return force_unicode(resp.content)
+    path = 'solr/admin/cores'
+
+    def _get_url(self, params={}, headers={}):
+        if params:
+            full_path = '%s?%s' % (self.path, safe_urlencode(params))
+        else:
+            full_path = self.path
+        return self._send_request('get', full_path, headers=headers)
 
     def status(self, core=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
@@ -921,23 +926,26 @@ class SolrCoreAdmin(object):
         if core is not None:
             params.update(core=core)
 
-        return self._get_url(self.url, params=params)
+        return self._get_url(params=params)
 
-    def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml'):
+    def create(self, name, instance_dir=None, config=None, schema=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
         params = {
-            'action': 'STATUS',
+            'action': 'CREATE',
             'name': name,
-            'config': config,
-            'schema': schema,
         }
-
         if instance_dir is None:
             params.update(instanceDir=name)
         else:
             params.update(instanceDir=instance_dir)
 
-        return self._get_url(self.url, params=params)
+        if config:
+            params.update(config=config)
+        if schema:
+            params.update(schema=schema)
+
+        url = self._get_url(params=params)
+        return url
 
     def reload(self, core):
         """http://wiki.apache.org/solr/CoreAdmin#head-3f125034c6a64611779442539812067b8b430930"""
@@ -945,7 +953,7 @@ class SolrCoreAdmin(object):
             'action': 'RELOAD',
             'core': core,
         }
-        return self._get_url(self.url, params=params)
+        return self._get_url(params=params)
 
     def rename(self, core, other):
         """http://wiki.apache.org/solr/CoreAdmin#head-9473bee1abed39e8583ba45ef993bebb468e3afe"""
@@ -954,7 +962,7 @@ class SolrCoreAdmin(object):
             'core': core,
             'other': other,
         }
-        return self._get_url(self.url, params=params)
+        return self._get_url(params=params)
 
     def swap(self, core, other):
         """http://wiki.apache.org/solr/CoreAdmin#head-928b872300f1b66748c85cebb12a59bb574e501b"""
@@ -963,7 +971,7 @@ class SolrCoreAdmin(object):
             'core': core,
             'other': other,
         }
-        return self._get_url(self.url, params=params)
+        return self._get_url(params=params)
 
     def unload(self, core):
         """http://wiki.apache.org/solr/CoreAdmin#head-f5055a885932e2c25096a8856de840b06764d143"""
@@ -971,7 +979,7 @@ class SolrCoreAdmin(object):
             'action': 'UNLOAD',
             'core': core,
         }
-        return self._get_url(self.url, params=params)
+        return self._get_url(params=params)
 
     def load(self, core):
         raise NotImplementedError('Solr 1.4 and below do not support this operation.')
