@@ -928,7 +928,8 @@ class SolrCoreAdmin(SolrRequestHandler):
 
         return self._get_url(params=params)
 
-    def create(self, name, instance_dir=None, config=None, schema=None):
+    def create(self, name, instance_dir=None, config=None, schema=None,
+            data_dir=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
         params = {
             'action': 'CREATE',
@@ -938,7 +939,8 @@ class SolrCoreAdmin(SolrRequestHandler):
             params.update(instanceDir=name)
         else:
             params.update(instanceDir=instance_dir)
-
+        if data_dir:
+            params.update(dataDir=data_dir)
         if config:
             params.update(config=config)
         if schema:
