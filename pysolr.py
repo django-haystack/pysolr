@@ -977,11 +977,14 @@ class SolrCoreAdmin(SolrRequestHandler):
         }
         return self._get_url(params=params)
 
-    def unload(self, core):
+    def unload(self, core, delete_instance_dir=False, delete_index=False, delete_data_dir=False):
         """http://wiki.apache.org/solr/CoreAdmin#head-f5055a885932e2c25096a8856de840b06764d143"""
         params = {
             'action': 'UNLOAD',
             'core': core,
+            'deleteDataDir': delete_data_dir,
+            'deleteInstanceDir': delete_instance_dir,
+            'deleteIndex': delete_index,
         }
         return self._get_url(params=params)
 
