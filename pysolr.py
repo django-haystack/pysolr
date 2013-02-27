@@ -173,6 +173,8 @@ def safe_urlencode(params, doseq=0):
 
         if isinstance(v, (list, tuple)):
             new_params.append((k, [force_bytes(i) for i in v]))
+        elif isinstance(v, bool):
+            new_params.append((k, force_bytes(str(v).lower())))
         else:
             new_params.append((k, force_bytes(v)))
 
