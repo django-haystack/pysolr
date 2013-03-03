@@ -368,6 +368,14 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
 
+    def test_get(self):
+        self.assertEqual(self.solr.get('doc_1').get('id'), 'doc_1')
+        self.assertEqual(self.solr.get('doc_2').get('id'), 'doc_2')
+        self.assertEqual(self.solr.get('doc_3').get('id'), 'doc_3')
+        self.assertEqual(self.solr.get('doc_4').get('id'), 'doc_4')
+        self.assertEqual(self.solr.get('doc_5').get('id'), 'doc_5')
+        self.assertEqual(self.solr.get('fake'), None)
+
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
