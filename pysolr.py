@@ -547,30 +547,26 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, **kwargs):
         """
         Performs a search and returns the results.
 
-        Requires a ``q`` for a string version of the query to run.
-
-        Optionally accepts ``**kwargs`` for additional options to be passed
-        through the Solr URL.
+        ``**kwargs`` are options to be passed through the Solr URL.
 
         Usage::
 
             # All docs.
-            results = solr.search('*:*')
+            results = solr.search(q='*:*')
 
             # Search with highlighting.
-            results = solr.search('ponies', **{
+            results = solr.search(**{
+                'q': 'ponies',
                 'hl': 'true',
                 'hl.fragsize': 10,
             })
 
         """
-        params = {'q': q}
-        params.update(kwargs)
-        response = self._select(params)
+        response = self._select(kwargs)
 
         # TODO: make result retrieval lazy and allow custom result objects
         result = self.decoder.decode(response)
