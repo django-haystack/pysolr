@@ -184,11 +184,12 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None,
+    def __init__(self, docs, hits, start, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
                  grouped=None):
         self.docs = docs
         self.hits = hits
+        self.start = start
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
@@ -595,8 +596,9 @@ class Solr(object):
 
         response = result.get('response') or {}
         numFound = response.get('numFound', 0)
+        start = response.get('start', 0)
         self.log.debug("Found '%s' search results.", numFound)
-        return Results(response.get('docs', ()), numFound, **result_kwargs)
+        return Results(response.get('docs', ()), numFound, start, **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
@@ -625,7 +627,7 @@ class Solr(object):
             }
 
         self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'])
+        return Results(result['response']['docs'], result['response']['numFound'], result['response']['start'])
 
     def suggest_terms(self, fields, prefix, **kwargs):
         """
