@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import datetime
 import logging
 import re
@@ -253,8 +250,8 @@ class Solr(object):
 
         try:
             requests_method = getattr(requests, method, 'get')
-        except AttributeError as err:
-            raise SolrError("Unable to send HTTP method '{0}.".format(method))
+        except AttributeError, err:
+            raise SolrError("Unable to send HTTP method '%s." % str(method))
 
         try:
             # Bytes all the way down.
@@ -272,14 +269,14 @@ class Solr(object):
 
             resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
                                    timeout=self.timeout)
-        except requests.exceptions.Timeout as err:
+        except requests.exceptions.Timeout, err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
             raise SolrError(error_message % (url, err))
-        except requests.exceptions.ConnectionError as err:
+        except requests.exceptions.ConnectionError, err:
             error_message = "Failed to connect to server at '%s', are you sure that URL is correct? Checking it in a browser might help: %s"
             params = (url, err)
-            self.log.error(error_message, *params, exc_info=True)
+            self.log.error(error_message, params, exc_info=True)
             raise SolrError(error_message % params)
 
         end_time = time.time()
@@ -426,7 +423,7 @@ class Solr(object):
 
                 if reason is None:
                     full_html = ET.tostring(dom_tree)
-            except SyntaxError as err:
+            except SyntaxError, err:
                 full_html = "%s" % response
 
         full_html = full_html.replace('\n', '')
@@ -463,7 +460,7 @@ class Solr(object):
                 if isinstance(value, str):
                     value = unicode(value, errors='replace')
 
-            value = "{0}".format(value)
+            value = str(value)
 
         return value
 
@@ -864,14 +861,14 @@ class Solr(object):
             resp = self._send_request('post', 'update/extract',
                                       body=params,
                                       files={'file': (file_obj.name, file_obj)})
-        except (IOError, SolrError) as err:
+        except (IOError, SolrError), err:
             self.log.error("Failed to extract document metadata: %s", err,
                            exc_info=True)
             raise
 
         try:
             data = json.loads(resp)
-        except ValueError as err:
+        except ValueError, err:
             self.log.error("Failed to load JSON response: %s", err,
                            exc_info=True)
             raise
@@ -980,35 +977,35 @@ class SolrCoreAdmin(object):
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
     # Nuke nasty control characters.
-    (b'\x00', b''), # Start of heading
-    (b'\x01', b''), # Start of heading
-    (b'\x02', b''), # Start of text
-    (b'\x03', b''), # End of text
-    (b'\x04', b''), # End of transmission
-    (b'\x05', b''), # Enquiry
-    (b'\x06', b''), # Acknowledge
-    (b'\x07', b''), # Ring terminal bell
-    (b'\x08', b''), # Backspace
-    (b'\x0b', b''), # Vertical tab
-    (b'\x0c', b''), # Form feed
-    (b'\x0e', b''), # Shift out
-    (b'\x0f', b''), # Shift in
-    (b'\x10', b''), # Data link escape
-    (b'\x11', b''), # Device control 1
-    (b'\x12', b''), # Device control 2
-    (b'\x13', b''), # Device control 3
-    (b'\x14', b''), # Device control 4
-    (b'\x15', b''), # Negative acknowledge
-    (b'\x16', b''), # Synchronous idle
-    (b'\x17', b''), # End of transmission block
-    (b'\x18', b''), # Cancel
-    (b'\x19', b''), # End of medium
-    (b'\x1a', b''), # Substitute character
-    (b'\x1b', b''), # Escape
-    (b'\x1c', b''), # File separator
-    (b'\x1d', b''), # Group separator
-    (b'\x1e', b''), # Record separator
-    (b'\x1f', b''), # Unit separator
+    ('\x00', ''), # Start of heading
+    ('\x01', ''), # Start of heading
+    ('\x02', ''), # Start of text
+    ('\x03', ''), # End of text
+    ('\x04', ''), # End of transmission
+    ('\x05', ''), # Enquiry
+    ('\x06', ''), # Acknowledge
+    ('\x07', ''), # Ring terminal bell
+    ('\x08', ''), # Backspace
+    ('\x0b', ''), # Vertical tab
+    ('\x0c', ''), # Form feed
+    ('\x0e', ''), # Shift out
+    ('\x0f', ''), # Shift in
+    ('\x10', ''), # Data link escape
+    ('\x11', ''), # Device control 1
+    ('\x12', ''), # Device control 2
+    ('\x13', ''), # Device control 3
+    ('\x14', ''), # Device control 4
+    ('\x15', ''), # Negative acknowledge
+    ('\x16', ''), # Synchronous idle
+    ('\x17', ''), # End of transmission block
+    ('\x18', ''), # Cancel
+    ('\x19', ''), # End of medium
+    ('\x1a', ''), # Substitute character
+    ('\x1b', ''), # Escape
+    ('\x1c', ''), # File separator
+    ('\x1d', ''), # Group separator
+    ('\x1e', ''), # Record separator
+    ('\x1f', ''), # Unit separator
 )
 
 def sanitize(data):
