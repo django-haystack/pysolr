@@ -216,6 +216,12 @@ class SolrTestCase(unittest.TestCase):
         resp_body = self.solr._update(xml_body)
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
+        self.assertRaises(SolrError, self.solr._update, '<<commit />')
+        try:
+            self.solr._update('<<commit />')
+        except SolrError as e:
+            self.assertEqual(e.message, "[Reason: Unexpected character '<' (code 60) in prolog, after '<'.\n at [row,col {unknown-source}]: [1,2]]")
+
     def test__extract_error(self):
         class RubbishResponse(object):
             def __init__(self, content, headers=None):
@@ -238,6 +244,10 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._extract_error(resp_3), "[Reason: Something is broke.]")
 
     def test__scrape_response(self):
+        # Solr.
+        resp_0 = self.solr._scrape_response({'server': 'coyote'}, '{"error": {"msg": "Standard solr error message.", "code": 400}}')
+        self.assertEqual(resp_0, ('Standard solr error message.', ''))
+
         # Tomcat.
         resp_1 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><p><span>Error message</span><span>messed up.</span></p></body></html>')
         self.assertEqual(resp_1, ('messed up.', ''))
@@ -315,6 +325,12 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+
+        self.assertRaises(SolrError, self.solr.search, 'test:doc')
+        try:
+            self.solr.search('test:doc')
+        except SolrError as e:
+            self.assertEqual(e.message, '[Reason: undefined field test]')
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
