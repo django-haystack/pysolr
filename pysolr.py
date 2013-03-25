@@ -391,25 +391,20 @@ class Solr(object):
             import lxml.html
             server_type = 'tomcat'
 
-        # Solr 4 handle errors by itself
-        if content_type.startswith('application/json'):
-            server_type = 'solr4_json'
-
-        if content_type.startswith('application/xml'):
-            server_type = 'solr4_xml'
-
         reason = None
         full_html = ''
         dom_tree = None
 
-        if server_type == 'solr4_json':
-            try:
-                data = json.loads(response)
-                error = data['error']
-                reason = error.get('msg') or error.get('trace')
-            except (ValueError, KeyError):
-                pass
-        elif server_type == 'solr4_xml':
+        # Solr 4.0 json response
+        try:
+            data = json.loads(response)
+            error = data['error']
+            reason = error.get('msg') or error.get('trace')
+        except (ValueError, KeyError):
+            pass
+
+        if reason is None:
+            # Solr 4.0 xml response
             try:
                 tree = ET.fromstring(response)
                 lst_nodes = tree.findall('lst')
@@ -422,7 +417,8 @@ class Solr(object):
                             break
             except SyntaxError, e:
                 pass
-        elif server_type == 'tomcat':
+
+        if reason is None and server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response
             soup = lxml.html.fromstring(response)
             body_node = soup.find('body')
