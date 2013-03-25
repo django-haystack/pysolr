@@ -1,183 +1,57 @@
 # -*- coding: utf-8 -*-
-"""
-All we need to create a Solr connection is a url.
+from __future__ import print_function
+from __future__ import unicode_literals
 
->>> conn = Solr('http://127.0.0.1:8983/solr/')
-
-First, completely clear the index.
-
->>> conn.delete(q='*:*')
-
-For now, we can only index python dictionaries. Each key in the dictionary
-will correspond to a field in Solr.
-
->>> docs = [
-...     {'id': 'testdoc.1', 'order_i': 1, 'name': 'document 1', 'text': u'Paul Verlaine'},
-...     {'id': 'testdoc.2', 'order_i': 2, 'name': 'document 2', 'text': u'Владимир Маякoвский'},
-...     {'id': 'testdoc.3', 'order_i': 3, 'name': 'document 3', 'text': u'test'},
-...     {'id': 'testdoc.4', 'order_i': 4, 'name': 'document 4', 'text': u'test'}
-... ]
-
-
-We can add documents to the index by passing a list of docs to the connection's
-add method.
-
->>> conn.add(docs)
-
->>> results = conn.search('Verlaine')
->>> len(results)
-1
-
->>> results = conn.search(u'Владимир')
->>> len(results)
-1
-
-
-Simple tests for searching. We can optionally sort the results using Solr's
-sort syntax, that is, the field name and either asc or desc.
-
->>> results = conn.search('test', sort='order_i asc')
->>> for result in results:
-...     print result['name']
-document 3
-document 4
-
->>> results = conn.search('test', sort='order_i desc')
->>> for result in results:
-...     print result['name']
-document 4
-document 3
-
-
-To update documents, we just use the add method.
-
->>> docs = [
-...     {'id': 'testdoc.4', 'order_i': 4, 'name': 'document 4', 'text': u'blah'}
-... ]
->>> conn.add(docs)
-
->>> len(conn.search('blah'))
-1
->>> len(conn.search('test'))
-1
-
-
-We can delete documents from the index by id, or by supplying a query.
-
->>> conn.delete(id='testdoc.1')
->>> conn.delete(q='name:"document 2"')
-
->>> results = conn.search('Verlaine')
->>> len(results)
-0
-
-
-Docs can also have multiple values for any particular key. This lets us use
-Solr's multiValue fields.
-
->>> docs = [
-...     {'id': 'testdoc.5', 'cat': ['poetry', 'science'], 'name': 'document 5', 'text': u''},
-...     {'id': 'testdoc.6', 'cat': ['science-fiction',], 'name': 'document 6', 'text': u''},
-... ]
-
->>> conn.add(docs)
->>> results = conn.search('cat:"poetry"')
->>> for result in results:
-...     print result['name']
-document 5
-
->>> results = conn.search('cat:"science-fiction"')
->>> for result in results:
-...     print result['name']
-document 6
-
->>> results = conn.search('cat:"science"')
->>> for result in results:
-...     print result['name']
-document 5
-
-Docs can also boost any particular key. This lets us use Solr's boost on a field.
-
->>> docs = [
-...     {'id': 'testdoc.7', 'order_i': '7', 'name': 'document 7', 'text': u'eight', 'author': 'seven'},
-...     {'id': 'testdoc.8', 'order_i': '8', 'name': 'document 8', 'text': u'seven', 'author': 'eight'},
-... ]
-
->>> conn.add(docs, boost={'author': '2.0',})
->>> results = conn.search('seven author:seven')
->>> for result in results:
-...     print result['name']
-document 7
-document 8
-
->>> results = conn.search('eight author:eight')
->>> for result in results:
-...     print result['name']
-document 8
-document 7
-
-"""
-
-# TODO: unicode support is pretty sloppy. define it better.
-
-from datetime import datetime
-import htmlentitydefs
+import datetime
 import logging
 import re
+import requests
 import time
 import types
-import urllib
-import urllib2
-from urlparse import urlsplit, urlunsplit
 
 try:
-    # for python 2.5
-    from xml.etree import cElementTree as ET
+    # Prefer lxml, if installed.
+    from lxml import etree as ET
 except ImportError:
     try:
-        # use etree from lxml if it is installed
-        from lxml import etree as ET
+        from xml.etree import cElementTree as ET
     except ImportError:
-        try:
-            # use cElementTree if available
-            import cElementTree as ET
-        except ImportError:
-            try:
-                from elementtree import ElementTree as ET
-            except ImportError:
-                raise ImportError("No suitable ElementTree implementation was found.")
+        raise ImportError("No suitable ElementTree implementation was found.")
 
 try:
-    # For Python < 2.6 or people using a newer version of simplejson
+    # Prefer simplejson, if installed.
     import simplejson as json
 except ImportError:
-    # For Python >= 2.6
     import json
 
 try:
-    # Desirable from a timeout perspective.
-    from httplib2 import Http
-    TIMEOUTS_AVAILABLE = True
+    # Python 3.X
+    from urllib.parse import urlencode
 except ImportError:
-    from httplib import HTTPConnection, HTTPSConnection
-    TIMEOUTS_AVAILABLE = False
+    # Python 2.X
+    from urllib import urlencode
 
 try:
-    set
+    # Python 3.X
+    import html.entities as htmlentities
+except ImportError:
+    # Python 2.X
+    import htmlentitydefs as htmlentities
+
+try:
+    # Python 2.X
+    unicode_char = unichr
 except NameError:
-    from sets import Set as set
-
-try:
-    # TODO: perhaps refactor to requests when https://github.com/kennethreitz/requests/issues/68 lands?
-    from poster.encode import multipart_encode
-    POSTER_AVAILABLE = True
-except ImportError:
-    POSTER_AVAILABLE = False
+    # Python 3.X
+    unicode_char = chr
+    # Ugh.
+    long = int
 
 
-__author__ = 'Joseph Kocherhans, Jacob Kaplan-Moss, Daniel Lindsley'
+__author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (2, 1, 0, 'beta')
+__version__ = (3, 0, 5)
+
 
 def get_version():
     return "%s.%s.%s" % __version__[:3]
@@ -204,6 +78,51 @@ if False:
     LOG.addHandler(stream)
 
 
+def is_py3():
+    try:
+        basestring
+        return False
+    except NameError:
+        return True
+
+
+IS_PY3 = is_py3()
+
+
+def force_unicode(value):
+    """
+    Forces a bytestring to become a Unicode string.
+    """
+    if IS_PY3:
+        # Python 3.X
+        if isinstance(value, bytes):
+            value = value.decode('utf-8', errors='replace')
+        elif not isinstance(value, str):
+            value = str(value)
+    else:
+        # Python 2.X
+        if isinstance(value, str):
+            value = value.decode('utf-8', 'replace')
+        elif not isinstance(value, basestring):
+            value = unicode(value)
+
+    return value
+
+
+def force_bytes(value):
+    """
+    Forces a Unicode string to become a bytestring.
+    """
+    if IS_PY3:
+        if isinstance(value, str):
+            value = value.encode('utf-8')
+    else:
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
+
+    return value
+
+
 def unescape_html(text):
     """
     Removes HTML or XML character references and entities from a text string.
@@ -219,19 +138,20 @@ def unescape_html(text):
             # character reference
             try:
                 if text[:3] == "&#x":
-                    return unichr(int(text[3:-1], 16))
+                    return unicode_char(int(text[3:-1], 16))
                 else:
-                    return unichr(int(text[2:-1]))
+                    return unicode_char(int(text[2:-1]))
             except ValueError:
                 pass
         else:
             # named entity
             try:
-                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+                text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text # leave as is
     return re.sub("&#?\w+;", fixup, text)
+
 
 def safe_urlencode(params, doseq=0):
     """
@@ -240,6 +160,9 @@ def safe_urlencode(params, doseq=0):
     The stdlib safe_urlencode prior to Python 3.x chokes on UTF-8 values
     which can't fail down to ascii.
     """
+    if IS_PY3:
+        return urlencode(params, doseq)
+
     if hasattr(params, "items"):
         params = params.items()
 
@@ -248,14 +171,12 @@ def safe_urlencode(params, doseq=0):
     for k, v in params:
         k = k.encode("utf-8")
 
-        if isinstance(v, basestring):
-            new_params.append((k, v.encode("utf-8")))
-        elif isinstance(v, (list, tuple)):
-            new_params.append((k, [i.encode("utf-8") for i in v]))
+        if isinstance(v, (list, tuple)):
+            new_params.append((k, [force_bytes(i) for i in v]))
         else:
-            new_params.append((k, unicode(v)))
+            new_params.append((k, force_bytes(v)))
 
-    return urllib.urlencode(new_params, doseq)
+    return urlencode(new_params, doseq)
 
 
 class SolrError(Exception):
@@ -284,87 +205,94 @@ class Results(object):
 
 
 class Solr(object):
+    """
+    The main object for working with Solr.
+
+    Optionally accepts ``decoder`` for an alternate JSON decoder instance.
+    Default is ``json.JSONDecoder()``.
+
+    Optionally accepts ``timeout`` for wait seconds until giving up on a
+    request. Default is ``60`` seconds.
+
+    Usage::
+
+        solr = pysolr.Solr('http://localhost:8983/solr')
+        # With a 10 second timeout.
+        solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
+
+    """
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
-        self.scheme, netloc, path, query, fragment = urlsplit(url)
-        self.base_url = urlunsplit((self.scheme, netloc, '', '', ''))
-        netloc = netloc.split(':')
-        self.host = netloc[0]
-        if len(netloc) == 1:
-            self.host, self.port = netloc[0], None
-        else:
-            self.host, self.port = netloc[0], int(netloc[1])
-        self.path = path.rstrip('/')
         self.timeout = timeout
         self.log = self._get_log()
 
     def _get_log(self):
         return LOG
 
-    def _send_request(self, method, path, body=None, headers=None):
-        if TIMEOUTS_AVAILABLE:
-            http = Http(timeout=self.timeout)
-            url = self.base_url + path
+    def _create_full_url(self, path=''):
+        if len(path):
+            return '/'.join([self.url, path.lstrip('/')])
 
-            self.log.debug("Starting request to '%s' (%s) with body '%s'...",
-                           url, method, str(body)[:10])
-            start_time = time.time()
+        # No path? No problem.
+        return self.url
 
-            try:
-                headers, response = http.request(url, method=method, body=body, headers=headers)
-            except (IOError, AttributeError):
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
-                params = (url, self.base_url)
-                self.log.error(error_message, *params, exc_info=True)
-                raise SolrError(error_message % params)
+    def _send_request(self, method, path='', body=None, headers=None, files=None):
+        url = self._create_full_url(path)
+        method = method.lower()
+        log_body = body
 
-            end_time = time.time()
-            self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
-                          url, method, str(body)[:10], end_time - start_time)
+        if log_body is None:
+            log_body = ''
+        elif not isinstance(log_body, str):
+            log_body = repr(body)
 
-            if int(headers['status']) != 200:
-                error_message = self._extract_error(headers, response)
-                self.log.error(error_message, extra={'data': {'headers': headers,
-                                                              'response': response}})
-                raise SolrError(error_message)
+        self.log.debug("Starting request to '%s' (%s) with body '%s'...",
+                       url, method, log_body[:10])
+        start_time = time.time()
 
-            return response
-        else:
-            if headers is None:
-                headers = {}
+        try:
+            requests_method = getattr(requests, method, 'get')
+        except AttributeError as err:
+            raise SolrError("Unable to send HTTP method '{0}.".format(method))
 
-            if self.scheme == 'http':
-                conn = HTTPConnection(self.host, self.port)
-            elif self.scheme == 'https':
-                conn = HTTPSConnection(self.host, self.port)
+        try:
+            # Bytes all the way down.
+            # Except the ``url``. Requests on Py3 *really* wants that to be a
+            # string, not bytes.
+            bytes_body = body
+            bytes_headers = {}
 
-            start_time = time.time()
-            self.log.debug("Starting request to '%s:%s/%s' (%s) with body '%s'...",
-                           self.host, self.port, path, method, str(body)[:10])
+            if bytes_body is not None:
+                bytes_body = force_bytes(body)
 
-            try:
-                conn.request(method, path, body, headers)
-            except IOError:
-                error_message = "Failed to connect to server at '%s'. Are you sure '%s' is correct? Checking it in a browser might help..."
-                params = (path, self.base_url)
-                self.log.error(error_message, *params, exc_info=True)
-                raise SolrError(error_message % params)
+            if headers is not None:
+                for k, v in headers.items():
+                    bytes_headers[force_bytes(k)] = force_bytes(v)
 
-            response = conn.getresponse()
-            end_time = time.time()
-            self.log.info("Finished '%s:%s/%s' (%s) with body '%s' in %0.3f seconds.",
-                          self.host, self.port, path, method, str(body)[:10], end_time - start_time)
+            resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
+                                   timeout=self.timeout)
+        except requests.exceptions.Timeout as err:
+            error_message = "Connection to server '%s' timed out: %s"
+            self.log.error(error_message, url, err, exc_info=True)
+            raise SolrError(error_message % (url, err))
+        except requests.exceptions.ConnectionError as err:
+            error_message = "Failed to connect to server at '%s', are you sure that URL is correct? Checking it in a browser might help: %s"
+            params = (url, err)
+            self.log.error(error_message, *params, exc_info=True)
+            raise SolrError(error_message % params)
 
-            if response.status != 200:
-                resp_headers = dict(response.getheaders())
-                resp_body = response.read()
-                error_message = self._extract_error(resp_headers, resp_body)
-                self.log.error(error_message, extra={'data': {'headers': resp_headers,
-                                                              'response': resp_body}})
-                raise SolrError(error_message)
+        end_time = time.time()
+        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
+                      url, method, log_body[:10], end_time - start_time)
 
-            return response.read()
+        if int(resp.status_code) != 200:
+            error_message = self._extract_error(resp)
+            self.log.error(error_message, extra={'data': {'headers': resp.headers,
+                                                          'response': resp.content}})
+            raise SolrError(error_message)
+
+        return force_unicode(resp.content)
 
     def _select(self, params):
         # specify json encoding of results
@@ -373,29 +301,31 @@ class Solr(object):
 
         if len(params_encoded) < 1024:
             # Typical case.
-            path = '%s/select/?%s' % (self.path, params_encoded)
-            return self._send_request('GET', path)
+            path = 'select/?%s' % params_encoded
+            return self._send_request('get', path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = '%s/select/' % (self.path,)
+            path = 'select/'
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
-            return self._send_request('POST', path, body=params_encoded, headers=headers)
+            return self._send_request('post', path, body=params_encoded, headers=headers)
 
     def _mlt(self, params):
-        params['wt'] = 'json' # specify json encoding of results
-        path = '%s/mlt/?%s' % (self.path, safe_urlencode(params, True))
-        return self._send_request('GET', path)
+        # specify json encoding of results
+        params['wt'] = 'json'
+        path = 'mlt/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
 
     def _suggest_terms(self, params):
-        params['wt'] = 'json' # specify json encoding of results
-        path = '%s/terms/?%s' % (self.path, safe_urlencode(params, True))
-        return self._send_request('GET', path)
+        # specify json encoding of results
+        params['wt'] = 'json'
+        path = 'terms/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
 
     def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
         """
-        Posts the given xml message to http://<host>:<port>/solr/update and
+        Posts the given xml message to http://<self.url>/update and
         returns the result.
 
         Passing `sanitize` as False will prevent the message from being cleaned
@@ -403,37 +333,40 @@ class Solr(object):
         these characters would cause Solr to fail to parse the XML. Only pass
         False if you're positive your data is clean.
         """
-        path = '%s/update/' % self.path
+        path = 'update/'
 
         # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
         # ``commit=true`` to the URL and have the commit happen without a
         # second request.
         query_vars = []
+
         if commit is not None:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
+
         if waitFlush is not None:
             query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
+
         if waitSearcher is not None:
             query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
+
         if query_vars:
             path = '%s?%s' % (path, '&'.join(query_vars))
-
 
         # Clean the message of ctrl characters.
         if clean_ctrl_chars:
             message = sanitize(message)
 
-        return self._send_request('POST', path, message, {'Content-type': 'text/xml; charset=utf-8'})
+        return self._send_request('post', path, message, {'Content-type': 'text/xml; charset=utf-8'})
 
-    def _extract_error(self, headers, response):
+    def _extract_error(self, resp):
         """
         Extract the actual error message from a solr response.
         """
-        reason = headers.get('reason', None)
+        reason = resp.headers.get('reason', None)
         full_html = None
 
         if reason is None:
-            reason, full_html = self._scrape_response(headers, response)
+            reason, full_html = self._scrape_response(resp.headers, resp.content)
 
         msg = "[Reason: %s]" % reason
 
@@ -455,9 +388,7 @@ class Solr(object):
             server_type = 'jetty'
 
         if server_string and 'coyote' in server_string.lower():
-            # TODO: During the pysolr 3 effort, make this no longer a
-            #       conditional and consider using ``lxml.html`` instead.
-            from BeautifulSoup import BeautifulSoup
+            import lxml.html
             server_type = 'tomcat'
 
         # Solr 4 handle errors by itself
@@ -493,15 +424,19 @@ class Solr(object):
                 pass
         elif server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response
-            soup = BeautifulSoup(response)
+            soup = lxml.html.fromstring(response)
             body_node = soup.find('body')
-            p_nodes = body_node.findAll('p')
+            p_nodes = body_node.cssselect('p')
 
             for p_node in p_nodes:
-                children = p_node.findChildren()
+                children = p_node.getchildren()
 
-                if len(children) >= 2 and 'message' in children[0].renderContents().lower():
-                    reason = children[1].renderContents()
+                if len(children) >= 2 and 'message' in children[0].text.lower():
+                    reason = children[1].text
+
+            if reason is None:
+                from lxml.html.clean import clean_html
+                full_html = clean_html(response)
         else:
             # Let's assume others do produce a valid XML response
             try:
@@ -519,11 +454,11 @@ class Solr(object):
 
                 if reason is None:
                     full_html = ET.tostring(dom_tree)
-            except SyntaxError, e:
+            except SyntaxError as err:
                 pass
 
-        if reason is None:
-            full_html = "%s" % response
+        if reason is None and not full_html:
+            full_html = "%s" % response                
 
         full_html = full_html.replace('\n', '')
         full_html = full_html.replace('\r', '')
@@ -549,10 +484,18 @@ class Solr(object):
                 value = 'true'
             else:
                 value = 'false'
-        elif isinstance(value, str):
-            value = unicode(value, errors='replace')
         else:
-            value = unicode(value)
+            if IS_PY3:
+                # Python 3.X
+                if isinstance(value, bytes):
+                    value = str(value, errors='replace')
+            else:
+                # Python 2.X
+                if isinstance(value, str):
+                    value = unicode(value, errors='replace')
+
+            value = "{0}".format(value)
+
         return value
 
     def _to_python(self, value):
@@ -570,7 +513,22 @@ class Solr(object):
         elif value == 'false':
             return False
 
-        if isinstance(value, basestring):
+        is_string = False
+
+        if IS_PY3:
+            if isinstance(value, bytes):
+                value = force_unicode(value)
+
+            if isinstance(value, str):
+                is_string = True
+        else:
+            if isinstance(value, str):
+                value = force_unicode(value)
+
+            if isinstance(value, basestring):
+                is_string = True
+
+        if is_string == True:
             possible_datetime = DATETIME_REGEX.search(value)
 
             if possible_datetime:
@@ -579,7 +537,7 @@ class Solr(object):
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)
 
-                return datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
+                return datetime.datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
 
         try:
             # This is slightly gross but it's hard to tell otherwise what the
@@ -603,13 +561,44 @@ class Solr(object):
         Criteria for this is based on values that shouldn't be included
         in the Solr ``add`` request at all.
         """
+        if value is None:
+            return True
+
+        if IS_PY3:
+            # Python 3.X
+            if isinstance(value, str) and len(value) == 0:
+                return True
+        else:
+            # Python 2.X
+            if isinstance(value, basestring) and len(value) == 0:
+                return True
+
         # TODO: This should probably be removed when solved in core Solr level?
-        return (value is None) or (isinstance(value, basestring) and len(value) == 0)
+        return False
 
     # API Methods ############################################################
 
     def search(self, q, **kwargs):
-        """Performs a search and returns the results."""
+        """
+        Performs a search and returns the results.
+
+        Requires a ``q`` for a string version of the query to run.
+
+        Optionally accepts ``**kwargs`` for additional options to be passed
+        through the Solr URL.
+
+        Usage::
+
+            # All docs.
+            results = solr.search('*:*')
+
+            # Search with highlighting.
+            results = solr.search('ponies', **{
+                'hl': 'true',
+                'hl.fragsize': 10,
+            })
+
+        """
         params = {'q': q}
         params.update(kwargs)
         response = self._select(params)
@@ -649,6 +638,11 @@ class Solr(object):
         Finds and returns results similar to the provided query.
 
         Requires Solr 1.3+.
+
+        Usage::
+
+            similar = solr.more_like_this('id:doc_234', 'text')
+
         """
         params = {
             'q': q,
@@ -692,10 +686,10 @@ class Solr(object):
         #
         # in Solr 3.x the value of terms is a dict:
         #   {"field_name": ["dance",23,"dancers",10,"dancing",8,"dancer",6]}
-        if isinstance(terms, types.ListType):
+        if isinstance(terms, (list, tuple)):
             terms = dict(zip(terms[0::2], terms[1::2]))
 
-        for field, values in terms.iteritems():
+        for field, values in terms.items():
             tmp = list()
 
             while values:
@@ -706,64 +700,105 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
 
+    def _build_doc(self, doc, boost=None):
+        doc_elem = ET.Element('doc')
+
+        for key, value in doc.items():
+            if key == 'boost':
+                doc_elem.set('boost', force_unicode(value))
+                continue
+
+            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
+            if isinstance(value, (list, tuple)):
+                values = value
+            else:
+                values = (value, )
+
+            for bit in values:
+                if self._is_null_value(bit):
+                    continue
+
+                attrs = {'name': key}
+
+                if boost and key in boost:
+                    attrs['boost'] = force_unicode(boost[key])
+
+                field = ET.Element('field', **attrs)
+                field.text = self._from_python(bit)
+
+                doc_elem.append(field)
+
+        return doc_elem
+
     def add(self, docs, commit=True, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
-        """Adds or updates documents. For now, docs is a list of dictionaries
-        where each key is the field name and each value is the value to index.
+        """
+        Adds or updates documents.
+
+        Requires ``docs``, which is a list of dictionaries. Each key is the
+        field name and each value is the value to index.
+
+        Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``boost``. Default is ``None``.
+
+        Optionally accepts ``commitWithin``. Default is ``None``.
+
+        Optionally accepts ``waitFlush``. Default is ``None``.
+
+        Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Usage::
+
+            solr.add([
+                {
+                    "id": "doc_1",
+                    "title": "A test document",
+                },
+                {
+                    "id": "doc_2",
+                    "title": "The Banana: Tasty or Dangerous?",
+                },
+            ])
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
         message = ET.Element('add')
+
         if commitWithin:
             message.set('commitWithin', commitWithin)
+
         for doc in docs:
-            d = ET.Element('doc')
+            message.append(self._build_doc(doc, boost=boost))
 
-            for key, value in doc.items():
-                if key == 'boost':
-                    d.set('boost', str(value))
-                    continue
-
-                # handle lists, tuples, and other iterables
-                if hasattr(value, '__iter__'):
-                    for v in value:
-                        if self._is_null_value(value):
-                            continue
-
-                        if boost and v in boost:
-                            if not isinstance(boost, basestring):
-                                boost[v] = str(boost[v])
-
-                            f = ET.Element('field', name=key, boost=boost[v])
-                        else:
-                            f = ET.Element('field', name=key)
-
-                        f.text = self._from_python(v)
-                        d.append(f)
-                # handle strings and unicode
-                else:
-                    if self._is_null_value(value):
-                        continue
-
-                    if boost and key in boost:
-                        if not isinstance(boost, basestring):
-                            boost[key] = str(boost[key])
-
-                        f = ET.Element('field', name=key, boost=boost[key])
-                    else:
-                        f = ET.Element('field', name=key)
-
-                    f.text = self._from_python(value)
-                    d.append(f)
-
-            message.append(d)
-
+        # This returns a bytestring. Ugh.
         m = ET.tostring(message, encoding='utf-8')
+        # Convert back to Unicode please.
+        m = force_unicode(m)
+
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
-        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
-        """Deletes documents."""
+        """
+        Deletes documents.
+
+        Requires *either* ``id`` or ``query``. ``id`` is if you know the
+        specific document id to remove. ``query`` is a Lucene-style query
+        indicating a collection of documents to delete.
+
+        Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``waitFlush``. Default is ``None``.
+
+        Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Usage::
+
+            solr.delete(id='doc_12')
+            solr.delete(q='*:*')
+
+        """
         if id is None and q is None:
             raise ValueError('You must specify "id" or "q".')
         elif id is not None and q is not None:
@@ -773,21 +808,52 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        response = self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def commit(self, waitFlush=None, waitSearcher=None, expungeDeletes=None):
+        """
+        Forces Solr to write the index data to disk.
+
+        Optionally accepts ``expungeDeletes``. Default is ``None``.
+
+        Optionally accepts ``waitFlush``. Default is ``None``.
+
+        Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Usage::
+
+            solr.commit()
+
+        """
         if expungeDeletes is not None:
             msg = '<commit expungeDeletes="%s" />' % str(bool(expungeDeletes)).lower()
         else:
             msg = '<commit />'
-        response = self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+
+        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
+        """
+        Tells Solr to streamline the number of segments used, essentially a
+        defragmentation operation.
+
+        Optionally accepts ``maxSegments``. Default is ``None``.
+
+        Optionally accepts ``waitFlush``. Default is ``None``.
+
+        Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Usage::
+
+            solr.optimize()
+
+        """
         if maxSegments:
-            msg = '<commit maxSegments="%d" />' % maxSegments
+            msg = '<optimize maxSegments="%d" />' % maxSegments
         else:
-            msg = '<commit />'
-        response = self._update('<optimize />', waitFlush=waitFlush, waitSearcher=waitSearcher)
+            msg = '<optimize />'
+
+        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def extract(self, file_obj, extractOnly=True, **kwargs):
         """
@@ -813,13 +879,6 @@ class Solr(object):
             :metadata:
                         key:value pairs of text strings
         """
-        if not POSTER_AVAILABLE:
-            raise RuntimeError("Solr rich content extraction requires `poster` to be installed")
-
-        # The poster library unfortunately defaults to mime-type None when
-        # the file lacks a name and that causes it to send the file contents
-        # as a gigantic string rather than a separate MIME part, which breaks
-        # and spews the contents in the Solr request log:
         if not hasattr(file_obj, "name"):
             raise ValueError("extract() requires file-like objects which have a defined name property")
 
@@ -827,26 +886,24 @@ class Solr(object):
             "extractOnly": "true" if extractOnly else "false",
             "lowernames": "true",
             "wt": "json",
-            # We'll provide the file using its true name as Tika may use that
-            # as a file type hint:
-            file_obj.name: file_obj,
         }
         params.update(kwargs)
 
-        body_generator, headers = multipart_encode(params)
-
         try:
-            resp = self._send_request('POST', "%s/update/extract" % self.path,
-                                      "".join(body_generator), headers)
-        except (IOError, SolrError),  e:
-            self.log.error("Failed to extract document metadata: %s", e,
+            # We'll provide the file using its true name as Tika may use that
+            # as a file type hint:
+            resp = self._send_request('post', 'update/extract',
+                                      body=params,
+                                      files={'file': (file_obj.name, file_obj)})
+        except (IOError, SolrError) as err:
+            self.log.error("Failed to extract document metadata: %s", err,
                            exc_info=True)
             raise
 
         try:
             data = json.loads(resp)
-        except ValueError, e:
-            self.log.error("Failed to load JSON response: %s", e,
+        except ValueError as err:
+            self.log.error("Failed to load JSON response: %s", err,
                            exc_info=True)
             raise
 
@@ -862,7 +919,6 @@ class Solr(object):
                 metadata[raw_metadata.pop()] = raw_metadata.pop()
 
         return data
-
 
 
 class SolrCoreAdmin(object):
@@ -884,11 +940,8 @@ class SolrCoreAdmin(object):
         self.url = url
 
     def _get_url(self, url, params={}, headers={}):
-        request = urllib2.Request(url, data=safe_urlencode(params), headers=headers)
-        # Let ``socket.error``, ``urllib2.HTTPError`` and ``urllib2.URLError``
-        # propagate up the stack.
-        response = urllib2.urlopen(request)
-        return response.read()
+        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
+        return force_unicode(resp.content)
 
     def status(self, core=None):
         """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
@@ -934,19 +987,6 @@ class SolrCoreAdmin(object):
         }
         return self._get_url(self.url, params=params)
 
-    def alias(self, core, other):
-        """
-        http://wiki.apache.org/solr/CoreAdmin#head-8bf9004eaa4d86af23d2758aafb0d31e2e8fe0d2
-
-        Experimental feature in Solr 1.3
-        """
-        params = {
-            'action': 'ALIAS',
-            'core': core,
-            'other': other,
-        }
-        return self._get_url(self.url, params=params)
-
     def swap(self, core, other):
         """http://wiki.apache.org/solr/CoreAdmin#head-928b872300f1b66748c85cebb12a59bb574e501b"""
         params = {
@@ -971,46 +1011,41 @@ class SolrCoreAdmin(object):
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
     # Nuke nasty control characters.
-    ('\x00', ''), # Start of heading
-    ('\x01', ''), # Start of heading
-    ('\x02', ''), # Start of text
-    ('\x03', ''), # End of text
-    ('\x04', ''), # End of transmission
-    ('\x05', ''), # Enquiry
-    ('\x06', ''), # Acknowledge
-    ('\x07', ''), # Ring terminal bell
-    ('\x08', ''), # Backspace
-    ('\x0b', ''), # Vertical tab
-    ('\x0c', ''), # Form feed
-    ('\x0e', ''), # Shift out
-    ('\x0f', ''), # Shift in
-    ('\x10', ''), # Data link escape
-    ('\x11', ''), # Device control 1
-    ('\x12', ''), # Device control 2
-    ('\x13', ''), # Device control 3
-    ('\x14', ''), # Device control 4
-    ('\x15', ''), # Negative acknowledge
-    ('\x16', ''), # Synchronous idle
-    ('\x17', ''), # End of transmission block
-    ('\x18', ''), # Cancel
-    ('\x19', ''), # End of medium
-    ('\x1a', ''), # Substitute character
-    ('\x1b', ''), # Escape
-    ('\x1c', ''), # File separator
-    ('\x1d', ''), # Group separator
-    ('\x1e', ''), # Record separator
-    ('\x1f', ''), # Unit separator
+    (b'\x00', b''), # Start of heading
+    (b'\x01', b''), # Start of heading
+    (b'\x02', b''), # Start of text
+    (b'\x03', b''), # End of text
+    (b'\x04', b''), # End of transmission
+    (b'\x05', b''), # Enquiry
+    (b'\x06', b''), # Acknowledge
+    (b'\x07', b''), # Ring terminal bell
+    (b'\x08', b''), # Backspace
+    (b'\x0b', b''), # Vertical tab
+    (b'\x0c', b''), # Form feed
+    (b'\x0e', b''), # Shift out
+    (b'\x0f', b''), # Shift in
+    (b'\x10', b''), # Data link escape
+    (b'\x11', b''), # Device control 1
+    (b'\x12', b''), # Device control 2
+    (b'\x13', b''), # Device control 3
+    (b'\x14', b''), # Device control 4
+    (b'\x15', b''), # Negative acknowledge
+    (b'\x16', b''), # Synchronous idle
+    (b'\x17', b''), # End of transmission block
+    (b'\x18', b''), # Cancel
+    (b'\x19', b''), # End of medium
+    (b'\x1a', b''), # Substitute character
+    (b'\x1b', b''), # Escape
+    (b'\x1c', b''), # File separator
+    (b'\x1d', b''), # Group separator
+    (b'\x1e', b''), # Record separator
+    (b'\x1f', b''), # Unit separator
 )
 
 def sanitize(data):
-    fixed_string = data
+    fixed_string = force_bytes(data)
 
     for bad, good in REPLACEMENTS:
         fixed_string = fixed_string.replace(bad, good)
 
-    return fixed_string
-
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()
+    return force_unicode(fixed_string)
