@@ -608,6 +608,19 @@ class Solr(object):
         return Results(response.get('docs', ()), numFound, **result_kwargs)
 
     def get(self, id=None, ids=None, **kwargs):
+        """
+        Gets latest version of documents, even uncommited ones.
+
+        Requires *either* ``id`` or ``ids``. ``id`` for single document.
+        ``ids`` is a comma separated document ids.
+
+        Optionally accepts ``fl`` - field list.
+
+        Usage::
+
+            solr.get(id='doc_11')
+            solr.get(ids='doc_1,doc_2', fl='id,title')
+        """
         if id is None and ids is None:
             raise ValueError('You must specify "id" or "ids".')
         elif id is not None and ids is not None:

@@ -332,12 +332,18 @@ class SolrTestCase(unittest.TestCase):
         results = self.solr.get('doc_1')
         self.assertEqual(len(results), 1)
 
-        self.solr.add([{'id': 'doc_6', 'title': 'Realtime doc'}], commit=False)
+        self.solr.add([{'id': 'doc_6', 'title': 'Realtime doc',
+                        'price': 99.99, 'popularity': 1}],
+                      commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.assertEqual(len(self.solr.search('realtime')), 0)
 
-        results = self.solr.get(id='doc_6')
+        results = self.solr.get(id='doc_6', fl='id,price')
+        doc = results.docs[0]
         self.assertEqual(len(results), 1)
+        self.assertEqual(len(doc), 2)
+        self.assertEqual(doc['id'], 'doc_6')
+        self.assertAlmostEqual(doc['price'], 99.99)
 
         results = self.solr.get(ids='doc_2,doc_6')
         self.assertEqual(len(results), 2)
