@@ -635,7 +635,7 @@ class Solr(object):
         result = self.decoder.decode(response)
 
         if id is not None:
-            docs = filter(None, [result.get('doc')])
+            docs = list(filter(None, [result.get('doc')]))
             numFound = len(docs)
         else:
             response = result.get('response') or {}
