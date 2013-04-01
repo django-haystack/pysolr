@@ -397,10 +397,10 @@ class Solr(object):
 
         # Solr 4.0 json response
         try:
-            data = json.loads(response)
+            data = self.decoder.decode(force_unicode(response))
             error = data['error']
             reason = error.get('msg') or error.get('trace')
-        except (ValueError, KeyError):
+        except (ValueError, KeyError) as e:
             pass
 
         if reason is None:
@@ -415,43 +415,45 @@ class Solr(object):
                         if msg_node is not None and msg_node.get('name') in ('msg', 'trace'):
                             reason = msg_node.text
                             break
-            except SyntaxError, e:
+            except SyntaxError as e:
                 pass
 
-        if reason is None and server_type == 'tomcat':
-            # Tomcat doesn't produce a valid XML response
-            soup = lxml.html.fromstring(response)
-            body_node = soup.find('body')
-            p_nodes = body_node.cssselect('p')
+        if reason is None:
+            if server_type == 'tomcat':
+                # Tomcat doesn't produce a valid XML response
 
-            for p_node in p_nodes:
-                children = p_node.getchildren()
+                soup = lxml.html.fromstring(response)
+                body_node = soup.find('body')
+                p_nodes = body_node.cssselect('p')
 
-                if len(children) >= 2 and 'message' in children[0].text.lower():
-                    reason = children[1].text
+                for p_node in p_nodes:
+                    children = p_node.getchildren()
 
-            if reason is None:
-                from lxml.html.clean import clean_html
-                full_html = clean_html(response)
-        else:
-            # Let's assume others do produce a valid XML response
-            try:
-                dom_tree = ET.fromstring(response)
-                reason_node = None
-
-                # html page might be different for every server
-                if server_type == 'jetty':
-                    reason_node = dom_tree.find('body/pre')
-                else:
-                    reason_node = dom_tree.find('head/title')
-
-                if reason_node is not None:
-                    reason = reason_node.text
+                    if len(children) >= 2 and 'message' in children[0].text.lower():
+                        reason = children[1].text
 
                 if reason is None:
-                    full_html = ET.tostring(dom_tree)
-            except SyntaxError as err:
-                pass
+                    from lxml.html.clean import clean_html
+                    full_html = clean_html(response)
+            else:
+                # Let's assume others do produce a valid XML response
+                try:
+                    dom_tree = ET.fromstring(response)
+                    reason_node = None
+
+                    # html page might be different for every server
+                    if server_type == 'jetty':
+                        reason_node = dom_tree.find('body/pre')
+                    else:
+                        reason_node = dom_tree.find('head/title')
+
+                    if reason_node is not None:
+                        reason = reason_node.text
+
+                    if reason is None:
+                        full_html = ET.tostring(dom_tree)
+                except SyntaxError as err:
+                    pass
 
         if reason is None and not full_html:
             full_html = "%s" % response                
