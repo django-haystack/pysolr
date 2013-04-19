@@ -747,7 +747,7 @@ class Solr(object):
         m = force_unicode(m)
 
         end_time = time.time()
-        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
+        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
