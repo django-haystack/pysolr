@@ -28,3 +28,4 @@ Contributors:
 * cordmata for a patch to handle how Solr 3.X returns suggestions.
 * pabluk for Tika integration improvements.
 * gthb for a patch to add grouping support.
+* timsavage for a patch making add() compatible with generators
