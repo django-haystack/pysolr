@@ -548,7 +548,29 @@ class Solr(object):
         return False
 
     # API Methods ############################################################
+    
+    def create_nested_q(self, type, q, **kwargs):
+        """
+        A helper function to create sub queries.
 
+        :param type: Specifies the query parser to use
+        :param q: The query string
+
+        Optionally accepts ``**kwargs`` for additional options to be passed
+        through to the nested query.
+
+        Usage::
+        
+            nested_q = solr.create_nested_q('dismax', 'blue', **{
+                'qf': 'bodyColor hairColor'
+            })
+            results = solr.search('pony AND {}'.format(nested_q))
+
+        """
+        params = ' '.join(["{}='{}'".format(key, value) for (key, value) in
+                           kwargs.items()])
+        return '_query_:"{{!{0} {1}}}{2}"'.format(type, params, q)
+    
     def search(self, q, **kwargs):
         """
         Performs a search and returns the results.
@@ -603,6 +625,59 @@ class Solr(object):
         numFound = response.get('numFound', 0)
         self.log.debug("Found '%s' search results.", numFound)
         return Results(response.get('docs', ()), numFound, **result_kwargs)
+
+    def disjunction_max(self, q, qf, **kwargs):
+        """
+        Performs extended disjunction max (edismax) search.
+
+        :param q: The query string
+        :param qf: The fields to search in
+
+        Optionally accepts ``**kwargs`` for additional options to be passed
+        through the Solr URL.
+
+        It is like ``search``. It only presets the ``defType`` and ``qf``
+        parameters for solr.
+
+        Usaged::
+        
+            results = solr.disjunction_max('blue', 'bodyColor hairColor')
+
+        """
+        params = {'defType': 'edismax',
+                  'qf': qf,}
+        params.update(kwargs)
+        return self.search(q, **params)
+
+    def spatial_search(self, q, sfield, point, radius, **kwargs):
+        """
+        Performs circle spatial search around a given point.
+
+        :param q: The query string
+        :param sfield: The location field in the solr documentes to search in
+        :param point: The center of the search circle
+        :param radius: The radius of the circle/the search radius around the
+            given point in km
+
+        Optionally accepts ``**kwargs`` for additional options to be passed
+        through the Solr URL.
+
+        The results are sorted by distance to the center of the circle.
+
+        It is based on ``search``.
+
+        Usaged::
+
+            results = solr.spatial_search('pony', 'location', '54.33131,10.12135', '10')
+
+        """
+        params = {'fl': '*,score',
+                  'sort': 'score asc',}
+        params.update(kwargs)
+
+        qq = '{0} AND {{!bbox score=distance sfield={1} pt={2} d={3}}}'.format(q, sfield, point, radius)
+
+        return self.search(qq, **params)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """

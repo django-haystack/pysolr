@@ -140,6 +140,49 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            {
+                "id": "sn1",
+                "cat": "pony",
+                "comments": "blue",
+                "description": "black",
+                "store": "50.03131,10.12135"
+            },
+            {
+                "id": "sn2",
+                "cat": "pony",
+                "name": "fake unicorn",
+                "comments": "yellow",
+                "description": "blue",
+                "store": "54.23131,10.12135"
+            },
+            {
+                "id": "sn3",
+                "cat": "pony",
+                "comments": "yellow",
+                "description": "red",
+                "store": "54.33131,10.12135"
+            },
+            {
+                "id": "sn4",
+                "cat": "unicorn",
+                "comments": "yellow",
+                "description": "blue"
+            },
+            {
+                "id": "sn5",
+                "cat": "unicorn",
+                "comments": "steel",
+                "description": "steel",
+                "store": "54.43131,10.12135"
+            },
+            {
+                "id": "sn6",
+                "name": "blue pony",
+                "cat": "unicorn",
+                "comments": "blue",
+                "description": "blue",
+                "store": "54.33131,10.22135"
+            },
         ]
 
         # Clear it.
@@ -162,6 +205,11 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 2)
+
+    def assertSameIDs(self, docs, expected_ids):
+        doc_ids = frozenset([doc['id'] for doc in docs])
+        ids_set = frozenset(expected_ids)
+        self.assertEqual(doc_ids, ids_set)
 
     def test__create_full_url(self):
         # Nada.
@@ -283,6 +331,14 @@ class SolrTestCase(unittest.TestCase):
         self.assertFalse(self.solr._is_null_value('Hello'))
         self.assertFalse(self.solr._is_null_value(1))
 
+    def test_create_nested_q(self):
+        query = self.solr.create_nested_q("dismax", "how now brown cow", **{
+            'pf': 'myfield',
+            'qf': 'myfield2',
+        })
+        self.assertEqual(query,
+            '_query_:"{!dismax pf=\'myfield\' qf=\'myfield2\'}how now brown cow"')
+
     def test_search(self):
         results = self.solr.search('doc')
         self.assertEqual(len(results), 3)
@@ -315,6 +371,32 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+
+    def test_search_with_nested_q(self):
+        nested_q = self.solr.create_nested_q('edismax', 'blue', **{
+                'qf': 'description comments'
+        })
+        results = self.solr.search('pony AND {}'.format(nested_q))
+        
+        self.assertSameIDs(results, ['sn6', 'sn2', 'sn1'])
+
+    def test_disjunction_max(self):
+        results = self.solr.disjunction_max('blue', 'description comments')
+        
+        self.assertSameIDs(results, ['sn6', 'sn4', 'sn2', 'sn1'])
+
+    def test_disjunction_max_with_nested_q(self):
+        nested_q = self.solr.create_nested_q('edismax', 'blue', **{
+                'qf': 'description comments'
+        })
+        results = self.solr.disjunction_max('unicorn AND {}'.format(nested_q), 'cat name')
+        
+        self.assertSameIDs(results, ['sn6', 'sn4', 'sn2'])
+
+    def test_spatial_search(self):
+        results = self.solr.spatial_search('pony', 'store', '54.33131,10.12135', '100')
+        
+        self.assertSameIDs(results, ['sn6', 'sn3', 'sn2'])
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
@@ -375,7 +457,7 @@ class SolrTestCase(unittest.TestCase):
         self.solr.delete(q='price:[0 TO 15]')
         self.assertEqual(len(self.solr.search('doc')), 1)
 
-        self.assertEqual(len(self.solr.search('*:*')), 1)
+        self.assertEqual(len(self.solr.search('*:*')), 7)
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
