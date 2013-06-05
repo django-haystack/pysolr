@@ -275,6 +275,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._to_python('hello ☃'), 'hello ☃')
         self.assertEqual(self.solr._to_python(['foo', 'bar']), 'foo')
         self.assertEqual(self.solr._to_python(('foo', 'bar')), 'foo')
+        self.assertEqual(self.solr._to_python('tuple("foo", "bar")'), 'tuple("foo", "bar")')
 
     def test__is_null_value(self):
         self.assertTrue(self.solr._is_null_value(None))
