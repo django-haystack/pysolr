@@ -8,6 +8,7 @@ import re
 import requests
 import time
 import types
+import ast
 
 try:
     # Prefer lxml, if installed.
@@ -512,15 +513,10 @@ class Solr(object):
 
         try:
             # This is slightly gross but it's hard to tell otherwise what the
-            # string's original type might have been. Be careful who you trust.
-            converted_value = eval(value)
-
-            # Try to handle most built-in types.
-            if isinstance(converted_value, (list, tuple, set, dict, int, float, long, complex)):
-                return converted_value
-        except:
-            # If it fails (SyntaxError or its ilk) or we don't trust it,
-            # continue on.
+            # string's original type might have been.
+            return ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            # If it fails, continue on.
             pass
 
         return value
