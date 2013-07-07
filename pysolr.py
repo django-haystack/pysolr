@@ -409,11 +409,12 @@ class Solr(object):
                 if len(children) >= 2 and 'message' in children[0].text.lower():
                     reason = children[1].text
 
-                if len(children) >= 2 and 'description' in children[0].renderContents().lower():
-                    if reason is None:
-                        reason = children[1].renderContents()
-                    else:
-                        reason += ", " + children[1].renderContents()
+                if len(children) >= 2 and hasattr(children[0], 'renderContents'):
+                    if 'description' in children[0].renderContents().lower():
+                        if reason is None:
+                            reason = children[1].renderContents()
+                        else:
+                            reason += ", " + children[1].renderContents()
 
             if reason is None:
                 from lxml.html.clean import clean_html
