@@ -416,6 +416,12 @@ class Solr(object):
                         else:
                             reason += ", " + children[1].renderContents()
 
+                if len(children) >= 2 and 'description' in children[0].renderContents().lower():
+                    if reason is None:
+                        reason = children[1].renderContents()
+                    else:
+                        reason += ", " + children[1].renderContents()
+
             if reason is None:
                 from lxml.html.clean import clean_html
                 full_html = clean_html(response)
