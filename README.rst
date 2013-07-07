@@ -71,7 +71,7 @@ Basic usage looks like::
 
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
-    results = solr.search('bananas')
+    results = solr.search(q='bananas')
 
     # The ``Results`` object stores total results found, by default the top
     # ten most relevant results and any additional data like
@@ -84,7 +84,8 @@ Basic usage looks like::
 
     # For a more advanced query, say involving highlighting, you can pass
     # additional options to Solr.
-    results = solr.search('bananas', **{
+    results = solr.search(**{
+        'q': 'bananas',
         'hl': 'true',
         'hl.fragsize': 10,
     })

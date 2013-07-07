@@ -185,11 +185,12 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None,
+    def __init__(self, docs, hits, start, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
                  grouped=None):
         self.docs = docs
         self.hits = hits
+        self.start = start
         self.highlighting = highlighting or {}
         self.facets = facets or {}
         self.spellcheck = spellcheck or {}
@@ -552,30 +553,26 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, **kwargs):
         """
         Performs a search and returns the results.
 
-        Requires a ``q`` for a string version of the query to run.
-
-        Optionally accepts ``**kwargs`` for additional options to be passed
-        through the Solr URL.
+        ``**kwargs`` are options to be passed through the Solr URL.
 
         Usage::
 
             # All docs.
-            results = solr.search('*:*')
+            results = solr.search(q='*:*')
 
             # Search with highlighting.
-            results = solr.search('ponies', **{
+            results = solr.search(**{
+                'q': 'ponies',
                 'hl': 'true',
                 'hl.fragsize': 10,
             })
 
         """
-        params = {'q': q}
-        params.update(kwargs)
-        response = self._select(params)
+        response = self._select(kwargs)
 
         # TODO: make result retrieval lazy and allow custom result objects
         result = self.decoder.decode(response)
@@ -604,8 +601,9 @@ class Solr(object):
 
         response = result.get('response') or {}
         numFound = response.get('numFound', 0)
+        start = response.get('start', 0)
         self.log.debug("Found '%s' search results.", numFound)
-        return Results(response.get('docs', ()), numFound, **result_kwargs)
+        return Results(response.get('docs', ()), numFound, start, **result_kwargs)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
@@ -634,7 +632,7 @@ class Solr(object):
             }
 
         self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'])
+        return Results(result['response']['docs'], result['response']['numFound'], result['response']['start'])
 
     def suggest_terms(self, fields, prefix, **kwargs):
         """

@@ -285,17 +285,18 @@ class SolrTestCase(unittest.TestCase):
         self.assertFalse(self.solr._is_null_value(1))
 
     def test_search(self):
-        results = self.solr.search('doc')
+        results = self.solr.search(q='doc')
         self.assertEqual(len(results), 3)
 
-        results = self.solr.search('example')
+        results = self.solr.search(q='example')
         self.assertEqual(len(results), 2)
 
-        results = self.solr.search('nothing')
+        results = self.solr.search(q='nothing')
         self.assertEqual(len(results), 0)
 
         # Advanced options.
-        results = self.solr.search('doc', **{
+        results = self.solr.search(**{
+            'q': 'doc',
             'debug': 'true',
             'hl': 'true',
             'hl.fragsize': 8,
@@ -339,8 +340,8 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(doc_xml), 152)
 
     def test_add(self):
-        self.assertEqual(len(self.solr.search('doc')), 3)
-        self.assertEqual(len(self.solr.search('example')), 2)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
+        self.assertEqual(len(self.solr.search(q='example')), 2)
 
         self.solr.add([
             {
@@ -353,11 +354,11 @@ class SolrTestCase(unittest.TestCase):
             },
         ])
 
-        self.assertEqual(len(self.solr.search('doc')), 5)
-        self.assertEqual(len(self.solr.search('example')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 5)
+        self.assertEqual(len(self.solr.search(q='example')), 3)
 
     def test_add_with_boost(self):
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
 
         self.solr.add([{'id': 'doc_6', 'title': 'Important doc'}],
                       boost={'title': 10.0})
@@ -365,20 +366,20 @@ class SolrTestCase(unittest.TestCase):
         self.solr.add([{'id': 'doc_7', 'title': 'Spam doc doc'}],
                       boost={'title': 0})
 
-        res = self.solr.search('doc')
+        res = self.solr.search(q='doc')
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
 
     def test_delete(self):
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
         self.solr.delete(id='doc_1')
-        self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search(q='doc')), 2)
         self.solr.delete(q='price:[0 TO 15]')
-        self.assertEqual(len(self.solr.search('doc')), 1)
+        self.assertEqual(len(self.solr.search(q='doc')), 1)
 
-        self.assertEqual(len(self.solr.search('*:*')), 1)
+        self.assertEqual(len(self.solr.search(q='*:*')), 1)
         self.solr.delete(q='*:*')
-        self.assertEqual(len(self.solr.search('*:*')), 0)
+        self.assertEqual(len(self.solr.search(q='*:*')), 0)
 
         # Need at least one.
         self.assertRaises(ValueError, self.solr.delete)
@@ -386,29 +387,29 @@ class SolrTestCase(unittest.TestCase):
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')
 
     def test_commit(self):
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
         self.solr.add([
             {
                 'id': 'doc_6',
                 'title': 'Newly added doc',
             }
         ], commit=False)
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
         self.solr.commit()
-        self.assertEqual(len(self.solr.search('doc')), 4)
+        self.assertEqual(len(self.solr.search(q='doc')), 4)
 
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
         self.solr.add([
             {
                 'id': 'doc_6',
                 'title': 'Newly added doc',
             }
         ], commit=False)
-        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search(q='doc')), 3)
         self.solr.optimize()
-        self.assertEqual(len(self.solr.search('doc')), 4)
+        self.assertEqual(len(self.solr.search(q='doc')), 4)
 
     def test_extract(self):
         fake_f = StringIO("""
