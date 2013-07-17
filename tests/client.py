@@ -4,7 +4,8 @@ from __future__ import unicode_literals
 import datetime
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
-                   force_unicode, force_bytes, sanitize, json, ET, IS_PY3)
+                    force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
+                    clean_xml_string)
 
 try:
     import unittest2 as unittest
@@ -50,6 +51,9 @@ class UtilsTestCase(unittest.TestCase):
         self.assertEqual(force_bytes('Hello ☃'), b'Hello \xe2\x98\x83')
         # Don't mangle, it's already a bytestring.
         self.assertEqual(force_bytes(b'Hello \xe2\x98\x83'), b'Hello \xe2\x98\x83')
+
+    def test_clean_xml_string(self):
+        self.assertEqual(clean_xml_string('\x00\x0b\x0d\uffff'), '\x0d')
 
 
 class ResultsTestCase(unittest.TestCase):
@@ -263,6 +267,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._from_python(1.2), '1.2')
         self.assertEqual(self.solr._from_python(b'hello'), 'hello')
         self.assertEqual(self.solr._from_python('hello ☃'), 'hello ☃')
+        self.assertEqual(self.solr._from_python('\x01test\x02'), 'test')
 
     def test__to_python(self):
         self.assertEqual(self.solr._to_python('2013-01-18T00:00:00Z'), datetime.datetime(2013, 1, 18))
