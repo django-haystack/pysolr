@@ -2,8 +2,17 @@
 pysolr
 ======
 
-``pysolr`` is a lightweight Python wrapper for Apache Solr. It provides an
+``pysolr`` is a lightweight Python wrapper for `Apache Solr`_. It provides an
 interface that queries the server and returns results based on the query.
+
+.. _`Apache Solr`: http://lucene.apache.org/solr/
+
+
+Status
+======
+
+.. image:: https://secure.travis-ci.org/toastdriven/pysolr.png
+   :target: https://secure.travis-ci.org/toastdriven/pysolr
 
 
 Features
@@ -11,15 +20,15 @@ Features
 
 * Basic operations such as selecting, updating & deleting.
 * Index optimization.
-* "More Like This" support (if setup in Solr).
-* Spelling correction (if setup in Solr).
+* `"More Like This" <http://wiki.apache.org/solr/MoreLikeThis>`_ support (if set up in Solr).
+* `Spelling correction <http://wiki.apache.org/solr/SpellCheckComponent>`_ (if set up in Solr).
 * Timeout support.
 
 
 Requirements
 ============
 
-* Python 2.6-3.3
+* Python 2.6 - 3.3
 * Requests 1.1.0+
 * **Optional** - ``lxml``
 * **Optional** - ``simplejson``
@@ -118,6 +127,8 @@ Setup looks like::
     # Fix paths for the content extraction handler:
     perl -p -i -e 's|<lib dir="../../../contrib/|<lib dir="../../contrib/|'g solr/*/conf/solrconfig.xml
     perl -p -i -e 's|<lib dir="../../../dist/|<lib dir="../../dist/|'g solr/*/conf/solrconfig.xml
+    # Add MoreLikeThis handler
+    perl -p -i -e 's|<!-- A Robust Example|<!-- More like this request handler -->\n  <requestHandler name="/mlt" class="solr.MoreLikeThisHandler" />\n\n\n  <!-- A Robust Example|'g solr/*/conf/solrconfig.xml
     # Now run Solr.
     java -jar start.jar
 

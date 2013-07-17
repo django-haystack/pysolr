@@ -177,7 +177,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('"numFound":3' in resp_body)
 
         # Test a lowercase method & a body.
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'
         resp_body = self.solr._send_request('POST', 'update/?commit=true', body=xml_body, headers={
             'Content-type': 'text/xml; charset=utf-8',
         })
@@ -283,6 +283,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._to_python('hello ☃'), 'hello ☃')
         self.assertEqual(self.solr._to_python(['foo', 'bar']), 'foo')
         self.assertEqual(self.solr._to_python(('foo', 'bar')), 'foo')
+        self.assertEqual(self.solr._to_python('tuple("foo", "bar")'), 'tuple("foo", "bar")')
 
     def test__is_null_value(self):
         self.assertTrue(self.solr._is_null_value(None))
@@ -452,3 +453,10 @@ class SolrTestCase(unittest.TestCase):
         # correctly decoded entities and that our UTF-8 characters survived the
         # round-trip:
         self.assertEqual(['Test Title ☃☃'], m['title'])
+
+    def test_full_url(self):
+        self.solr.url = 'http://localhost:8983/solr/'
+        full_url = self.solr._create_full_url(path='/update')
+
+        # Make sure trailing and leading slashes do not collide:
+        self.assertEqual(full_url, 'http://localhost:8983/solr/update')

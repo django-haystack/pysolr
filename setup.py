@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name="pysolr",
-    version="3.0.5",
+    version="3.1.0",
     description="Lightweight python wrapper for Apache Solr.",
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
@@ -29,9 +29,9 @@ setup(
     install_requires=[
         'requests>=1.1.0'
     ],
-    extra_requires={
+    extras_require={
         'tomcat': [
-            'lxml',
+            'lxml>=3.0',
             'cssselect',
         ],
     }

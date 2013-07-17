@@ -8,6 +8,7 @@ import re
 import requests
 import time
 import types
+import ast
 
 try:
     # Prefer lxml, if installed.
@@ -50,7 +51,7 @@ except NameError:
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (3, 0, 5)
+__version__ = (3, 1, 0)
 
 
 def get_version():
@@ -115,7 +116,7 @@ def force_bytes(value):
     """
     if IS_PY3:
         if isinstance(value, str):
-            value = value.encode('utf-8')
+            value = value.encode('utf-8', 'backslashreplace')
     else:
         if isinstance(value, unicode):
             value = value.encode('utf-8')
@@ -226,13 +227,15 @@ class Solr(object):
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
+        self.session = requests.Session()
+        self.session.stream = False
 
     def _get_log(self):
         return LOG
 
     def _create_full_url(self, path=''):
         if len(path):
-            return '/'.join([self.url, path.lstrip('/')])
+            return '/'.join([self.url.rstrip('/'), path.lstrip('/')])
 
         # No path? No problem.
         return self.url
@@ -241,6 +244,9 @@ class Solr(object):
         url = self._create_full_url(path)
         method = method.lower()
         log_body = body
+
+        if headers is None:
+            headers = {}
 
         if log_body is None:
             log_body = ''
@@ -252,25 +258,22 @@ class Solr(object):
         start_time = time.time()
 
         try:
-            requests_method = getattr(requests, method, 'get')
+            requests_method = getattr(self.session, method, 'get')
         except AttributeError as err:
             raise SolrError("Unable to send HTTP method '{0}.".format(method))
 
         try:
-            # Bytes all the way down.
-            # Except the ``url``. Requests on Py3 *really* wants that to be a
-            # string, not bytes.
+            # Everything except the body can be Unicode. The body must be
+            # encoded to bytes to work properly on Py3.
             bytes_body = body
-            bytes_headers = {}
 
             if bytes_body is not None:
                 bytes_body = force_bytes(body)
 
-            if headers is not None:
-                for k, v in headers.items():
-                    bytes_headers[force_bytes(k)] = force_bytes(v)
+            if not 'content-type' in [key.lower() for key in headers.keys()]:
+                headers['Content-type'] = 'application/xml; charset=UTF-8'
 
-            resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
+            resp = requests_method(url, data=bytes_body, headers=headers, files=files,
                                    timeout=self.timeout)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
@@ -432,6 +435,13 @@ class Solr(object):
                     if len(children) >= 2 and 'message' in children[0].text.lower():
                         reason = children[1].text
 
+                    if len(children) >= 2 and hasattr(children[0], 'renderContents'):
+                        if 'description' in children[0].renderContents().lower():
+                            if reason is None:
+                                reason = children[1].renderContents()
+                            else:
+                                reason += ", " + children[1].renderContents()
+
                 if reason is None:
                     from lxml.html.clean import clean_html
                     full_html = clean_html(response)
@@ -539,15 +549,10 @@ class Solr(object):
 
         try:
             # This is slightly gross but it's hard to tell otherwise what the
-            # string's original type might have been. Be careful who you trust.
-            converted_value = eval(value)
-
-            # Try to handle most built-in types.
-            if isinstance(converted_value, (list, tuple, set, dict, int, float, long, complex)):
-                return converted_value
-        except:
-            # If it fails (SyntaxError or its ilk) or we don't trust it,
-            # continue on.
+            # string's original type might have been.
+            return ast.literal_eval(value)
+        except (ValueError, SyntaxError):
+            # If it fails, continue on.
             pass
 
         return value
@@ -774,7 +779,7 @@ class Solr(object):
         m = force_unicode(m)
 
         end_time = time.time()
-        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(docs), end_time - start_time)
+        self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
