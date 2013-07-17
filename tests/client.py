@@ -216,6 +216,10 @@ class SolrTestCase(unittest.TestCase):
         resp_body = self.solr._update(xml_body)
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
+        # Test incorrect update message.
+        self.assertRaisesRegexp(SolrError, "^\\[Reason: Unexpected character '<'",
+                                self.solr._update, '<<commit />')
+
     def test__extract_error(self):
         class RubbishResponse(object):
             def __init__(self, content, headers=None):
@@ -238,6 +242,10 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._extract_error(resp_3), "[Reason: Something is broke.]")
 
     def test__scrape_response(self):
+        # Solr.
+        resp_0 = self.solr._scrape_response({'server': 'coyote'}, '{"error": {"msg": "Standard solr error message.", "code": 400}}')
+        self.assertEqual(resp_0, ('Standard solr error message.', ''))
+
         # Tomcat.
         resp_1 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><p><span>Error message</span><span>messed up.</span></p></body></html>')
         self.assertEqual(resp_1, ('messed up.', ''))
@@ -316,6 +324,10 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+
+        # Test incorrect search query.
+        self.assertRaisesRegexp(SolrError, '\\[Reason: undefined field test\\]',
+                                self.solr.search, 'test:doc')
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
