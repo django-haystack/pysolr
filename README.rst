@@ -28,7 +28,7 @@ Features
 Requirements
 ============
 
-* Python 2.6-3.3
+* Python 2.6 - 3.3
 * Requests 1.1.0+
 * **Optional** - ``lxml``
 * **Optional** - ``simplejson``
