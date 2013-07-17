@@ -177,7 +177,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('"numFound":3' in resp_body)
 
         # Test a lowercase method & a body.
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'
         resp_body = self.solr._send_request('POST', 'update/?commit=true', body=xml_body, headers={
             'Content-type': 'text/xml; charset=utf-8',
         })

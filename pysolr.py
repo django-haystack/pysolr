@@ -116,7 +116,7 @@ def force_bytes(value):
     """
     if IS_PY3:
         if isinstance(value, str):
-            value = value.encode('utf-8')
+            value = value.encode('utf-8', 'backslashreplace')
     else:
         if isinstance(value, unicode):
             value = value.encode('utf-8')
@@ -245,6 +245,9 @@ class Solr(object):
         method = method.lower()
         log_body = body
 
+        if headers is None:
+            headers = {}
+
         if log_body is None:
             log_body = ''
         elif not isinstance(log_body, str):
@@ -260,20 +263,17 @@ class Solr(object):
             raise SolrError("Unable to send HTTP method '{0}.".format(method))
 
         try:
-            # Bytes all the way down.
-            # Except the ``url``. Requests on Py3 *really* wants that to be a
-            # string, not bytes.
+            # Everything except the body can be Unicode. The body must be
+            # encoded to bytes to work properly on Py3.
             bytes_body = body
-            bytes_headers = {}
 
             if bytes_body is not None:
                 bytes_body = force_bytes(body)
 
-            if headers is not None:
-                for k, v in headers.items():
-                    bytes_headers[force_bytes(k)] = force_bytes(v)
+            if not 'content-type' in [key.lower() for key in headers.keys()]:
+                headers['Content-type'] = 'application/xml; charset=UTF-8'
 
-            resp = requests_method(url, data=bytes_body, headers=bytes_headers, files=files,
+            resp = requests_method(url, data=bytes_body, headers=headers, files=files,
                                    timeout=self.timeout)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
