@@ -513,7 +513,10 @@ class Solr(object):
             return value
 
         if isinstance(value, (list, tuple)):
-            value = value[0]
+            result = [self._to_python(v) for v in value]
+            if isinstance(value, tuple):
+                result = tuple(result)
+            return result
 
         if value == 'true':
             return True
