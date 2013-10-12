@@ -704,31 +704,48 @@ class Solr(object):
 
     def _build_doc(self, doc, boost=None):
         doc_elem = ET.Element('doc')
+        
+        # Helper function - prevent code duplicating
+        def _add_doc_elem(attrs, value):
+            field = ET.Element('field', **attrs)            
+            field.text = self._from_python(value)    
+            doc_elem.append(field)
 
         for key, value in doc.items():
             if key == 'boost':
                 doc_elem.set('boost', force_unicode(value))
                 continue
 
-            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
-            if isinstance(value, (list, tuple)):
-                values = value
+            # Handle atomic updates
+            if isinstance(value, dict):
+                for _key, _value in value.iteritems():
+                    attrs = {'name': key, 'update': _key}
+
+                    if isinstance(_value, types.NoneType):
+                        attrs['null'] = 'true'
+
+                    if boost and key in boost:
+                        attrs['boost'] = force_unicode(boost[key])
+
+                    _add_doc_elem(attrs, _value)
             else:
+                # To avoid multiple code-paths we'd like to treat all of our values as iterables:
+                if isinstance(value, (list, tuple)):
+                    values = value
+                elif isinstance(value, dict):
+                    pass
                 values = (value, )
 
-            for bit in values:
-                if self._is_null_value(bit):
-                    continue
+                for bit in values:
+                    if self._is_null_value(bit):
+                        continue
 
-                attrs = {'name': key}
+                    attrs = {'name': key}
 
-                if boost and key in boost:
-                    attrs['boost'] = force_unicode(boost[key])
+                    if boost and key in boost:
+                        attrs['boost'] = force_unicode(boost[key])
 
-                field = ET.Element('field', **attrs)
-                field.text = self._from_python(bit)
-
-                doc_elem.append(field)
+                    _add_doc_elem(attrs, bit)
 
         return doc_elem
 
@@ -738,6 +755,9 @@ class Solr(object):
 
         Requires ``docs``, which is a list of dictionaries. Each key is the
         field name and each value is the value to index.
+        Supports Solr 4.x atomic updates. To use them pass as value dict in 
+        format {"op": "value"}, where "op" can be one of: set, inc, add.
+        Set value to None to delete field.
 
         Optionally accepts ``commit``. Default is ``True``.
 
@@ -760,6 +780,10 @@ class Solr(object):
                     "id": "doc_2",
                     "title": "The Banana: Tasty or Dangerous?",
                 },
+                {
+                    "id": "doc_3",
+                    "title": {"set": "Ala have cat"}
+                }
             ])
         """
         start_time = time.time()
