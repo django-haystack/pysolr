@@ -10,6 +10,7 @@ import requests
 import time
 import types
 import ast
+import collections
 
 try:
     # Prefer lxml, if installed.
@@ -705,30 +706,43 @@ class Solr(object):
     def _build_doc(self, doc, boost=None):
         doc_elem = ET.Element('doc')
 
+        # Helper function
+        def _add_doc_elem(attrs, value):
+            if isinstance(value, (list, tuple)):
+                values = value
+            else:
+                values = (value, )
+            for bit in values:
+                field = ET.Element('field', **attrs)
+                field.text = self._from_python(bit)
+                doc_elem.append(field)
+
         for key, value in doc.items():
             if key == 'boost':
                 doc_elem.set('boost', force_unicode(value))
                 continue
 
-            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
-            if isinstance(value, (list, tuple)):
-                values = value
+            # Handle atomic updates
+            if isinstance(value, dict):
+                for _key, _values in value.iteritems():
+                    attrs = {'name': key, 'update': _key}
+
+                    if isinstance(_values, types.NoneType):
+                        attrs['null'] = 'true'
+
+                    if boost and key in boost:
+                        attrs['boost'] = force_unicode(boost[key])
+                    if not isinstance(_values, collections.Iterable):
+                        _values = (_values, )
+                    for v in _values:
+                        _add_doc_elem(attrs, v)
             else:
-                values = (value, )
-
-            for bit in values:
-                if self._is_null_value(bit):
-                    continue
-
                 attrs = {'name': key}
 
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
 
-                field = ET.Element('field', **attrs)
-                field.text = self._from_python(bit)
-
-                doc_elem.append(field)
+                _add_doc_elem(attrs, value)
 
         return doc_elem
 
@@ -761,6 +775,18 @@ class Solr(object):
                     "title": "The Banana: Tasty or Dangerous?",
                 },
             ])
+
+        Starting from Solr 4.0 it's possible to using atomic updates.
+
+        Simply pass instead of raw value dict in format like::
+
+            {
+                "id": "doc_1",
+                "title": {"set": "A test document"},
+            }
+
+        where possible operators are: ``set``, ``inc`` and ``add``.
+
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
