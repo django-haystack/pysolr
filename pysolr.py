@@ -354,7 +354,7 @@ class Solr(object):
         path = 'terms/?%s' % safe_urlencode(params, True)
         return self._send_request('get', path)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None):
         """
         Posts the given xml message to http://<self.url>/update and
         returns the result.
@@ -373,6 +373,9 @@ class Solr(object):
 
         if commit is not None:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
+
+        if softCommit is not None:
+            query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
         if waitFlush is not None:
             query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
@@ -732,7 +735,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, commit=True, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
+    def add(self, docs, commit=True, softCommit=False, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
         """
         Adds or updates documents.
 
@@ -740,6 +743,8 @@ class Solr(object):
         field name and each value is the value to index.
 
         Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``boost``. Default is ``None``.
 
@@ -779,7 +784,7 @@ class Solr(object):
 
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
-        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
         """
@@ -812,7 +817,7 @@ class Solr(object):
 
         return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
-    def commit(self, waitFlush=None, waitSearcher=None, expungeDeletes=None):
+    def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None):
         """
         Forces Solr to write the index data to disk.
 
@@ -821,6 +826,8 @@ class Solr(object):
         Optionally accepts ``waitFlush``. Default is ``None``.
 
         Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Usage::
 
@@ -832,7 +839,7 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
         """
