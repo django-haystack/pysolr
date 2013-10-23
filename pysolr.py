@@ -327,7 +327,7 @@ class Solr(object):
 
     def _select(self, params):
         # specify json encoding of results
-        params['wt'] = 'json'
+        params.append(('wt', 'json'))
         params_encoded = safe_urlencode(params, True)
 
         if len(params_encoded) < 1024:
@@ -580,13 +580,13 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, q, options=[], **kwargs):
         """
         Performs a search and returns the results.
 
         Requires a ``q`` for a string version of the query to run.
 
-        Optionally accepts ``**kwargs`` for additional options to be passed
+        Optionally accepts ``options`` and ``**kwargs`` for additional options to be passed
         through the Solr URL.
 
         Usage::
@@ -595,14 +595,15 @@ class Solr(object):
             results = solr.search('*:*')
 
             # Search with highlighting.
-            results = solr.search('ponies', **{
-                'hl': 'true',
-                'hl.fragsize': 10,
-            })
+            results = solr.search('ponies', [
+                ('hl', 'true'),
+                ('hl.fragsize', 10),
+            ])
 
         """
-        params = {'q': q}
-        params.update(kwargs)
+        params = [('q', q)]
+        params.extend(options)
+        params.extend(kwargs.items())
         response = self._select(params)
 
         # TODO: make result retrieval lazy and allow custom result objects
