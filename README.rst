@@ -111,7 +111,7 @@ Running Tests
 
 Setup looks like::
 
-    curl -O http://apache.osuosl.org/lucene/solr/4.1.0/solr-4.1.0.tgz
+    curl -O http://archive.apache.org/dist/lucene/solr/4.1.0/solr-4.1.0.tgz
     tar xvzf solr-4.1.0.tgz
     cp -r solr-4.1.0/example solr4
     # Used by the content extraction and clustering handlers:
