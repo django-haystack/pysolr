@@ -459,8 +459,8 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(['Test Title ☃☃'], m['title'])
 
     def test_full_url(self):
-        self.solr.url = 'http://localhost:8983/solr/'
+        self.solr.url = 'http://localhost:8983/solr/core0'
         full_url = self.solr._create_full_url(path='/update')
 
         # Make sure trailing and leading slashes do not collide:
-        self.assertEqual(full_url, 'http://localhost:8983/solr/update')
+        self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
