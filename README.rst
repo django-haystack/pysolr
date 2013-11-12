@@ -109,28 +109,9 @@ LICENSE
 Running Tests
 =============
 
-Setup looks like::
+Downloading, configuring and running Solr looks like this::
 
-    curl -O http://archive.apache.org/dist/lucene/solr/4.1.0/solr-4.1.0.tgz
-    tar xvzf solr-4.1.0.tgz
-    cp -r solr-4.1.0/example solr4
-    # Used by the content extraction and clustering handlers:
-    mv solr-4.1.0/dist solr4/
-    mv solr-4.1.0/contrib solr4/
-    rm -rf solr-4.1.0*
-    cd solr4
-    rm -rf example-DIH exampledocs
-    mv solr solrsinglecoreanduseless
-    mv multicore solr
-    cp -r solrsinglecoreanduseless/collection1/conf/* solr/core0/conf/
-    cp -r solrsinglecoreanduseless/collection1/conf/* solr/core1/conf/
-    # Fix paths for the content extraction handler:
-    perl -p -i -e 's|<lib dir="../../../contrib/|<lib dir="../../contrib/|'g solr/*/conf/solrconfig.xml
-    perl -p -i -e 's|<lib dir="../../../dist/|<lib dir="../../dist/|'g solr/*/conf/solrconfig.xml
-    # Add MoreLikeThis handler
-    perl -p -i -e 's|<!-- A Robust Example|<!-- More like this request handler -->\n  <requestHandler name="/mlt" class="solr.MoreLikeThisHandler" />\n\n\n  <!-- A Robust Example|'g solr/*/conf/solrconfig.xml
-    # Now run Solr.
-    java -jar start.jar
+    ./start-test-solr.sh
 
 Running the tests::
 
