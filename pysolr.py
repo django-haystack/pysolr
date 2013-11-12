@@ -463,9 +463,12 @@ class Solr(object):
                     reason = reason_node.text
 
                 if reason is None:
-                    full_html = ET.tostring(dom_tree)
+                    full_html = ET.tostring(dom_tree, encoding='utf-8')
             except SyntaxError as err:
                 full_html = "%s" % response
+
+        # Some of the code-paths above will return byte-strings instead of Unicode:
+        full_html = force_unicode(full_html)
 
         full_html = full_html.replace('\n', '')
         full_html = full_html.replace('\r', '')
