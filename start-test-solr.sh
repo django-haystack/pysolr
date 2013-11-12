@@ -28,4 +28,6 @@ perl -p -i -e 's|<lib dir="../../../dist/|<lib dir="../../dist/|'g solr/*/conf/s
 perl -p -i -e 's|<!-- A Robust Example|<!-- More like this request handler -->\n  <requestHandler name="/mlt" class="solr.MoreLikeThisHandler" />\n\n\n  <!-- A Robust Example|'g solr/*/conf/solrconfig.xml
 
 echo 'Starting server'
-java -jar start.jar
+# We use exec to allow process monitors like run-tests.py to correctly kill the
+# actual Java process rather than this launcher script:
+exec java -Djava.awt.headless=true -Dapple.awt.UIElement=true -jar start.jar
