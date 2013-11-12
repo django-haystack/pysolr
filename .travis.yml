@@ -1,0 +1,25 @@
+language: python
+python:
+  - "2.7"
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install default-jdk
+
+install:
+  - pip install tox
+
+script:
+  - tox -e $TOX_ENV
+
+env:
+  - TOX_ENV=py26
+  - TOX_ENV=py27
+  - TOX_ENV=py33
+  - TOX_ENV=py26-tomcat
+  - TOX_ENV=py27-tomcat
+  - TOX_ENV=py33-tomcat
+
+notifications:
+  #irc: "irc.freenode.org#pysolr"
+  email: false
