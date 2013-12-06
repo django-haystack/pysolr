@@ -2,15 +2,15 @@
 
 set -e
 
-if [ ! -f solr-4.1.0.tgz ]; then
-    curl -O http://archive.apache.org/dist/lucene/solr/4.1.0/solr-4.1.0.tgz
+if [ ! -f solr-4.6.0.tgz ]; then
+    curl -O http://archive.apache.org/dist/lucene/solr/4.6.0/solr-4.6.0.tgz
 fi
 
-echo "Extracting Solr 4.1.0 to solr4/"
+echo "Extracting Solr 4.6.0 to solr4/"
 rm -rf solr4
 mkdir solr4
-tar -C solr4 -xf solr-4.1.0.tgz --strip-components 2 solr-4.1.0/example
-tar -C solr4 -xf solr-4.1.0.tgz --strip-components 1 solr-4.1.0/dist solr-4.1.0/contrib
+tar -C solr4 -xf solr-4.6.0.tgz --strip-components 2 solr-4.6.0/example
+tar -C solr4 -xf solr-4.6.0.tgz --strip-components 1 solr-4.6.0/dist solr-4.6.0/contrib
 
 echo "Configuring Solr"
 cd solr4

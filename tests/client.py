@@ -425,7 +425,7 @@ class SolrTestCase(unittest.TestCase):
         self.solr.optimize()
         self.assertEqual(len(self.solr.search('doc')), 4)
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_extract(self):
         fake_f = StringIO("""
             <html>
