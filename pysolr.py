@@ -298,9 +298,6 @@ class Solr(object):
             if bytes_body is not None:
                 bytes_body = force_bytes(body)
 
-            if not 'content-type' in [key.lower() for key in headers.keys()]:
-                headers['Content-type'] = 'application/xml; charset=UTF-8'
-
             resp = requests_method(url, data=bytes_body, headers=headers, files=files,
                                    timeout=self.timeout)
         except requests.exceptions.Timeout as err:
