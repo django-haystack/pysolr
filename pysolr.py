@@ -718,6 +718,8 @@ class Solr(object):
                     continue
 
                 attrs = {'name': key}
+                if key != 'id':
+                    attrs['update'] = 'set'
 
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
