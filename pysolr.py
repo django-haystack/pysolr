@@ -277,8 +277,9 @@ class Solr(object):
         if headers is None:
             headers = {}
 
-        if self.auth.get(path):
-            headers = dict(headers, **self.auth[path]())
+        basepath = path.split('/')[0]
+        if self.auth.get(basepath):
+            headers = dict(headers, **self.auth[basepath]())
 
         if log_body is None:
             log_body = ''
