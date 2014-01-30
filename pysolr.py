@@ -250,10 +250,11 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, auth=None):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
+        self.auth = auth
         self.log = self._get_log()
         self.session = requests.Session()
         self.session.stream = False
@@ -267,6 +268,19 @@ class Solr(object):
 
         # No path? No problem.
         return self.url
+
+    def _create_auth_headers(self):
+        if not self.auth_secret:
+            return None
+        else:
+            ts = int(time.time())
+            nonce = uuid.uuid4()
+            auth = hmac.new(self.auth_secret, '%s%s' % (ts,nonce), hashlib.sha1)
+            return {
+                'X-Websolr-Time': ts,
+                'X-Websolr-Nonce': nonce,
+                'X-Websolr-Auth': auth.hexdigest()
+                }
 
     def _send_request(self, method, path='', body=None, headers=None, files=None):
         url = self._create_full_url(path)
