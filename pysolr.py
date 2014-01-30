@@ -269,19 +269,6 @@ class Solr(object):
         # No path? No problem.
         return self.url
 
-    def _create_auth_headers(self):
-        if not self.auth_secret:
-            return None
-        else:
-            ts = int(time.time())
-            nonce = uuid.uuid4()
-            auth = hmac.new(self.auth_secret, '%s%s' % (ts,nonce), hashlib.sha1)
-            return {
-                'X-Websolr-Time': ts,
-                'X-Websolr-Nonce': nonce,
-                'X-Websolr-Auth': auth.hexdigest()
-                }
-
     def _send_request(self, method, path='', body=None, headers=None, files=None):
         url = self._create_full_url(path)
         method = method.lower()
