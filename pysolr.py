@@ -250,10 +250,11 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, auth=None):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
+        self.auth = auth
         self.log = self._get_log()
         self.session = requests.Session()
         self.session.stream = False
@@ -275,6 +276,10 @@ class Solr(object):
 
         if headers is None:
             headers = {}
+
+        basepath = path.split('/')[0]
+        if self.auth.get(basepath):
+            headers = dict(headers, **self.auth[basepath]())
 
         if log_body is None:
             log_body = ''
