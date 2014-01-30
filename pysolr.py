@@ -290,6 +290,9 @@ class Solr(object):
         if headers is None:
             headers = {}
 
+        if self.auth.get(path):
+            headers = dict(headers, **self.auth[path]())
+
         if log_body is None:
             log_body = ''
         elif not isinstance(log_body, str):
