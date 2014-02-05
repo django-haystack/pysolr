@@ -316,8 +316,16 @@ class Solr(object):
 
         if int(resp.status_code) != 200:
             error_message = self._extract_error(resp)
-            self.log.error(error_message, extra={'data': {'headers': resp.headers,
-                                                          'response': resp.content}})
+            try:
+                response = json.loads(resp.content)
+            except ValueError:
+                response = resp.content
+            self.log.error(error_message, extra={
+                'data': {
+                    'headers': resp.headers,
+                    'response': response,
+                },
+            })
             raise SolrError(error_message)
 
         return force_unicode(resp.content)
