@@ -109,11 +109,25 @@ LICENSE
 Running Tests
 =============
 
-Downloading, configuring and running Solr looks like this::
+The ``run-tests.py`` script will automatically perform the steps below and is recommended for testing by
+default unless you need more control.
+
+Running a test Solr instance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Downloading, configuring and running Solr 4 looks like this::
 
     ./start-test-solr.sh
 
-Running the tests::
+Running the tests
+~~~~~~~~~~~~~~~~~
+
+The test suite requires the unittest2 library:
+
+Python 2::
 
     python -m unittest2 tests
+
+Python 3::
+
     python3 -m unittest tests
