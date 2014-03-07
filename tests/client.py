@@ -22,6 +22,12 @@ if IS_PY3:
 else:
     from StringIO import StringIO
 
+try:
+    import lxml
+    HAS_LXML = True
+except ImportError:
+    HAS_LXML = False
+
 
 class UtilsTestCase(unittest.TestCase):
     def test_unescape_html(self):
@@ -242,21 +248,25 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._extract_error(resp_3), "[Reason: Something is broke.]")
 
     def test__scrape_response(self):
+        # Jetty.
+        resp_1 = self.solr._scrape_response({'server': 'jetty'}, '<html><body><pre>Something is broke.</pre></body></html>')
+        self.assertEqual(resp_1, ('Something is broke.', u''))
+
+        # Other.
+        resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
+        self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
+
+    @unittest.skipUnless(HAS_LXML, "Cannot test Tomcat error extraction without lxml")
+    def test__scrape_response_tomcat(self):
+        """Tests for Tomcat error responses, which currently require lxml.html to parse"""
+
         # Tomcat.
         resp_1 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><p><span>Error message</span><span>messed up.</span></p></body></html>')
         self.assertEqual(resp_1, ('messed up.', ''))
 
-        # Jetty.
-        resp_2 = self.solr._scrape_response({'server': 'jetty'}, '<html><body><pre>Something is broke.</pre></body></html>')
-        self.assertEqual(resp_2, ('Something is broke.', u''))
-
         # Broken Tomcat.
-        resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><p>Really broken. Scraping Java-generated HTML sucks.</pre></body></html>')
-        self.assertEqual(resp_3, (None, u'<div><body><p>Really broken. Scraping Java-generated HTML sucks.</p></body></div>'))
-
-        # Other.
-        resp_4 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
-        self.assertEqual(resp_4, ('Wow. Seriously weird.', u''))
+        resp_2 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><p>Really broken. Scraping Java-generated HTML sucks.</pre></body></html>')
+        self.assertEqual(resp_2, (None, u'<div><body><p>Really broken. Scraping Java-generated HTML sucks.</p></body></div>'))
 
     def test__from_python(self):
         self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
@@ -448,8 +458,8 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(['Test Title ☃☃'], m['title'])
 
     def test_full_url(self):
-        self.solr.url = 'http://localhost:8983/solr/'
+        self.solr.url = 'http://localhost:8983/solr/core0'
         full_url = self.solr._create_full_url(path='/update')
 
         # Make sure trailing and leading slashes do not collide:
-        self.assertEqual(full_url, 'http://localhost:8983/solr/update')
+        self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
