@@ -391,15 +391,27 @@ class Solr(object):
         Extract the actual error message from a solr response.
         """
         reason = resp.headers.get('reason', None)
-        full_html = None
+        full_response = None
 
         if reason is None:
-            reason, full_html = self._scrape_response(resp.headers, resp.content)
+
+            # if response is in json format
+            if resp.content and resp.content.lstrip().startswith('{'):
+                try:
+                    reason = json.loads(resp.content)['error']['msg']
+                except Exception as e:
+                    self.log.error("Failed extracting error message: %r" % e)
+                full_response = resp.content.strip()
+
+            # otherwise we assume it's html
+            else:
+                reason, full_html = self._scrape_response(resp.headers, resp.content)
+                full_response = unescape_html(full_html)
 
         msg = "[Reason: %s]" % reason
 
         if reason is None:
-            msg += "\n%s" % unescape_html(full_html)
+            msg += "\n%s" % full_response
 
         return msg
 

@@ -247,6 +247,14 @@ class SolrTestCase(unittest.TestCase):
         resp_3 = RubbishResponse('<html><body><pre>Something is broke.</pre></body></html>', {'server': 'jetty'})
         self.assertEqual(self.solr._extract_error(resp_3), "[Reason: Something is broke.]")
 
+        # No reason. JSON response.
+        resp_4 = RubbishResponse('\n {"error": {"msg": "It happens"}}', {'server': 'tomcat'})
+        self.assertEqual(self.solr._extract_error(resp_4), "[Reason: It happens]")
+
+        # No reason. Weird JSON response.
+        resp_5 = RubbishResponse('{"kinda": "weird"}', {'server': 'jetty'})
+        self.assertEqual(self.solr._extract_error(resp_5), '[Reason: None]\n{"kinda": "weird"}')
+
     def test__scrape_response(self):
         # Jetty.
         resp_1 = self.solr._scrape_response({'server': 'jetty'}, '<html><body><pre>Something is broke.</pre></body></html>')
