@@ -2,8 +2,9 @@
 from __future__ import unicode_literals
 
 import datetime
+import requests
 
-from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
+from pysolr import (Solr, Results, SolrError, SolrHttpError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
                     clean_xml_string)
 
@@ -197,6 +198,17 @@ class SolrTestCase(unittest.TestCase):
         old_url = self.solr.url
         self.solr.url = 'http://127.0.0.1:567898/wahtever'
         self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
+        self.solr.url = old_url
+
+        # Test an invalid URL.
+        old_url = self.solr.url
+        self.solr.url = old_url + '/wahtever'
+        with self.assertRaises(SolrHttpError) as err:
+            self.solr._send_request('get', 'select/?q=doc&wt=json')
+        resp = requests.get(self.solr.url + '/select/?q=doc&wt=json')
+        self.assertEqual(err.exception.status_code, resp.status_code)
+        self.assertEqual(err.exception.content, resp.content)
+        self.assertEqual(err.exception.headers, resp.headers)
         self.solr.url = old_url
 
     def test__select(self):

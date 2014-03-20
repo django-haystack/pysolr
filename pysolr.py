@@ -212,6 +212,13 @@ class SolrError(Exception):
     pass
 
 
+class SolrHttpError(SolrError):
+    def __init__(self, msg, status_code=None, content=None, headers=None):
+        self.status_code = status_code
+        self.content = content
+        self.headers = headers
+
+
 class Results(object):
     def __init__(self, docs, hits, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
@@ -318,7 +325,10 @@ class Solr(object):
             error_message = self._extract_error(resp)
             self.log.error(error_message, extra={'data': {'headers': resp.headers,
                                                           'response': resp.content}})
-            raise SolrError(error_message)
+            raise SolrHttpError(error_message,
+                                status_code=resp.status_code,
+                                content=resp.content,
+                                headers=resp.headers)
 
         return force_unicode(resp.content)
 
