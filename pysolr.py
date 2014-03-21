@@ -396,12 +396,12 @@ class Solr(object):
         if reason is None:
 
             # if response is in json format
-            if resp.content and resp.content.lstrip().startswith('{'):
+            full_response = force_unicode(resp.content or '').strip()
+            if full_response.startswith('{'):
                 try:
-                    reason = json.loads(resp.content)['error']['msg']
+                    reason = json.loads(full_response)['error']['msg']
                 except Exception as e:
                     self.log.error("Failed extracting error message: %r" % e)
-                full_response = resp.content.strip()
 
             # otherwise we assume it's html
             else:
