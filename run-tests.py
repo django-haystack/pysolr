@@ -41,8 +41,10 @@ def main():
 
     if sys.version_info >= (3, 3):
         cmd = ['python', '-m', 'unittest', 'tests']
-    else:
+    elif sys.version_info >= (2, 7):
         cmd = ['python', '-m', 'unittest2', 'tests']
+    else:
+        cmd = ['unit2', 'discover', '-s', 'tests', '-p', '[a-z]*.py']
 
     try:
         subprocess.check_call(cmd)
