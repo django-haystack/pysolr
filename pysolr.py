@@ -649,7 +649,7 @@ class Solr(object):
         params.update(kwargs)
         return self.search(q, **params)
 
-    def spatial_search(self, q, sfield, point, radius, **kwargs):
+    def spatial_search(self, q, sfield, point, radius, weight=2, **kwargs):
         """
         Performs circle spatial search around a given point.
 
@@ -671,11 +671,14 @@ class Solr(object):
             results = solr.spatial_search('pony', 'location', '54.33131,10.12135', '10')
 
         """
-        params = {'fl': '*,score',
-                  'sort': 'score asc',}
+        params = {'fq': '{!bbox}',
+                  'sfield': sfield,
+                  'pt': point,
+                  'd': radius,
+                  }
         params.update(kwargs)
 
-        qq = '{0} AND {{!bbox score=distance sfield={1} pt={2} d={3}}}'.format(q, sfield, point, radius)
+        qq = '{{!boost b=recip(geodist(),{1},2000,2)}}{0}'.format(q, weight)
 
         return self.search(qq, **params)
 
