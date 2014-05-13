@@ -289,6 +289,7 @@ class Solr(object):
         self.scheme = result.scheme
         self.host = result.hostname
         self.port = result.port
+        self.auth = None
         if result.username is not None and result.password is not None:
             self.auth = 'Basic ' + base64.encodestring(result.username + ':' +
                                                                     result.password)
