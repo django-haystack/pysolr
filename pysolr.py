@@ -764,7 +764,7 @@ class Solr(object):
         message = ET.Element('add')
 
         if commitWithin:
-            message.set('commitWithin', commitWithin)
+            message.set('commitWithin', str(commitWithin))
 
         for doc in docs:
             message.append(self._build_doc(doc, boost=boost))
