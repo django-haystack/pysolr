@@ -225,7 +225,7 @@ class Results(object):
         self.qtime = qtime
         self.debug = debug or {}
         self.grouped = grouped or {}
-        self.term_vectors = term_vectors or {}
+        self.term_vectors = term_vectors or []
 
     def __len__(self):
         return len(self.docs)
