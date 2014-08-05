@@ -5,6 +5,10 @@ python:
 before_install:
   - sudo apt-get update
   - sudo apt-get install default-jdk
+  - pip install requests
+
+before_script:
+  - python get-solr-download-url.py 4.7.2 | xargs curl -sSO
 
 install:
   - pip install tox
