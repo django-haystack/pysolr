@@ -16,9 +16,11 @@ env:
   - TOX_ENV=py26
   - TOX_ENV=py27
   - TOX_ENV=py33
+  - TOX_ENV=py34
   - TOX_ENV=py26-tomcat
   - TOX_ENV=py27-tomcat
   - TOX_ENV=py33-tomcat
+  - TOX_ENV=py34-tomcat
 
 notifications:
   #irc: "irc.freenode.org#pysolr"
