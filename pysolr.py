@@ -435,6 +435,8 @@ class Solr(object):
             # Tomcat doesn't produce a valid XML response
             soup = lxml.html.fromstring(response)
             body_node = soup.find('body')
+            if not body_node:
+                raise Exception("No body node found in response: %s" % response)
             p_nodes = body_node.cssselect('p')
 
             for p_node in p_nodes:
