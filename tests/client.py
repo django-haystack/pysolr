@@ -229,11 +229,16 @@ class SolrTestCase(unittest.TestCase):
     def test__extract_error(self):
         class RubbishResponse(object):
             def __init__(self, content, headers=None):
+                if isinstance(content, bytes):
+                    content = content.decode('utf-8')
                 self.content = content
                 self.headers = headers
 
                 if self.headers is None:
                     self.headers = {}
+
+            def json(self):
+                return json.loads(self.content)
 
         # Just the reason.
         resp_1 = RubbishResponse("We don't care.", {'reason': 'Something went wrong.'})

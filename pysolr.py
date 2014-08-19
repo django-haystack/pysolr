@@ -394,17 +394,14 @@ class Solr(object):
         full_response = None
 
         if reason is None:
-
-            # if response is in json format
-            full_response = force_unicode(resp.content or '').strip()
-            if full_response.startswith('{'):
-                try:
-                    reason = json.loads(full_response)['error']['msg']
-                except Exception as e:
-                    self.log.error("Failed extracting error message: %r" % e)
-
-            # otherwise we assume it's html
-            else:
+            try:
+                # if response is in json format
+                reason = resp.json()['error']['msg']
+            except KeyError:
+                # if json response has unexpected structure
+                full_response = resp.content
+            except ValueError:
+                # otherwise we assume it's html
                 reason, full_html = self._scrape_response(resp.headers, resp.content)
                 full_response = unescape_html(full_html)
 
