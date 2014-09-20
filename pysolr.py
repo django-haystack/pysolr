@@ -391,15 +391,24 @@ class Solr(object):
         Extract the actual error message from a solr response.
         """
         reason = resp.headers.get('reason', None)
-        full_html = None
+        full_response = None
 
         if reason is None:
-            reason, full_html = self._scrape_response(resp.headers, resp.content)
+            try:
+                # if response is in json format
+                reason = resp.json()['error']['msg']
+            except KeyError:
+                # if json response has unexpected structure
+                full_response = resp.content
+            except ValueError:
+                # otherwise we assume it's html
+                reason, full_html = self._scrape_response(resp.headers, resp.content)
+                full_response = unescape_html(full_html)
 
         msg = "[Reason: %s]" % reason
 
         if reason is None:
-            msg += "\n%s" % unescape_html(full_html)
+            msg += "\n%s" % full_response
 
         return msg
 
@@ -956,10 +965,10 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def create(self, name, instance_dir=None, config='solrcofig.xml', schema='schema.xml'):
+    def create(self, name, instance_dir=None, config='solrconfig.xml', schema='schema.xml'):
         """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
         params = {
-            'action': 'STATUS',
+            'action': 'CREATE',
             'name': name,
             'config': config,
             'schema': schema,
