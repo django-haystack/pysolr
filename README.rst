@@ -45,7 +45,9 @@ PYTHONPATH.
 Usage
 =====
 
-Basic usage looks like::
+Basic usage looks like:
+
+.. code-block:: python
 
     # If on Python 2.X
     from __future__ import print_function
