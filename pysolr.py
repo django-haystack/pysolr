@@ -351,6 +351,12 @@ class Solr(object):
         path = 'terms/?%s' % safe_urlencode(params, True)
         return self._send_request('get', path)
 
+    def _tvrh(self, params):
+        # specify json encoding of results
+        params['wt'] = 'json'
+        path = 'tvrh/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
+
     def _update(self, message, clean_ctrl_chars=True, commit=True, waitFlush=None, waitSearcher=None):
         """
         Posts the given xml message to http://<self.url>/update and
@@ -706,6 +712,26 @@ class Solr(object):
             res[field] = tmp
 
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
+        return res
+
+    def tvrh(self, q, **kwargs):
+        """
+        Returns the term vectors for the matching documents in the form
+        [id1, [terms1], id2, [terms2], ...].
+        """
+        params = {'q' : q}
+        params.update(kwargs)
+        response = self._tvrh(params)
+        result = self.decoder.decode(response)
+        termVectors = result.get("termVectors")
+        res = {}
+
+        if result.get('termVectors'):
+            res = result['termVectors'][2:]
+
+        response = result.get('response') or {}
+        numFound = response.get('numFound', 0)
+        self.log.debug("Found '%s' search results.", numFound)
         return res
 
     def _build_doc(self, doc, boost=None):
