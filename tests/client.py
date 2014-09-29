@@ -12,6 +12,12 @@ try:
 except ImportError:
     import unittest
 
+
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
+
 try:
     from urllib.parse import unquote_plus
 except ImportError:
@@ -159,6 +165,10 @@ class SolrTestCase(unittest.TestCase):
         # later & if it's broken, everything will catastrophically fail.
         # Such is life.
         self.solr.add(self.docs)
+
+        # Mock the _send_request method on the solr instance so that we can
+        # test that custom handlers are called correctly.
+        self.solr._send_request = Mock(wraps=self.solr._send_request)
 
     def tearDown(self):
         self.solr.delete(q='*:*')
@@ -315,6 +325,9 @@ class SolrTestCase(unittest.TestCase):
     def test_search(self):
         results = self.solr.search('doc')
         self.assertEqual(len(results), 3)
+        # search should default to 'select' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select/?'))
 
         results = self.solr.search('example')
         self.assertEqual(len(results), 2)
@@ -345,14 +358,38 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+        # search should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.search('doc', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
         self.assertEqual(len(results), 0)
+        # more_like_this should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('mlt/?'))
+
+        # more_like_this should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.more_like_this('id:doc_1', 'text', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_suggest_terms(self):
         results = self.solr.suggest_terms('title', '')
         self.assertEqual(len(results), 1)
         self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2), ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
+        # suggest_terms should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('terms/?'))
+
+        # suggest_terms should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.suggest_terms('title', '', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test__build_doc(self):
         doc = {
@@ -380,9 +417,18 @@ class SolrTestCase(unittest.TestCase):
                 'title': 'Another example doc',
             },
         ])
+        # add should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
 
         self.assertEqual(len(self.solr.search('doc')), 5)
         self.assertEqual(len(self.solr.search('example')), 3)
+
+        # add should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.add([], handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_add_with_boost(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -400,6 +446,10 @@ class SolrTestCase(unittest.TestCase):
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
+        # delete should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
+
         self.assertEqual(len(self.solr.search('doc')), 2)
         self.solr.delete(q='price:[0 TO 15]')
         self.assertEqual(len(self.solr.search('doc')), 1)
@@ -413,6 +463,12 @@ class SolrTestCase(unittest.TestCase):
         # Can't have both.
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')
 
+        # delete should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.delete(id='doc_1', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
     def test_commit(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.add([
@@ -423,7 +479,16 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.commit()
+        # commit should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
+
+        # commit should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.commit(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
@@ -436,7 +501,16 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.optimize()
+        # optimize should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
+
+        # optimize should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.optimize(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_extract(self):
         fake_f = StringIO("""
@@ -451,6 +525,15 @@ class SolrTestCase(unittest.TestCase):
         """)
         fake_f.name = "test.html"
         extracted = self.solr.extract(fake_f)
+        # extract should default to 'update/extract' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/extract'))
+
+        # extract should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.extract(fake_f, handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
         # Verify documented response structure:
         self.assertIn('contents', extracted)
