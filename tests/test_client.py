@@ -674,3 +674,37 @@ class SolrTestCase(unittest.TestCase):
 
         # Make sure trailing and leading slashes do not collide:
         self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+
+    def test_request_handler(self):
+        before_test_use_qt_param = self.solr.use_qt_param
+        before_test_search_handler = self.solr.search_handler
+
+        self.solr.use_qt_param = True
+
+        response = self.solr.search('my query')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+
+        response = self.solr.search('my', handler='/autocomplete')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.search_handler = '/autocomplete'
+
+        response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.use_qt_param = False
+        # will change the path, so expect a 404
+        with self.assertRaises(SolrError):
+            response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('/autocomplete'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") < 0)
+
+        # reset the values to what they were before the test
+        self.solr.use_qt_param = before_test_use_qt_param
+        self.solr.search_handler = before_test_search_handler

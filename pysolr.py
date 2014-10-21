@@ -313,7 +313,7 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, query_handler=None, use_qt_param=False):
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler=None, use_qt_param=False):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
@@ -321,7 +321,7 @@ class Solr(object):
         self.session = requests.Session()
         self.session.stream = False
         self.results_cls = results_cls
-        self.query_handler = query_handler
+        self.search_handler = search_handler
         self.use_qt_param = use_qt_param
 
     def __del__(self):
@@ -385,8 +385,8 @@ class Solr(object):
             raise SolrError(error_message % (method, url, err))
 
         end_time = time.time()
-        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
-                      url, method, log_body[:10], end_time - start_time)
+        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds, with status %s",
+                      url, method, log_body[:10], end_time - start_time, resp.status_code)
 
         if int(resp.status_code) != 200:
             error_message = "Solr responded with an error (HTTP %s): %s"
@@ -401,7 +401,7 @@ class Solr(object):
     def _select(self, params, search_handler=None):
         # specify json encoding of results
         params['wt'] = 'json'
-        custom_handler = search_handler or self.query_handler
+        custom_handler = search_handler or self.search_handler
         handler = 'select'
         if custom_handler:
             if self.use_qt_param:
@@ -715,19 +715,6 @@ class Solr(object):
         params.update(kwargs)
         response = self._select(params, search_handler=search_handler)
         decoded = self.decoder.decode(response)
-
-        # TODO: make result retrieval lazy and allow custom result objects
-        result = self.decoder.decode(response)
-        result_kwargs = {}
-
-        if result.get('debug'):
-            result_kwargs['debug'] = result['debug']
-
-        if result.get('highlighting'):
-            result_kwargs['highlighting'] = result['highlighting']
-
-        if result.get('facet_counts'):
-            result_kwargs['facets'] = result['facet_counts']
 
         self.log.debug(
             "Found '%s' search results.",
