@@ -113,21 +113,26 @@ Simply point the URL to the index core:
     solr = pysolr.Solr('http://localhost:8983/solr/core_0/', timeout=10)
 
 
-Custom Request Handler
-~~~~~~~~~~~~~~~~~~~~~~
+Custom Request Handlers
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
     # Setup a Solr instance. The trailing slash is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', query_handler='/autocomplete', use_qt_param=False)
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
 
 
 If ``use_qt_param`` is ``True`` it is essential that the name of the handler is exactly what is configured
-in solrconfig.xml, including the leading slash if any (though with the qt parameter a leading slash is not
-a requirement by SOLR). If ``use_qt_param`` is False (default), the leading and trailing slashes can be
+in ``solrconfig.xml``, including the leading slash if any (though with the ``qt`` parameter a leading slash is not
+a requirement by SOLR). If ``use_qt_param`` is ``False`` (default), the leading and trailing slashes can be
 omitted.
 
-If ``query_handler`` is not specified, pysolr will default to ``/select``.
+If ``search_handler`` is not specified, pysolr will default to ``/select``.
+
+The handlers for MoreLikeThis, Update, Terms etc. all default to the values set in the ``solrconfig.xml`` SOLR ships
+with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
+``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
+Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
 
 
 LICENSE

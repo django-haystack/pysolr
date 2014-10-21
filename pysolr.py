@@ -250,14 +250,14 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, query_handler=None, use_qt_param=False):
+    def __init__(self, url, decoder=None, timeout=60, search_handler=None, use_qt_param=False):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
         self.session = requests.Session()
         self.session.stream = False
-        self.query_handler = query_handler
+        self.search_handler = search_handler
         self.use_qt_param = use_qt_param
 
     def _get_log(self):
@@ -313,8 +313,8 @@ class Solr(object):
             raise SolrError(error_message % params)
 
         end_time = time.time()
-        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
-                      url, method, log_body[:10], end_time - start_time)
+        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds, with status %s",
+                      url, method, log_body[:10], end_time - start_time, resp.status_code)
 
         if int(resp.status_code) != 200:
             error_message = self._extract_error(resp)
@@ -327,7 +327,7 @@ class Solr(object):
     def _select(self, params, handler=None):
         # specify json encoding of results
         params['wt'] = 'json'
-        custom_handler = handler or self.query_handler
+        custom_handler = handler or self.search_handler
         handler = 'select'
         if custom_handler:
             if self.use_qt_param:
