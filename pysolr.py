@@ -3,6 +3,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
+import os
 import datetime
 import logging
 import re
@@ -74,7 +75,7 @@ h = NullHandler()
 LOG.addHandler(h)
 
 # For debugging...
-if False:
+if os.environ.get("DEBUG_PYSOLR", "").lower() in ("true", "1"):
     LOG.setLevel(logging.DEBUG)
     stream = logging.StreamHandler()
     LOG.addHandler(stream)
