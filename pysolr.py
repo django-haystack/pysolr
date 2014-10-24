@@ -374,6 +374,9 @@ class Solr(object):
         elif softCommit is not None:
             query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
+        if softCommit is not None:
+            query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
+
         if waitFlush is not None:
             query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
 
