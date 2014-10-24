@@ -426,9 +426,10 @@ class Solr(object):
         dom_tree = None
 
         if server_type == 'tomcat':
-            # Tomcat doesn't produce a valid XML response
-            if response.find('<h1>') >= 0:
-                reason = response[response.find('<h1>')+4:response.find('</h1>')]
+            # Tomcat doesn't produce a valid XML response or consistent HTML:
+            m = re.search(r'<(h1)[^>]*>\s*(.+?)\s*</\1>', response, re.IGNORECASE)
+            if m:
+                reason = m.group(2)
             else:
                 full_html = "%s" % response
         else:
