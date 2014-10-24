@@ -226,6 +226,11 @@ class SolrTestCase(unittest.TestCase):
         resp_body = self.solr._update(xml_body)
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
+    def test__soft_commit(self):
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
+        resp_body = self.solr._update(xml_body, softCommit=True)
+        self.assertTrue('<int name="status">0</int>' in resp_body)
+
     def test__extract_error(self):
         class RubbishResponse(object):
             def __init__(self, content, headers=None):

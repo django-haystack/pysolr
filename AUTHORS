@@ -29,3 +29,4 @@ Contributors:
 * pabluk for Tika integration improvements.
 * gthb for a patch to add grouping support.
 * timsavage for a patch making add() compatible with generators
+* Karol Sikora (@sicarrots) for Solr 4 softCommit support
