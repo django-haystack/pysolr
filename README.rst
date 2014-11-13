@@ -82,7 +82,7 @@ Basic usage looks like:
 
     # Just loop over it to access the results.
     for result in results:
-        print("The title is '{0}'.".format(result['title'])
+        print("The title is '{0}'.".format(result['title']))
 
     # For a more advanced query, say involving highlighting, you can pass
     # additional options to Solr.
