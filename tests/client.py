@@ -150,6 +150,12 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            {
+                'id': 'doc_99',
+                'title': ['Boring', 'More boring'],
+                'price': 1.12,
+                'popularity': 2,
+            },
         ]
 
         # Clear it.
@@ -357,7 +363,8 @@ class SolrTestCase(unittest.TestCase):
     def test_suggest_terms(self):
         results = self.solr.suggest_terms('title', '')
         self.assertEqual(len(results), 1)
-        self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2), ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
+        self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('boring', 2), ('example', 2), ('1', 1),
+                                             ('2', 1), ('more', 1), ('rock', 1), ('thing', 1)]})
 
     def test__build_doc(self):
         doc = {
@@ -401,6 +408,21 @@ class SolrTestCase(unittest.TestCase):
         res = self.solr.search('doc')
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
+
+    def test_atomic_set(self):
+        self.solr.add([{'id': 'doc_1', 'price': {'set': 15.00}}])
+        res = self.solr.search('id:doc_1')
+        self.assertEqual(15.00, res.docs[0]['price'])
+
+    def test_atomic_add(self):
+        self.solr.add([{'id': 'doc_99', 'title': {'add': ['Most boring']}}])
+        res = self.solr.search('id:doc_99')
+        self.assertListEqual(['Boring', 'More boring', 'Most boring'], res.docs[0]['title'])
+
+    def test_atomic_inc(self):
+        self.solr.add([{'id': 'doc_99', 'popularity': {'inc': 1}}])
+        res = self.solr.search('id:doc_99')
+        self.assertEqual(3, res.docs[0]['popularity'])
 
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
