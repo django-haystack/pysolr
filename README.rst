@@ -68,6 +68,9 @@ Basic usage looks like:
         },
     ])
 
+    # Find a specific doc by id.
+    solr.get('doc_1')
+
     # You can optimize the index when it gets fragmented, for better speed.
     solr.optimize()
 

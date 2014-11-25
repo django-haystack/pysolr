@@ -793,6 +793,17 @@ class Solr(object):
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
+    def get(self, doc_id, key='id'):
+        """
+        Get a document by document id.
+        """
+        params = { key : doc_id }
+        params_encoded = safe_urlencode(params, True)
+        path = 'get/?%s' % params_encoded
+        resp = self._send_request('get', path)
+        doc = self.decoder.decode(resp)
+        return doc.get('doc')
+
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
         """
         Deletes documents.
