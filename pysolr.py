@@ -712,7 +712,7 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
 
-    def _build_doc(self, doc, boost=None):
+    def _build_doc(self, doc, boost=None, fieldUpdates=None):
         doc_elem = ET.Element('doc')
 
         for key, value in doc.items():
@@ -732,6 +732,9 @@ class Solr(object):
 
                 attrs = {'name': key}
 
+                if fieldUpdates and key in fieldUpdates:
+                    attrs['update'] = fieldUpdates[key]
+
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
 
@@ -742,7 +745,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, commit=True, softCommit=False, boost=None, commitWithin=None, waitFlush=None, waitSearcher=None):
+    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None):
         """
         Adds or updates documents.
 
@@ -754,6 +757,8 @@ class Solr(object):
         Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``boost``. Default is ``None``.
+
+        Optionally accepts ``fieldUpdates``. Default is ``None``.
 
         Optionally accepts ``commitWithin``. Default is ``None``.
 
@@ -782,7 +787,7 @@ class Solr(object):
             message.set('commitWithin', commitWithin)
 
         for doc in docs:
-            message.append(self._build_doc(doc, boost=boost))
+            message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
 
         # This returns a bytestring. Ugh.
         m = ET.tostring(message, encoding='utf-8')
