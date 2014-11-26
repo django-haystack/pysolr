@@ -397,6 +397,48 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
 
+    def test_field_update(self):
+        originalDocs = self.solr.search('doc')
+        self.assertEqual(len(originalDocs), 3)
+        updateList = []
+        for i, doc in enumerate(originalDocs):
+            updateList.append( {'id': doc['id'], 'popularity': 5} )
+        self.solr.add(updateList, fieldUpdates={'popularity': 'inc'})
+
+        updatedDocs = self.solr.search('doc')
+        self.assertEqual(len(updatedDocs), 3)
+        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+            self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
+            self.assertEqual(updatedDoc['popularity'], originalDoc['popularity'] + 5)
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'popularity']))
+
+        self.solr.add([
+            {
+                'id': 'multivalued_1',
+                'title': 'Multivalued doc 1',
+                'word_ss': ['alpha', 'beta'],
+            },
+            {
+                'id': 'multivalued_2',
+                'title': 'Multivalued doc 2',
+                'word_ss': ['charlie', 'delta'],
+            },
+        ])
+
+        originalDocs = self.solr.search('multivalued')
+        self.assertEqual(len(originalDocs), 2)
+        updateList = []
+        for i, doc in enumerate(originalDocs):
+            updateList.append( {'id': doc['id'], 'word_ss': ['epsilon', 'gamma']} )
+        self.solr.add(updateList, fieldUpdates={'word_ss': 'add'})
+
+        updatedDocs = self.solr.search('multivalued')
+        self.assertEqual(len(updatedDocs), 2)
+        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+            self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
+            self.assertEqual(updatedDoc['word_ss'], originalDoc['word_ss'] + ['epsilon', 'gamma'])
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'word_ss']))
+
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
