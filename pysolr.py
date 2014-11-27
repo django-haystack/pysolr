@@ -11,6 +11,9 @@ import time
 from xml.parsers.expat import ExpatError
 
 import requests
+import ast
+import random
+from kazoo.client import KazooClient
 
 try:
     from xml.etree import ElementTree as ET
@@ -1131,3 +1134,130 @@ def sanitize(data):
         fixed_string = fixed_string.replace(bad, good)
 
     return force_unicode(fixed_string)
+
+class SolrCloud(Solr):
+
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60):
+        url = zookeeper.getRandomURL(collection)
+        Solr.__init__(self, url, decoder, timeout)
+        self.zookeeper = zookeeper
+        self.collection = collection
+
+    def _randomized_request(self, method, path, body, headers, files):
+        self.url = self.zookeeper.getRandomURL(self.collection)
+        LOG.debug("Using random URL: %s" % self.url)
+        return Solr._send_request(self, method, path, body, headers, files)
+
+    def _send_request(self, method, path='', body=None, headers=None, files=None):
+        try:
+            LOG.debug("Trying first pass")
+            return self._randomized_request(method, path, body, headers, files)
+        except requests.exceptions.RequestException as e:
+            LOG.debug("RequestException, sleeping .02s")
+            time.sleep(0.2)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+        except SolrError:
+            LOG.debug("SolrException, sleeping .02s")
+            time.sleep(0.2)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None):
+        self.url = self.zookeeper.getLeaderURL(self.collection)
+        LOG.debug("Using random leader URL: %s" % self.url)
+        return Solr._update(self, message, clean_ctrl_chars, commit, softCommit, waitFlush, waitSearcher)
+
+LIVE_NODES_ZKNODE = "/live_nodes"
+ALIASES = "/aliases.json"
+CLUSTER_STATE = "/clusterstate.json"
+SHARDS = "shards"
+REPLICAS = "replicas"
+STATE = "state"
+ACTIVE = "active"
+LEADER = "leader"
+BASE_URL = "base_url"
+TRUE = "true"
+FALSE = "false"
+COLLECTION = "collection"
+
+class Zookeeper:
+
+    def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
+        self.collections = {}
+        self.liveNodes = {}
+        self.aliases = {}
+        self.state = None
+
+        self.zk = KazooClient(zkServerAddress, read_only=True)
+
+        self.zk.start()
+
+        def connectionListener(state):
+            if state == KazooState.LOST:
+                self.state = state
+            elif state == KazooState.SUSPENDED:
+                self.state = state
+        self.zk.add_listener(connectionListener)
+
+        @self.zk.DataWatch(CLUSTER_STATE)
+        def watchClusterState(data, stat):
+            self.collections = json.loads(data)
+            LOG.info("Updated collections")
+
+        @self.zk.ChildrenWatch(LIVE_NODES_ZKNODE)
+        def watchLiveNodes(children):
+            self.liveNodes = children
+            LOG.info("Updated live nodes")
+
+        @self.zk.DataWatch(ALIASES)
+        def watchAliases(data, stat):
+            if data:
+                self.aliases = json.loads(data)[COLLECTION]
+            else:
+                self.aliases = None
+            LOG.info("Updated aliases")
+
+    def close(self):
+        self.zk.close()
+
+    def _getHosts(self, collname, only_leader=False, seen_aliases=None):
+        if self.aliases and collname in self.aliases:
+            return self._getAliasHosts(collname, only_leader, seen_aliases)
+
+        hosts = []
+        collection = self.collections[collname]
+        shards = collection[SHARDS]
+        for shardname in shards.keys():
+            shard = shards[shardname]
+            if shard[STATE] == ACTIVE:
+                replicas = shard[REPLICAS]
+                for replicaname in replicas.keys():
+                    replica = replicas[replicaname]
+
+                    if replica[STATE] == ACTIVE:
+                        if not only_leader or replica.get(LEADER, FALSE) == TRUE:
+                            base_url = replica[BASE_URL]
+                            if base_url not in hosts:
+                                hosts.append(base_url)
+        return hosts
+
+    def _getAliasHosts(self, collname, only_leader, seen_aliases):
+        if seen_aliases:
+            if collname in seen_aliases:
+                LOG.warn("%s in circular alias definition - ignored" % collname)
+                return []
+        else:
+            seen_aliases = []
+        seen_aliases.append(collname)
+        collections = self.aliases[collname].split(",")
+        hosts = []
+        for collection in collections:
+            for host in self._getHosts(collection, only_leader, seen_aliases):
+                if host not in hosts:
+                    hosts.append(host)
+        return hosts
+
+    def getRandomURL(self, collname):
+        return random.choice(self._getHosts(collname, only_leader=False)) + "/" + collname
+
+    def getLeaderURL(self, collname):
+        return random.choice(self._getHosts(collname, only_leader=True)) + "/" + collname
