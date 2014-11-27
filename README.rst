@@ -23,7 +23,7 @@ Features
 * `"More Like This" <http://wiki.apache.org/solr/MoreLikeThis>`_ support (if set up in Solr).
 * `Spelling correction <http://wiki.apache.org/solr/SpellCheckComponent>`_ (if set up in Solr).
 * Timeout support.
-
+* SolrCloud awareness
 
 Requirements
 ============
@@ -31,7 +31,7 @@ Requirements
 * Python 2.6 - 3.5
 * Requests 2.0+
 * **Optional** - ``simplejson``
-
+* **Optional** - ``kazoo`` for SolrCloud mode
 
 Installation
 ============
@@ -95,6 +95,12 @@ Basic usage looks like:
 
     # ...or all documents.
     solr.delete(q='*:*')
+
+.. code-block:: python
+    # For SolrCloud mode, initialize your Solr like this:
+    
+    zookeeper = pysolr.Zookeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection1")
 
 
 LICENSE
