@@ -216,7 +216,7 @@ class SolrError(Exception):
 class Results(object):
     def __init__(self, docs, hits, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
-                 grouped=None, nextCursorMark=None):
+                 grouped=None, next_cursor_mark=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -226,7 +226,7 @@ class Results(object):
         self.qtime = qtime
         self.debug = debug or {}
         self.grouped = grouped or {}
-        self.nextCursorMark = nextCursorMark
+        self.next_cursor_mark = next_cursor_mark
 		
     def __len__(self):
         return len(self.docs)
