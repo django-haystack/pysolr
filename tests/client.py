@@ -85,7 +85,8 @@ class ResultsTestCase(unittest.TestCase):
             stats='st',
             qtime='0.001',
             debug=True,
-            grouped=['a']
+            grouped=['a'],
+			next_cursor_mark='AoIIP4AAACgwNTc5QjAwMg=='
         )
         self.assertEqual(full_results.docs, [{'id': 1}, {'id': 2}, {'id': 3}])
         self.assertEqual(full_results.hits, 3)
@@ -96,6 +97,7 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(full_results.qtime, '0.001')
         self.assertEqual(full_results.debug, True)
         self.assertEqual(full_results.grouped, ['a'])
+		self.assertEqual(full_results.next_cursor_mark, 'AoIIP4AAACgwNTc5QjAwMg==')
 
     def test_len(self):
         small_results = Results([{'id': 1}, {'id': 2}], 2)
