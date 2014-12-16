@@ -730,6 +730,11 @@ class Solr(object):
                 if self._is_null_value(bit):
                     continue
 
+                if key == 'doc':
+                    child = self._build_doc(bit, boost)
+                    doc_elem.append (child)
+                    continue
+
                 attrs = {'name': key}
 
                 if fieldUpdates and key in fieldUpdates:
