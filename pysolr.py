@@ -730,7 +730,7 @@ class Solr(object):
                 if self._is_null_value(bit):
                     continue
 
-                if key == 'doc':
+                if key == '_doc':
                     child = self._build_doc(bit, boost)
                     doc_elem.append (child)
                     continue
