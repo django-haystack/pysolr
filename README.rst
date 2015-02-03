@@ -68,9 +68,6 @@ Basic usage looks like:
         },
     ])
 
-    # You can optimize the index when it gets fragmented, for better speed.
-    solr.optimize()
-
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
     results = solr.search('bananas')
