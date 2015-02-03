@@ -427,7 +427,6 @@ class Solr(object):
             server_type = 'jetty'
 
         if server_string and 'coyote' in server_string.lower():
-            import lxml.html
             server_type = 'tomcat'
 
         reason = None
@@ -436,26 +435,10 @@ class Solr(object):
 
         if server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response
-            soup = lxml.html.fromstring(response)
-            body_node = soup.find('body')
-            p_nodes = body_node.cssselect('p')
-
-            for p_node in p_nodes:
-                children = p_node.getchildren()
-
-                if len(children) >= 2 and 'message' in children[0].text.lower():
-                    reason = children[1].text
-
-                if len(children) >= 2 and hasattr(children[0], 'renderContents'):
-                    if 'description' in children[0].renderContents().lower():
-                        if reason is None:
-                            reason = children[1].renderContents()
-                        else:
-                            reason += ", " + children[1].renderContents()
-
-            if reason is None:
-                from lxml.html.clean import clean_html
-                full_html = clean_html(response)
+            if response.find('<h1>') >= 0:
+                reason = response[response.find('<h1>')+4:response.find('</h1>')]
+            else:
+                full_html = "%s" % response
         else:
             # Let's assume others do produce a valid XML response
             try:
