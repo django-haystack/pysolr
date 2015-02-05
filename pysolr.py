@@ -251,9 +251,10 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, auth=None):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
+        self.auth = auth
         self.timeout = timeout
         self.log = self._get_log()
         self.session = requests.Session()
@@ -300,7 +301,7 @@ class Solr(object):
                 bytes_body = force_bytes(body)
 
             resp = requests_method(url, data=bytes_body, headers=headers, files=files,
-                                   timeout=self.timeout)
+                                   timeout=self.timeout, auth=self.auth)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
