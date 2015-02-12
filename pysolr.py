@@ -216,7 +216,7 @@ class SolrError(Exception):
 class Results(object):
     def __init__(self, docs, hits, highlighting=None, facets=None,
                  spellcheck=None, stats=None, qtime=None, debug=None,
-                 grouped=None):
+                 grouped=None, maxscore=None):
         self.docs = docs
         self.hits = hits
         self.highlighting = highlighting or {}
@@ -226,6 +226,7 @@ class Results(object):
         self.qtime = qtime
         self.debug = debug or {}
         self.grouped = grouped or {}
+        self.maxscore = maxscore
 
     def __len__(self):
         return len(self.docs)
@@ -642,6 +643,9 @@ class Solr(object):
 
         response = result.get('response') or {}
         numFound = response.get('numFound', 0)
+        maxScore = response.get('maxScore')
+        if maxScore:
+            result_kwargs['maxscore'] = maxScore
         self.log.debug("Found '%s' search results.", numFound)
         return Results(response.get('docs', ()), numFound, **result_kwargs)
 
