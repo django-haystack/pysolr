@@ -883,7 +883,7 @@ class Solr(object):
 
             http://wiki.apache.org/solr/ExtractingRequestHandler
 
-        The ExtractingRequestHandler has a very simply model: it extracts
+        The ExtractingRequestHandler has a very simple model: it extracts
         contents and metadata from the uploaded file and inserts it directly
         into the index. This is rarely useful as it allows no way to store
         additional data or otherwise customize the record. Instead, by default
