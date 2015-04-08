@@ -34,5 +34,6 @@ setup(
             'lxml>=3.0',
             'cssselect',
         ],
-    }
+    },
+    test_suite="tests",
 )
