@@ -474,7 +474,7 @@ class Solr(object):
                 if reason is None:
                     full_html = ET.tostring(dom_tree)
             except SyntaxError as err:
-                full_html = "%s" % response
+                full_html = force_unicode(response)
 
         full_html = force_unicode(full_html)
         full_html = full_html.replace('\n', '')
