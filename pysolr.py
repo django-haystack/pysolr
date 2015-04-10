@@ -11,10 +11,14 @@ import requests
 import time
 import types
 import ast
+import warnings
+
+HAS_LXML = False
 
 try:
     # Prefer lxml, if installed.
     from lxml import etree as ET
+    HAS_LXML = True
 except ImportError:
     try:
         from xml.etree import cElementTree as ET
@@ -427,14 +431,17 @@ class Solr(object):
             server_type = 'jetty'
 
         if server_string and 'coyote' in server_string.lower():
-            import lxml.html
             server_type = 'tomcat'
 
         reason = None
         full_html = ''
         dom_tree = None
 
-        if server_type == 'tomcat':
+        if server_type == 'tomcat' and not HAS_LXML:
+            warnings.warn("lxml must be installed to parse tomcat server error pages")
+        elif server_type == 'tomcat':
+            import lxml.html
+
             # Tomcat doesn't produce a valid XML response
             soup = lxml.html.fromstring(response)
             body_node = soup.find('body')
@@ -474,7 +481,10 @@ class Solr(object):
                 if reason is None:
                     full_html = ET.tostring(dom_tree)
             except SyntaxError as err:
-                full_html = "%s" % response
+                pass
+
+        if not full_html:
+            full_html = "%s" % response
 
         full_html = force_unicode(full_html)
         full_html = full_html.replace('\n', '')
