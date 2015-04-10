@@ -438,24 +438,33 @@ class Solr(object):
             # Tomcat doesn't produce a valid XML response
             soup = lxml.html.fromstring(response)
             body_node = soup.find('body')
-            p_nodes = body_node.cssselect('p')
+            if body_node:
+                p_nodes = body_node.cssselect('p')
 
-            for p_node in p_nodes:
-                children = p_node.getchildren()
+                for p_node in p_nodes:
+                    children = p_node.getchildren()
 
-                if len(children) >= 2 and 'message' in children[0].text.lower():
-                    reason = children[1].text
+                    if len(children) >= 2 and 'message' in children[0].text.lower():
+                        reason = children[1].text
 
-                if len(children) >= 2 and hasattr(children[0], 'renderContents'):
-                    if 'description' in children[0].renderContents().lower():
-                        if reason is None:
-                            reason = children[1].renderContents()
-                        else:
-                            reason += ", " + children[1].renderContents()
+                    if len(children) >= 2 and hasattr(children[0], 'renderContents'):
+                        if 'description' in children[0].renderContents().lower():
+                            if reason is None:
+                                reason = children[1].renderContents()
+                            else:
+                                reason += ", " + children[1].renderContents()
 
             if reason is None:
                 from lxml.html.clean import clean_html
                 full_html = clean_html(response)
+                # Error response might be provided as json
+                try:
+                    response_data = json.loads(response)
+                except ValueError:
+                    pass
+                else:
+                    if 'error' in response_data:
+                        reason = response_data['error'].get('msg')
         else:
             # Let's assume others do produce a valid XML response
             try:
