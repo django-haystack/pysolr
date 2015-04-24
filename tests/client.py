@@ -455,6 +455,14 @@ class SolrTestCase(unittest.TestCase):
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
+        # Try delete with a list of document ids
+        self.solr.add(self.docs)
+        self.solr.commit()
+        self.assertEqual(len(self.solr.search('*:*')), len(self.docs))
+        to_delete = [doc['id'] for doc in self.docs]
+        self.solr.delete(id=to_delete)
+        self.assertEqual(len(self.solr.search('*:*')), 0)
+
         # Need at least one.
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
