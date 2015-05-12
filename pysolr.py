@@ -9,17 +9,12 @@ import logging
 import re
 import requests
 import time
-import types
 import ast
 
 try:
-    # Prefer lxml, if installed.
-    from lxml import etree as ET
+    from xml.etree import ElementTree as ET
 except ImportError:
-    try:
-        from xml.etree import cElementTree as ET
-    except ImportError:
-        raise ImportError("No suitable ElementTree implementation was found.")
+    raise ImportError("No suitable ElementTree implementation was found.")
 
 try:
     # Prefer simplejson, if installed.
@@ -437,7 +432,6 @@ class Solr(object):
             server_type = 'jetty'
 
         if server_string and 'coyote' in server_string.lower():
-            import lxml.html
             server_type = 'tomcat'
 
         reason = None
@@ -445,27 +439,12 @@ class Solr(object):
         dom_tree = None
 
         if server_type == 'tomcat':
-            # Tomcat doesn't produce a valid XML response
-            soup = lxml.html.fromstring(response)
-            body_node = soup.find('body')
-            p_nodes = body_node.cssselect('p')
-
-            for p_node in p_nodes:
-                children = p_node.getchildren()
-
-                if len(children) >= 2 and 'message' in children[0].text.lower():
-                    reason = children[1].text
-
-                if len(children) >= 2 and hasattr(children[0], 'renderContents'):
-                    if 'description' in children[0].renderContents().lower():
-                        if reason is None:
-                            reason = children[1].renderContents()
-                        else:
-                            reason += ", " + children[1].renderContents()
-
-            if reason is None:
-                from lxml.html.clean import clean_html
-                full_html = clean_html(response)
+            # Tomcat doesn't produce a valid XML response or consistent HTML:
+            m = re.search(r'<(h1)[^>]*>\s*(.+?)\s*</\1>', response, re.IGNORECASE)
+            if m:
+                reason = m.group(2)
+            else:
+                full_html = "%s" % response
         else:
             # Let's assume others do produce a valid XML response
             try:

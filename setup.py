@@ -28,11 +28,5 @@ setup(
     license='BSD',
     install_requires=[
         'requests>=2.0'
-    ],
-    extras_require={
-        'tomcat': [
-            'lxml>=3.0',
-            'cssselect',
-        ],
-    }
+    ]
 )
