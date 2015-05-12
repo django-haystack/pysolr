@@ -42,6 +42,12 @@ except ImportError:
     import htmlentitydefs as htmlentities
 
 try:
+    # Python 3.X
+    from http.client import HTTPException
+except ImportError:
+    from httplib import HTTPException
+
+try:
     # Python 2.X
     unicode_char = unichr
 except NameError:
@@ -291,14 +297,14 @@ class Solr(object):
         except AttributeError as err:
             raise SolrError("Unable to send HTTP method '{0}.".format(method))
 
+        # Everything except the body can be Unicode. The body must be
+        # encoded to bytes to work properly on Py3.
+        bytes_body = body
+
+        if bytes_body is not None:
+            bytes_body = force_bytes(body)
+
         try:
-            # Everything except the body can be Unicode. The body must be
-            # encoded to bytes to work properly on Py3.
-            bytes_body = body
-
-            if bytes_body is not None:
-                bytes_body = force_bytes(body)
-
             resp = requests_method(url, data=bytes_body, headers=headers, files=files,
                                    timeout=self.timeout)
         except requests.exceptions.Timeout as err:
@@ -310,6 +316,10 @@ class Solr(object):
             params = (url, err)
             self.log.error(error_message, *params, exc_info=True)
             raise SolrError(error_message % params)
+        except HTTPException as err:
+            error_message = "Unhandled error: %s %s: %s"
+            self.log.error(error_message, method, url, err, exc_info=True)
+            raise SolrError(error_message % (method, url, err))
 
         end_time = time.time()
         self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
