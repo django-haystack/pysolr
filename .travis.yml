@@ -1,27 +1,30 @@
+sudo: false
 language: python
 python:
-  - "2.7"
+    - "2.6"
+    - "2.7"
+    - "3.3"
+    - "3.4"
+    - "pypy"
 
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install default-jdk
-  - pip install requests
+cache:
+  apt: true
+  pip: true
+  directories:
+      - $HOME/download-cache
 
-before_script:
-  - python get-solr-download-url.py 4.7.2 | xargs curl -sSO
+addons:
+  apt_packages:
+    - default-jdk
 
 install:
-  - pip install tox
+    - "pip install 'requests>2'"
+    - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then travis_retry pip install unittest2; fi
+    - "pip install ."
 
 script:
-  - tox -e $TOX_ENV
-
-env:
-  - TOX_ENV=py26
-  - TOX_ENV=py27
-  - TOX_ENV=py33
-  - TOX_ENV=py34
+    - python run-tests.py
 
 notifications:
-  # irc: "irc.freenode.org#pysolr"
-  email: false
+    # irc: "irc.freenode.org#pysolr"
+    email: false
