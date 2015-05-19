@@ -268,11 +268,29 @@ class SolrTestCase(unittest.TestCase):
         resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
         self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
 
+        # Valid XML
+        resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
+        self.assertEqual(resp_3, ("Invalid Date String:'2015-03-23 10:43:33'", "Invalid Date String:'2015-03-23 10:43:33'"))
+
+        # Valid XML with a traceback
+        resp_4 = self.solr._scrape_response({'server': 'coyote'}, """<?xml version="1.0"?>
+<response>
+<lst name="responseHeader"><int name="status">500</int><int name="QTime">138</int></lst><lst name="error"><str name="msg">Internal Server Error</str><str name="trace">org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)</str><int name="code">500</int></lst>
+</response>""")
+        self.assertEqual(resp_4, (u"Internal Server Error", u"org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)"))
+
     def test__scrape_response_tomcat(self):
         """Tests for Tomcat error responses"""
 
         resp_0 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><h1>Something broke!</h1><pre>gigantic stack trace</pre></body></html>')
         self.assertEqual(resp_0, ('Something broke!', ''))
+
+        # Invalid XML
+        bogus_xml = '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>'
+        reason, full_html = self.solr._scrape_response({'server': 'coyote'}, bogus_xml)
+        self.assertEqual(reason, None)
+        self.assertEqual(full_html, bogus_xml.replace("\n", ""))
+
 
     def test__from_python(self):
         self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
