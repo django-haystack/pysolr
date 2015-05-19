@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import sys
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
@@ -268,7 +269,8 @@ class SolrTestCase(unittest.TestCase):
         resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
         self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
 
-        # Valid XML
+    @unittest.skipIf(sys.version_info < (2, 7), reason=u'Python 2.6 lacks the ElementTree 1.3 interface required for Solr XML error message parsing')
+    def test__scrape_response_coyote_xml(self):
         resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
         self.assertEqual(resp_3, ("Invalid Date String:'2015-03-23 10:43:33'", "Invalid Date String:'2015-03-23 10:43:33'"))
 

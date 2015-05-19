@@ -17,6 +17,9 @@ try:
 except ImportError:
     raise ImportError("No suitable ElementTree implementation was found.")
 
+# Remove this when we drop Python 2.6:
+ParseError = getattr(ET, 'ParseError', SyntaxError)
+
 try:
     # Prefer simplejson, if installed.
     import simplejson as json
@@ -443,10 +446,7 @@ class Solr(object):
             # Try a strict XML parse
             try:
                 soup = ET.fromstring(response)
-            except ET.ParseError:
-                # XML parsing error, so we'll let the more liberal code handle it.
-                pass
-            else:
+
                 reason_node = soup.find('lst[@name="error"]/str[@name="msg"]')
                 tb_node = soup.find('lst[@name="error"]/str[@name="trace"]')
                 if reason_node is not None:
@@ -459,6 +459,9 @@ class Solr(object):
                 # Since we had a precise match, we'll return the results now:
                 if reason and full_html:
                     return reason, full_html
+            except (ParseError, ExpatError):
+                # XML parsing error, so we'll let the more liberal code handle it.
+                pass
 
         if server_type == 'tomcat':
             # Tomcat doesn't produce a valid XML response or consistent HTML:
