@@ -206,6 +206,15 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(resp_data['response']['numFound'], 0)
         self.assertEqual(len(resp_data['responseHeader']['params']['q']), 3 * 1024)
 
+    def test__get(self):
+        resp_body = self.solr._get({'id': 'doc_1'})
+        resp_data = json.loads(resp_body)
+        self.assertEqual(resp_data['doc']['id'], 'doc_1')
+
+        resp_body = self.solr._get({'ids': 'doc_1,doc_2'})
+        resp_data = json.loads(resp_body)
+        self.assertEqual(resp_data['response']['numFound'], 2)
+
     def test__mlt(self):
         resp_body = self.solr._mlt({'q': 'id:doc_1', 'mlt.fl': 'title'})
         resp_data = json.loads(resp_body)
@@ -357,6 +366,32 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+
+    def test_get(self):
+        self.assertRaises(ValueError, self.solr.get)
+        self.assertRaises(ValueError, self.solr.get, 'doc_1', 'doc_2,doc_3')
+
+        results = self.solr.get('doc_1')
+        self.assertEqual(len(results), 1)
+
+        self.solr.add([{'id': 'doc_6', 'title': 'Realtime doc',
+                        'price': 99.99, 'popularity': 1}],
+                      commit=False)
+        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.assertEqual(len(self.solr.search('realtime')), 0)
+
+        results = self.solr.get(id='doc_6', fl='id,price')
+        doc = results.docs[0]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(len(doc), 2)
+        self.assertEqual(doc['id'], 'doc_6')
+        self.assertAlmostEqual(doc['price'], 99.99)
+
+        results = self.solr.get(ids='doc_2,doc_6')
+        self.assertEqual(len(results), 2)
+
+        results = self.solr.get(id='doc_7')
+        self.assertEqual(len(results), 0)
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')

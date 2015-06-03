@@ -349,6 +349,11 @@ class Solr(object):
             }
             return self._send_request('post', path, body=params_encoded, headers=headers)
 
+    def _get(self, params):
+        params['wt'] = 'json'
+        path = 'get/?%s' % safe_urlencode(params, True)
+        return self._send_request('get', path)
+
     def _mlt(self, params):
         # specify json encoding of results
         params['wt'] = 'json'
@@ -658,6 +663,42 @@ class Solr(object):
         numFound = response.get('numFound', 0)
         self.log.debug("Found '%s' search results.", numFound)
         return Results(response.get('docs', ()), numFound, **result_kwargs)
+
+    def get(self, id=None, ids=None, **kwargs):
+        """
+        Gets latest version of documents, even uncommited ones.
+
+        Requires *either* ``id`` or ``ids``. ``id`` for single document.
+        ``ids`` is a comma separated document ids.
+
+        Optionally accepts ``fl`` - field list.
+
+        Usage::
+
+            solr.get(id='doc_11')
+            solr.get(ids='doc_1,doc_2', fl='id,title')
+        """
+        if id is None and ids is None:
+            raise ValueError('You must specify "id" or "ids".')
+        elif id is not None and ids is not None:
+            raise ValueError('You many only specify "id" OR "ids", not both.')
+        elif id is not None:
+            params = {'id': id}
+        elif ids is not None:
+            params = {'ids': ids}
+        params.update(kwargs)
+        response = self._get(params)
+
+        result = self.decoder.decode(response)
+
+        if id is not None:
+            docs = list(filter(None, [result.get('doc')]))
+            numFound = len(docs)
+        else:
+            response = result.get('response') or {}
+            docs = response.get('docs', ())
+            numFound = response.get('numFound', 0)
+        return Results(docs, numFound)
 
     def more_like_this(self, q, mltfl, **kwargs):
         """
