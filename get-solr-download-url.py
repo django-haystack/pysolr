@@ -7,11 +7,14 @@ import sys
 
 import requests
 
-# Try to import urljoin from the Python 3 reorganized stdlib first:
+# Try to import urllib from the Python 3 reorganized stdlib first:
 try:
     from urllib.parse import urljoin
 except ImportError:
-    from urlparse import urljoin
+    try:
+        from urlparse.parse import urljoin
+    except ImportError:
+        from urlparse import urljoin
 
 
 if len(sys.argv) != 2:
