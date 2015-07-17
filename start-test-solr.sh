@@ -2,9 +2,9 @@
 
 set -e
 
-SOLR_VERSION=4.7.2
+SOLR_VERSION=4.10.4
 
-export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
+export SOLR_ARCHIVE="solr-${SOLR_VERSION}.tgz"
 
 if [ -d "${HOME}/download-cache/" ]; then
     export SOLR_ARCHIVE="${HOME}/download-cache/${SOLR_ARCHIVE}"
