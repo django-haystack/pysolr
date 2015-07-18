@@ -442,8 +442,8 @@ class Solr(object):
         full_html = ''
         dom_tree = None
 
-        # In Python3, response is made of bytes
-        if IS_PY3:
+        # In Python3, response can be made of bytes
+        if IS_PY3 and hasattr(response, 'decode'):
             response = response.decode()
         if response.startswith('<?xml'):
             # Try a strict XML parse
