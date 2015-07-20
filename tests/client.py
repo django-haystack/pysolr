@@ -463,6 +463,10 @@ class SolrTestCase(unittest.TestCase):
         self.solr.delete(id=to_delete)
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
+        # Can't delete when the list of documents is empty
+        self.assertRaises(ValueError, self.solr.delete, id=[None, None, None])
+        self.assertRaises(ValueError, self.solr.delete, id=[None])
+
         # Need at least one.
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
