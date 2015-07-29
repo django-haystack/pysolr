@@ -39,10 +39,8 @@ def start_solr():
 def main():
     solr_proc = start_solr()
 
-    if sys.version_info >= (3, 3):
+    if sys.version_info >= (3, 3) or sys.version_info >= (2, 7):
         cmd = ['python', '-m', 'unittest', 'tests']
-    elif sys.version_info >= (2, 7):
-        cmd = ['python', '-m', 'unittest2', 'tests']
     else:
         cmd = ['unit2', 'discover', '-s', 'tests', '-p', '[a-z]*.py']
 
