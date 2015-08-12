@@ -2,7 +2,7 @@
 
 set -e
 
-SOLR_VERSION=4.7.2
+SOLR_VERSION=4.10.4
 
 export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
 
