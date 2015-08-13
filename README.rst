@@ -29,9 +29,7 @@ Requirements
 
 * Python 2.6 - 3.3
 * Requests 2.0+
-* **Optional** - ``lxml``
 * **Optional** - ``simplejson``
-* **Optional** - ``cssselect`` for Tomcat error support
 
 
 Installation
@@ -64,22 +62,17 @@ Basic usage looks like:
         {
             "id": "doc_2",
             "title": "The Banana: Tasty or Dangerous?",
-            "_doc": [ 
+            "_doc": [
                 { "id": "child_doc_1", "title": "peel" },
                 { "id": "child_doc_2", "title": "seed" },
             ]
         },
     ])
 
-    # You can index a parent/child document relationship by 
+    # You can index a parent/child document relationship by
     # associating a list of child documents with the special key '_doc'. This
     # is helpful for queries that join together conditions on children and parent
     # documents.
-
-    # You can optimize the index when it gets fragmented, for better speed,
-    # although it's generally better for performance overall to let Lucene
-    # decide when to do this automatically.
-    solr.optimize()
 
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
