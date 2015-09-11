@@ -6,6 +6,5 @@ env
 env3
 pysolr.egg-info/
 .tox
-solr*.tgz
-solr-*
+test-solr-server
 *.log

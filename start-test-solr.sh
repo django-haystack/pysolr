@@ -4,6 +4,11 @@ set -e
 
 SOLR_VERSION=4.7.2
 
+if [ ! -d "test-solr-server" ]; then
+    mkdir "test-solr-server"
+fi
+cd "test-solr-server"
+
 export SOLR_ARCHIVE="solr-${SOLR_VERSION}.tgz"
 export SOLR_DIR="solr-${SOLR_VERSION}"
 
