@@ -18,7 +18,8 @@ def start_solr():
 
     while True:
         try:
-            r = requests.get("http://localhost:8983/solr/core0/select/?q=startup")
+            # Solr 5 default schema requires the "df" field; it's deprecated in Solr 4 too
+            r = requests.get("http://localhost:8983/solr/collection1/select/?q=startup&df=id")
             status_code = r.status_code
         except requests.RequestException:
             status_code = 0

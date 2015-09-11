@@ -111,9 +111,9 @@ class ResultsTestCase(unittest.TestCase):
 class SolrTestCase(unittest.TestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.default_solr = Solr('http://localhost:8983/solr/core0')
+        self.default_solr = Solr('http://localhost:8983/solr/collection1')
         # Short timeouts.
-        self.solr = Solr('http://localhost:8983/solr/core0', timeout=2)
+        self.solr = Solr('http://localhost:8983/solr/collection1', timeout=2)
         self.docs = [
             {
                 'id': 'doc_1',
@@ -160,21 +160,21 @@ class SolrTestCase(unittest.TestCase):
         super(SolrTestCase, self).tearDown()
 
     def test_init(self):
-        self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')
+        self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/collection1')
         self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
         self.assertEqual(self.default_solr.timeout, 60)
 
-        self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
+        self.assertEqual(self.solr.url, 'http://localhost:8983/solr/collection1')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 2)
 
     def test__create_full_url(self):
         # Nada.
-        self.assertEqual(self.solr._create_full_url(path=''), 'http://localhost:8983/solr/core0')
+        self.assertEqual(self.solr._create_full_url(path=''), 'http://localhost:8983/solr/collection1')
         # Basic path.
-        self.assertEqual(self.solr._create_full_url(path='pysolr_tests'), 'http://localhost:8983/solr/core0/pysolr_tests')
+        self.assertEqual(self.solr._create_full_url(path='pysolr_tests'), 'http://localhost:8983/solr/collection1/pysolr_tests')
         # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertEqual(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), 'http://localhost:8983/solr/core0/pysolr_tests/select/?whatever=/')
+        self.assertEqual(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), 'http://localhost:8983/solr/collection1/pysolr_tests/select/?whatever=/')
 
     def test__send_request(self):
         # Test a valid request.
@@ -526,8 +526,8 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(['Test Title ☃☃'], m['title'])
 
     def test_full_url(self):
-        self.solr.url = 'http://localhost:8983/solr/core0'
+        self.solr.url = 'http://localhost:8983/solr/collection1'
         full_url = self.solr._create_full_url(path='/update')
 
         # Make sure trailing and leading slashes do not collide:
-        self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+        self.assertEqual(full_url, 'http://localhost:8983/solr/collection1/update')

@@ -16,7 +16,7 @@ class SolrCoreAdminTestCase(unittest.TestCase):
 
     def test_status(self):
         self.assertTrue('name="defaultCoreName"' in self.solr_admin.status())
-        self.assertTrue('<int name="status">' in self.solr_admin.status(core='core0'))
+        self.assertTrue('<int name="status">' in self.solr_admin.status(core='collection1'))
 
     def test_create(self):
         self.assertTrue('<int name="status">0</int>' in self.solr_admin.create('wheatley'))
