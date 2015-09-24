@@ -28,3 +28,4 @@ script:
 notifications:
     # irc: "irc.freenode.org#pysolr"
     email: false
+
