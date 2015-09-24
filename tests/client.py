@@ -197,8 +197,10 @@ class SolrTestCase(unittest.TestCase):
 
         # Test bad core as well
         self.solr.url = 'http://localhost:8983/solr/bad_core'
-        self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        self.solr.url = old_url
+        try:
+            self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
+        finally:
+            self.solr.url = old_url
 
     def test__select(self):
         # Short params.
