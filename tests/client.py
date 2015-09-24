@@ -206,6 +206,13 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(resp_data['response']['numFound'], 0)
         self.assertEqual(len(resp_data['responseHeader']['params']['q']), 3 * 1024)
 
+        # Test Deep Pagination CursorMark
+        resp_body = self.solr._select({'q': '*', 'cursorMark':'*', 'sort':'id desc', 'start':0, 'rows': 2})
+        resp_data = json.loads(resp_body)
+        self.assertEqual(len(resp_data['response']['docs']), 2)
+        self.assertIn('nextCursorMark', resp_data)
+
+
     def test__mlt(self):
         resp_body = self.solr._mlt({'q': 'id:doc_1', 'mlt.fl': 'title'})
         resp_data = json.loads(resp_body)
