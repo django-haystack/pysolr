@@ -10,7 +10,7 @@ import requests
 
 
 def start_solr():
-    solr_proc = subprocess.Popen("./start-test-solr.sh",
+    solr_proc = subprocess.Popen("./start-solr-test-server.sh",
                                  stdout=open("test-solr.stdout.log", "wb"),
                                  stderr=open("test-solr.stderr.log", "wb"))
 
