@@ -897,6 +897,24 @@ class Solr(object):
 
         return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
+    def rollback(self, waitFlush=None, waitSearcher=None):
+        """
+        Tells Solr to cancel all add/deletes made to the index since the last
+        commit.
+
+        Optionally accepts ``waitFlush``. Default is ``None``.
+
+        Optionally accepts ``waitSearcher``. Default is ``None``.
+
+        Usage::
+
+            solr.rollback()
+
+        """
+        msg = '<rollback />'
+
+        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+
     def extract(self, file_obj, extractOnly=True, **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
