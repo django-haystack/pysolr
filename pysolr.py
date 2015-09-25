@@ -257,6 +257,28 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     """
+
+    LUCENE_SPECIAL_CHARACTERS = '-+&|!(){}[]^"~:\\'
+    LUCENE_WILDCARD_CHARACTERS = '*?'
+
+    LUCENE_PHRASE_REGEX = re.compile('[{characters}]'.format(
+        characters=re.escape(LUCENE_SPECIAL_CHARACTERS)))
+    LUCENE_WILDCARD_REGEX = re.compile('[{characters}]'.format(
+        characters=re.escape(LUCENE_WILDCARD_CHARACTERS)))
+    LUCENE_TERM_REGEX = re.compile(r'[{characters}\s]'.format(
+        characters=re.escape(LUCENE_SPECIAL_CHARACTERS)))
+
+    @classmethod
+    def escape_term(cls, string, escape_wildcards=True):
+        result = cls.LUCENE_TERM_REGEX.sub(r'\\\g<0>', string)
+        if escape_wildcards:
+            result = cls.LUCENE_WILDCARD_REGEX.sub(r'\\\g<0>', result)
+        return result
+
+    @classmethod
+    def escape_phrase(cls, string):
+        return cls.LUCENE_PHRASE_REGEX.sub(r'\\\g<0>', string)
+
     def __init__(self, url, decoder=None, timeout=60):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
