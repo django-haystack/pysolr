@@ -219,7 +219,6 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(resp_data['response']['docs']), 2)
         self.assertIn('nextCursorMark', resp_data)
 
-
     def test__mlt(self):
         resp_body = self.solr._mlt({'q': 'id:doc_1', 'mlt.fl': 'title'})
         resp_data = json.loads(resp_body)
@@ -371,6 +370,59 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+
+    def test_escape_term(self):
+        doc_id = 'id-+&|! (){}[]^"~:\\*?'
+        self.solr.add([
+            {
+                'id': doc_id,
+                'title': 'term'
+            },
+            {
+                'id': 'id-+&|! (){}[]^"~:\\?*',
+                'title': 'another term'
+            }
+        ])
+
+        with self.assertRaises(SolrError):
+            self.solr.search('id:{id}'.format(id=doc_id))
+
+        result = self.solr.search('id:{id}'.format(id=self.solr.escape_term(doc_id)))
+        self.assertEqual(len(result.docs), 1)
+        self.assertEqual(result.docs[0]['id'], doc_id)
+
+
+    def test_escape_term__wildcards_not_escaped(self):
+        doc_id = 'term-+& |!!!(){}[]^"~:\\'
+        self.solr.add([
+            {
+                'id': doc_id,
+                'title': 'term'
+            }
+        ])
+
+        with self.assertRaises(SolrError):
+            self.solr.search('id:{id}'.format(id=doc_id))
+
+        result = self.solr.search('id:{id}'.format(id=self.solr.escape_term('term-+& |*()?}[]^"~:\\', False)))
+        self.assertEqual(len(result.docs), 1)
+        self.assertEqual(result.docs[0]['id'], doc_id)
+
+    def test_escape_phrase(self):
+        doc_id = 'id-+&|! (){}[]^"~:\\*?'
+        self.solr.add([
+            {
+                'id': doc_id,
+                'title': 'term'
+            }
+        ])
+
+        with self.assertRaises(SolrError):
+            self.solr.search('id:"{id}"'.format(id=doc_id))
+
+        result = self.solr.search('id:"{id}"'.format(id=self.solr.escape_phrase(doc_id)))
+        self.assertEqual(len(result.docs), 1)
+        self.assertEqual(result.docs[0]['id'], doc_id)
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
