@@ -494,6 +494,20 @@ class SolrTestCase(unittest.TestCase):
         self.solr.commit()
         self.assertEqual(len(self.solr.search('doc')), 4)
 
+    def test_rollback(self):
+        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.solr.add([
+            {
+                'id': 'doc_6',
+                'title': 'Newly added doc',
+            }
+        ], commit=False)
+        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.solr.rollback()
+        self.assertEqual(len(self.solr.search('doc')), 3)
+        self.solr.commit()
+        self.assertEqual(len(self.solr.search('doc')), 3)
+
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
         self.assertEqual(len(self.solr.search('doc')), 3)
