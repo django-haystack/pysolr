@@ -145,6 +145,42 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            # several with nested docs (not using fields that are used in
+            # normal docs so that they don't interfere with their tests)
+            {
+                'id': 'nestdoc_1',
+                'type_s': 'nested',
+                'name_t': 'Nested no. 1',
+                'pages_i': 5,
+                'children': [
+                    {
+                        'id': 'childdoc_1',
+                        'type_s': 'child',
+                        'name_t': 'Child #1',
+                        'comment_t': 'Hello there',
+                    },
+                    {
+                        'id': 'childdoc_2',
+                        'type_s': 'child',
+                        'name_t': 'Child #2',
+                        'comment_t': 'Ehh..',
+                    },
+                ],
+            },
+            {
+                'id': 'nestdoc_2',
+                'type_s': 'nested',
+                'name_t': 'Nested no. 2',
+                'pages_i': 500,
+                'children': [
+                    {
+                        'id': 'childdoc_3',
+                        'type_s': 'child',
+                        'name_t': 'Child of another parent',
+                        'comment_t': 'Yello',
+                    },
+                ],
+            }
         ]
 
         # Clear it.
@@ -470,8 +506,16 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
         self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search('type_s:nested')), 2)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
         self.solr.delete(q='price:[0 TO 15]')
+        self.solr.delete(q='type_s:nested')
+        # one simple doc should remain
+        # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search('doc')), 1)
+        self.assertEqual(len(self.solr.search('type_s:nested')), 0)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.solr.delete(q='type_s:child')
 
         self.assertEqual(len(self.solr.search('*:*')), 1)
         self.solr.delete(q='*:*')
