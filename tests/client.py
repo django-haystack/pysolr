@@ -408,6 +408,15 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+        # Nested search #1: find parent where child's comment has 'hello'
+        results = self.solr.search("{!parent which=type_s:nested}comment_t:hello")
+        self.assertEqual(len(results), 1)
+        # TODO: for some reason Solr 4.10 returns all parents and non-nested
+        # docs together with matched children when running {!child} query
+        # Nested search #2: find children for parent 'id:nestdoc_1'
+        # results = self.solr.search("{!child of=type_s:nested}id:nestdoc_1")
+        # self.assertEqual(len(results), 2)
+
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
         self.assertEqual(len(results), 0)
