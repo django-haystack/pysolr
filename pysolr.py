@@ -66,6 +66,8 @@ def get_version():
 
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
+# dict key used to add nested documents to a document
+NESTED_DOC_KEY = '_childDocuments_'
 
 
 class NullHandler(logging.Handler):
@@ -733,44 +735,41 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
 
-    def _build_doc(self, doc, boost=None, fieldUpdates=None, children=None):
-        def _one_doc(doc):
-            doc_elem = ET.Element('doc')
+    def _build_doc(self, doc, boost=None, fieldUpdates=None):
+        doc_elem = ET.Element('doc')
 
-            for key, value in doc.items():
-                if key == 'boost':
-                    doc_elem.set('boost', force_unicode(value))
+        for key, value in doc.items():
+            if key == NESTED_DOC_KEY:
+                for child in value:
+                    doc_elem.append(self._build_doc(child, boost, fieldUpdates))
+                continue
+
+            if key == 'boost':
+                doc_elem.set('boost', force_unicode(value))
+                continue
+
+            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
+            if isinstance(value, (list, tuple)):
+                values = value
+            else:
+                values = (value, )
+
+            for bit in values:
+                if self._is_null_value(bit):
                     continue
 
-                # To avoid multiple code-paths we'd like to treat all of our values as iterables:
-                if isinstance(value, (list, tuple)):
-                    values = value
-                else:
-                    values = (value, )
+                attrs = {'name': key}
 
-                for bit in values:
-                    if self._is_null_value(bit):
-                        continue
+                if fieldUpdates and key in fieldUpdates:
+                    attrs['update'] = fieldUpdates[key]
 
-                    attrs = {'name': key}
+                if boost and key in boost:
+                    attrs['boost'] = force_unicode(boost[key])
 
-                    if fieldUpdates and key in fieldUpdates:
-                        attrs['update'] = fieldUpdates[key]
+                field = ET.Element('field', **attrs)
+                field.text = self._from_python(bit)
 
-                    if boost and key in boost:
-                        attrs['boost'] = force_unicode(boost[key])
-
-                    field = ET.Element('field', **attrs)
-                    field.text = self._from_python(bit)
-
-                    doc_elem.append(field)
-
-            return doc_elem
-
-        doc_elem = _one_doc(doc)
-        if children:
-            for child in children:
-                doc_elem.append(_one_doc(child))
+                doc_elem.append(field)
 
         return doc_elem
 
@@ -816,12 +815,7 @@ class Solr(object):
             message.set('commitWithin', commitWithin)
 
         for doc in docs:
-            children = None
-            if 'children' in doc:
-                children = doc['children']
-                del doc['children']
-            el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates,
-                                 children=children)
+            el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
             message.append(el)
 
         # This returns a bytestring. Ugh.
