@@ -426,6 +426,7 @@ class SolrTestCase(unittest.TestCase):
         # self.assertEqual(len(results), 2)
         # Nested search #3: find child with a child
         results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
+        self.assertEqual(len(results), 1)
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
