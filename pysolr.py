@@ -962,6 +962,24 @@ class Solr(object):
 
         return data
 
+    def system_info(self):
+        """
+        Returns system info as returned by Solr's SystemInfoHandler
+        parsed into a dict
+        """
+        params = {'wt': 'json'}
+        params_encoded = safe_urlencode(params, True)
+
+        path = 'admin/system/?%s' % params_encoded
+        resp = self._send_request('get', path)
+        try:
+            data = json.loads(resp)
+        except ValueError as err:
+            self.log.error("Failed to load JSON response: %s", err,
+                           exc_info=True)
+            raise
+        return data
+
 
 class SolrCoreAdmin(object):
     """

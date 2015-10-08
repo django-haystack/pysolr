@@ -545,3 +545,7 @@ class SolrTestCase(unittest.TestCase):
 
         # Make sure trailing and leading slashes do not collide:
         self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+
+    def test_system_info(self):
+        sys_info = self.solr.system_info()
+        self.assertEqual(sys_info['lucene']['solr-spec-version'], '4.10.4')
