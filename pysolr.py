@@ -1000,7 +1000,7 @@ class SolrCoreAdmin(object):
         self.url = url
 
     def _get_url(self, url, params={}, headers={}):
-        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
+        resp = requests.get(url, params=params, headers=headers)
         return force_unicode(resp.content)
 
     def status(self, core=None):
@@ -1019,14 +1019,10 @@ class SolrCoreAdmin(object):
         params = {
             'action': 'CREATE',
             'name': name,
+            'instanceDir': instance_dir or name,
             'config': config,
             'schema': schema,
         }
-
-        if instance_dir is None:
-            params.update(instanceDir=name)
-        else:
-            params.update(instanceDir=instance_dir)
 
         return self._get_url(self.url, params=params)
 
