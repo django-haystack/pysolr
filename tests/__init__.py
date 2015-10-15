@@ -1,2 +1,2 @@
-from .client import *
-from .admin import *
+from .test_client import *
+from .test_admin import *
