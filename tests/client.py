@@ -237,12 +237,12 @@ class SolrTestCase(unittest.TestCase):
 
     def test__select(self):
         # Short params.
-        resp_body = self.solr._select({'q': 'doc'})
+        resp_body = self.solr._select([('q', 'doc')])
         resp_data = json.loads(resp_body)
         self.assertEqual(resp_data['response']['numFound'], 3)
 
         # Long params.
-        resp_body = self.solr._select({'q': 'doc' * 1024})
+        resp_body = self.solr._select([('q', 'doc' * 1024)])
         resp_data = json.loads(resp_body)
         self.assertEqual(resp_data['response']['numFound'], 0)
         self.assertEqual(len(resp_data['responseHeader']['params']['q']), 3 * 1024)
@@ -260,7 +260,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(resp_data['response']['numFound'], 0)
 
     def test__suggest_terms(self):
-        resp_body = self.solr._select({'terms.fl': 'title'})
+        resp_body = self.solr._select([('terms.fl', 'title')])
         resp_data = json.loads(resp_body)
         self.assertEqual(resp_data['response']['numFound'], 0)
 
@@ -384,11 +384,13 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(results), 0)
 
         # Advanced options.
-        results = self.solr.search('doc', **{
-            'debug': 'true',
-            'hl': 'true',
-            'hl.fragsize': 8,
-            'facet': 'on',
+        results = self.solr.search('doc', [
+            ('debug', 'true'),
+            ('hl', 'true'),
+            ('hl.fragsize', 8),
+            ('facet', 'on')
+        ],
+        **{
             'facet.field': 'popularity',
             'spellcheck': 'true',
             'spellcheck.collate': 'true',
