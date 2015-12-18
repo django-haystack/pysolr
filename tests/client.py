@@ -406,6 +406,15 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+    def test_multiple_search_handlers(self):
+        misspelled_words = 'anthr thng'
+        # By default, the 'select' search handler should be used
+        results = self.solr.search(q=misspelled_words)
+        self.assertEquals(results.spellcheck, {})
+        # spell search handler should return suggestions
+        results = self.solr.search(q=misspelled_words, search_handler='spell')
+        self.assertNotEquals(results.spellcheck, {})
+
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
         self.assertEqual(len(results), 0)
