@@ -393,18 +393,18 @@ class Solr(object):
 
         return force_unicode(resp.content)
 
-    def _select(self, params):
+    def _select(self, params, search_handler='select'):
         # specify json encoding of results
         params['wt'] = 'json'
         params_encoded = safe_urlencode(params, True)
 
         if len(params_encoded) < 1024:
             # Typical case.
-            path = 'select/?%s' % params_encoded
+            path = '%s/?%s' % (search_handler, params_encoded)
             return self._send_request('get', path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = 'select/'
+            path = '%s/' % search_handler
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
@@ -668,7 +668,7 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, q, search_handler='select', **kwargs):
         """
         Performs a search and returns the results.
 
@@ -694,7 +694,7 @@ class Solr(object):
         """
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params)
+        response = self._select(params, search_handler)
         decoded = self.decoder.decode(response)
 
         self.log.debug(
