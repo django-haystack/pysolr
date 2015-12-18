@@ -412,6 +412,8 @@ class SolrTestCase(unittest.TestCase):
         results = self.solr.search(q=misspelled_words)
         self.assertEquals(results.spellcheck, {})
         # spell search handler should return suggestions
+        # NB: this test relies on the spell search handler in the
+        # solrconfig (see the SOLR_ARCHIVE used by the start-solr-test-server script)
         results = self.solr.search(q=misspelled_words, search_handler='spell')
         self.assertNotEquals(results.spellcheck, {})
 
