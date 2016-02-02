@@ -386,10 +386,12 @@ class Solr(object):
                       url, method, log_body[:10], end_time - start_time)
 
         if int(resp.status_code) != 200:
-            error_message = self._extract_error(resp)
-            self.log.error(error_message, extra={'data': {'headers': resp.headers,
-                                                          'response': resp.content}})
-            raise SolrError(error_message)
+            error_message = "Solr responded with an error (HTTP %s): %s"
+            solr_message = self._extract_error(resp)
+            self.log.error(error_message, resp.status_code, solr_message,
+                           extra={'data': {'headers': resp.headers,
+                                           'response': resp.content}})
+            raise SolrError(error_message % (resp.status_code, solr_message))
 
         return force_unicode(resp.content)
 

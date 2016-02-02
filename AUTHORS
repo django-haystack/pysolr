@@ -33,3 +33,4 @@ Contributors:
 * Karol Sikora (@sicarrots) for Solr 4 softCommit support
 * Çağatay Çallı (@faraday) for Solr 4 field update support
 * Emmanuel Leblond (@touilleMan) for fixing error handling on Python 3
+* Michał Jaworski (@swistakm) for improved Sentry-friendly logging
