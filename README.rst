@@ -28,7 +28,7 @@ Features
 Requirements
 ============
 
-* Python 2.6 - 3.3
+* Python 2.6 - 3.5
 * Requests 2.0+
 * **Optional** - ``simplejson``
 
