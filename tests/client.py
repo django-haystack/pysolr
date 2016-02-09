@@ -3,10 +3,12 @@ from __future__ import unicode_literals
 
 import datetime
 import sys
+import re
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string)
+                    clean_xml_string, SolrCloud, Zookeeper)
+from tests import utils
 
 try:
     import unittest2 as unittest
@@ -135,11 +137,23 @@ class ResultsTestCase(unittest.TestCase):
 
 
 class SolrTestCase(unittest.TestCase):
+
+    def get_solr(self, collection, timeout=60):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
+
+    @classmethod
+    def setUpClass(cls):
+        utils.start_simple_solr()
+
+    @classmethod
+    def tearDownClass(cls):
+        utils.stop_solr()
+
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.default_solr = Solr('http://localhost:8983/solr/core0')
+        self.default_solr = self.get_solr("core0")
         # Short timeouts.
-        self.solr = Solr('http://localhost:8983/solr/core0', timeout=2)
+        self.solr = self.get_solr("core0", timeout=2)
         self.docs = [
             {
                 'id': 'doc_1',
@@ -590,3 +604,42 @@ class SolrTestCase(unittest.TestCase):
 
         # Make sure trailing and leading slashes do not collide:
         self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+
+
+class SolrCloudTestCase(SolrTestCase):
+
+    def get_solr(self, core, timeout=60):
+        return SolrCloud(Zookeeper('localhost:9982'), core, timeout=timeout)
+
+    @classmethod
+    def setUpClass(cls):
+        utils.start_solr_cloud()
+
+    def test__send_request(self):
+        '''
+           Directly testing _send_request() in a SolrCloud enviroment does not make sense - it has already been
+           tested in a non-Cloud environment, which is sufficient.
+        '''
+        pass
+
+
+    def test__create_full_url(self):
+        '''
+           This test also does not make sense in a SolrCloud world - it has already been executed in a non-cloud world.
+        '''
+        pass
+
+
+    def test_init(self):
+        '''
+           This method overrides test_init because, in a SolrCloud world, the URL could be for either port 8983 or
+           8984, at random, and the test needs to take that into account.
+        '''
+        url_re = re.compile("http://localhost:898./solr/core0")
+        self.assertTrue(url_re.match(self.default_solr.url))
+        self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
+        self.assertEqual(self.default_solr.timeout, 60)
+
+        self.assertTrue(url_re.match(self.solr.url))
+        self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
+        self.assertEqual(self.solr.timeout, 2)
