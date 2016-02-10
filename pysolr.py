@@ -13,12 +13,16 @@ from xml.parsers.expat import ExpatError
 import requests
 import ast
 import random
-from kazoo.client import KazooClient
 
 try:
     from xml.etree import ElementTree as ET
 except ImportError:
     raise ImportError("No suitable ElementTree implementation was found.")
+
+try:
+    from kazoo.client import KazooClient, KazooState
+except ImportError:
+    KazooClient = KazooState = None
 
 # Remove this when we drop Python 2.6:
 ParseError = getattr(ET, 'ParseError', SyntaxError)
@@ -1182,6 +1186,10 @@ COLLECTION = "collection"
 class Zookeeper:
 
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
+        if KazooClient is None:
+            logging.error('ZooKeeper requires the `kazoo` library to be installed')
+            raise RuntimeError
+
         self.collections = {}
         self.liveNodes = {}
         self.aliases = {}

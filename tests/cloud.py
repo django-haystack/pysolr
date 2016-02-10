@@ -22,8 +22,14 @@ if IS_PY3:
 else:
     from StringIO import StringIO
 
-from client import SolrTestCase
+try:
+    from kazoo.client import KazooClient
+except ImportError:
+    KazooClient = None
 
+from .client import SolrTestCase
+
+@unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
