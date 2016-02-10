@@ -1202,7 +1202,7 @@ class ZooKeeper(object):
         self.zk.add_listener(connectionListener)
 
         @self.zk.DataWatch(CLUSTER_STATE)
-        def watchClusterState(data, stat):
+        def watchClusterState(data, *args, **kwargs):
             self.collections = json.loads(data)
             LOG.info("Updated collections")
 
