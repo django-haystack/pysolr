@@ -32,7 +32,7 @@ class SolrCloudTestCase(SolrTestCase):
 
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.zk = ZooKeeper("localhost:9983")
+        self.zk = ZooKeeper("localhost:9982")
         self.default_solr = SolrCloud(self.zk, "core0")
         # Short timeouts.
         self.solr = SolrCloud(self.zk, "core0", timeout=2)
