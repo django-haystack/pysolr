@@ -2,24 +2,19 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import subprocess
 import sys
-from tests import *
+import unittest
+
+from tests import utils as test_utils
 
 
 def main():
-
-    utils.prepare()
+    test_utils.prepare()
 
     try:
-        if sys.version_info >= (3, 3) or sys.version_info >= (2, 7):
-            import unittest
-            unittest.main()
-        else:
-            cmd = ['unit2', 'discover', '-s', 'tests', '-p', '[a-z]*.py']
-            subprocess.check_call(cmd)
+        unittest.main(module='tests')
     finally:
-        utils.stop_solr()
+        test_utils.stop_solr()
 
 if __name__ == "__main__":
     main()

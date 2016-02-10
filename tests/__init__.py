@@ -1,3 +1,3 @@
-from .client import *
-from .admin import *
-from .cloud import *
+from .test_client import *
+from .test_admin import *
+from .test_cloud import *

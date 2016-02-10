@@ -2,32 +2,26 @@
 from __future__ import unicode_literals
 
 import datetime
+import unittest
+from io import StringIO
+from xml.etree import ElementTree
 
-from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
-                    force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string, ZooKeeper, SolrCloud)
+from pysolr import (IS_PY3, Results, Solr, SolrCloud, SolrError, ZooKeeper,
+                    clean_xml_string, force_bytes, force_unicode, json,
+                    safe_urlencode, sanitize, unescape_html)
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+from .test_client import SolrTestCase
 
 try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
 
-if IS_PY3:
-    from io import StringIO
-else:
-    from StringIO import StringIO
-
 try:
     from kazoo.client import KazooClient
 except ImportError:
     KazooClient = None
 
-from .client import SolrTestCase
 
 @unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):

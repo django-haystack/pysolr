@@ -1,29 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import datetime
-import sys
 import re
+import unittest
+from io import StringIO
+from xml.etree import ElementTree
 
-from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
-                    force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string, SolrCloud, ZooKeeper)
-from tests import utils
+from pysolr import (IS_PY3, Results, Solr, SolrError, clean_xml_string,
+                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
+                    unescape_html)
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+from . import utils
 
 try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
 
-if IS_PY3:
-    from io import StringIO
-else:
-    from StringIO import StringIO
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -331,7 +325,6 @@ class SolrTestCase(unittest.TestCase):
         resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
         self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
 
-    @unittest.skipIf(sys.version_info < (2, 7), reason=u'Python 2.6 lacks the ElementTree 1.3 interface required for Solr XML error message parsing')
     def test__scrape_response_coyote_xml(self):
         resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
         self.assertEqual(resp_3, ("Invalid Date String:'2015-03-23 10:43:33'", "Invalid Date String:'2015-03-23 10:43:33'"))
@@ -447,7 +440,7 @@ class SolrTestCase(unittest.TestCase):
             'price': 12.59,
             'popularity': 10,
         }
-        doc_xml = force_unicode(ET.tostring(self.solr._build_doc(doc), encoding='utf-8'))
+        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
         self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
