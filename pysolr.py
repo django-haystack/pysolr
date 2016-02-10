@@ -148,7 +148,7 @@ def unescape_html(text):
                 text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
-        return text # leave as is
+        return text  # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
 
@@ -186,7 +186,8 @@ def is_valid_xml_char_ordinal(i):
 
     Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
     """
-    return ( # conditions ordered by presumed frequency
+    # conditions ordered by presumed frequency
+    return (
         0x20 <= i <= 0xD7FF
         or i in (0x9, 0xA, 0xD)
         or 0xE000 <= i <= 0xFFFD
@@ -545,6 +546,8 @@ class Solr(object):
                 if reason is None:
                     full_html = ElementTree.tostring(dom_tree)
             except SyntaxError as err:
+                LOG.warning('Unable to extract error message from invalid XML: %s', err,
+                            extra={'data': {'response': response}})
                 full_html = "%s" % response
 
         full_html = force_unicode(full_html)
@@ -616,7 +619,7 @@ class Solr(object):
             if isinstance(value, basestring):
                 is_string = True
 
-        if is_string == True:
+        if is_string:
             possible_datetime = DATETIME_REGEX.search(value)
 
             if possible_datetime:
@@ -1084,36 +1087,37 @@ class SolrCoreAdmin(object):
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
     # Nuke nasty control characters.
-    (b'\x00', b''), # Start of heading
-    (b'\x01', b''), # Start of heading
-    (b'\x02', b''), # Start of text
-    (b'\x03', b''), # End of text
-    (b'\x04', b''), # End of transmission
-    (b'\x05', b''), # Enquiry
-    (b'\x06', b''), # Acknowledge
-    (b'\x07', b''), # Ring terminal bell
-    (b'\x08', b''), # Backspace
-    (b'\x0b', b''), # Vertical tab
-    (b'\x0c', b''), # Form feed
-    (b'\x0e', b''), # Shift out
-    (b'\x0f', b''), # Shift in
-    (b'\x10', b''), # Data link escape
-    (b'\x11', b''), # Device control 1
-    (b'\x12', b''), # Device control 2
-    (b'\x13', b''), # Device control 3
-    (b'\x14', b''), # Device control 4
-    (b'\x15', b''), # Negative acknowledge
-    (b'\x16', b''), # Synchronous idle
-    (b'\x17', b''), # End of transmission block
-    (b'\x18', b''), # Cancel
-    (b'\x19', b''), # End of medium
-    (b'\x1a', b''), # Substitute character
-    (b'\x1b', b''), # Escape
-    (b'\x1c', b''), # File separator
-    (b'\x1d', b''), # Group separator
-    (b'\x1e', b''), # Record separator
-    (b'\x1f', b''), # Unit separator
+    (b'\x00', b''),  # Start of heading
+    (b'\x01', b''),  # Start of heading
+    (b'\x02', b''),  # Start of text
+    (b'\x03', b''),  # End of text
+    (b'\x04', b''),  # End of transmission
+    (b'\x05', b''),  # Enquiry
+    (b'\x06', b''),  # Acknowledge
+    (b'\x07', b''),  # Ring terminal bell
+    (b'\x08', b''),  # Backspace
+    (b'\x0b', b''),  # Vertical tab
+    (b'\x0c', b''),  # Form feed
+    (b'\x0e', b''),  # Shift out
+    (b'\x0f', b''),  # Shift in
+    (b'\x10', b''),  # Data link escape
+    (b'\x11', b''),  # Device control 1
+    (b'\x12', b''),  # Device control 2
+    (b'\x13', b''),  # Device control 3
+    (b'\x14', b''),  # Device control 4
+    (b'\x15', b''),  # Negative acknowledge
+    (b'\x16', b''),  # Synchronous idle
+    (b'\x17', b''),  # End of transmission block
+    (b'\x18', b''),  # Cancel
+    (b'\x19', b''),  # End of medium
+    (b'\x1a', b''),  # Substitute character
+    (b'\x1b', b''),  # Escape
+    (b'\x1c', b''),  # File separator
+    (b'\x1d', b''),  # Group separator
+    (b'\x1e', b''),  # Record separator
+    (b'\x1f', b''),  # Unit separator
 )
+
 
 def sanitize(data):
     fixed_string = force_bytes(data)
