@@ -1139,9 +1139,11 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60):
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, *args, **kwargs):
         url = zookeeper.getRandomURL(collection)
-        Solr.__init__(self, url, decoder, timeout)
+
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
+
         self.zookeeper = zookeeper
         self.collection = collection
 
