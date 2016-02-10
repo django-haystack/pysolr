@@ -77,6 +77,10 @@ class SolrCloudTestCase(SolrTestCase):
         # Such is life.
         self.solr.add(self.docs)
 
+    def tearDown(self):
+        super(SolrCloudTestCase, self).tearDown()
+        del self.zk
+
     def test_init(self):
         self.assertTrue(self.default_solr.url.endswith('/solr/core0'))
         self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))

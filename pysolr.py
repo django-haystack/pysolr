@@ -1145,6 +1145,11 @@ class SolrCloud(Solr):
         self.zookeeper = zookeeper
         self.collection = collection
 
+    def __del__(self):
+        # Ensure that normal tear-down completes:
+        del self.zookeeper
+        super(SolrCloud, self).__del__()
+
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
         LOG.debug('Using random URL: %s', self.url)
@@ -1223,7 +1228,9 @@ class ZooKeeper(object):
                 self.aliases = None
             LOG.info("Updated aliases")
 
-    def close(self):
+    def __del__(self):
+        # Avoid leaking connection handles in Kazoo's atexit handler:
+        self.zk.stop()
         self.zk.close()
 
     def _getHosts(self, collname, only_leader=False, seen_aliases=None):
