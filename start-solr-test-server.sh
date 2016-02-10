@@ -2,6 +2,11 @@
 
 set -e
 
+# Redirect output to log files when stdin is not a TTY:
+if [ ! -t 0 ]; then
+    exec 1>test-solr.stdout.log 2>test-solr.stderr.log
+fi
+
 SOLR_VERSION=4.10.4
 
 ROOT=$(cd `dirname $0`; pwd)
