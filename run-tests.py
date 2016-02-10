@@ -39,13 +39,8 @@ def start_solr():
 def main():
     solr_proc = start_solr()
 
-    if sys.version_info >= (3, 3) or sys.version_info >= (2, 7):
-        cmd = ['python', '-m', 'unittest', 'tests']
-    else:
-        cmd = ['unit2', 'discover', '-s', 'tests', '-p', '[a-z]*.py']
-
     try:
-        subprocess.check_call(cmd)
+        subprocess.check_call(['python', '-m', 'unittest', 'tests'])
     finally:
         solr_proc.terminate()
         solr_proc.wait()

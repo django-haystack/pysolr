@@ -7,18 +7,9 @@ import logging
 import os
 import re
 import time
-# We can remove ExpatError when we drop support for Python 2.6:
-from xml.parsers.expat import ExpatError
+from xml.etree import ElementTree
 
 import requests
-
-try:
-    from xml.etree import ElementTree as ET
-except ImportError:
-    raise ImportError("No suitable ElementTree implementation was found.")
-
-# Remove this when we drop Python 2.6:
-ParseError = getattr(ET, 'ParseError', SyntaxError)
 
 try:
     # Prefer simplejson, if installed.
@@ -511,7 +502,7 @@ class Solr(object):
         if response.startswith('<?xml'):
             # Try a strict XML parse
             try:
-                soup = ET.fromstring(response)
+                soup = ElementTree.fromstring(response)
 
                 reason_node = soup.find('lst[@name="error"]/str[@name="msg"]')
                 tb_node = soup.find('lst[@name="error"]/str[@name="trace"]')
@@ -525,7 +516,7 @@ class Solr(object):
                 # Since we had a precise match, we'll return the results now:
                 if reason and full_html:
                     return reason, full_html
-            except (ParseError, ExpatError):
+            except ElementTree.ParseError:
                 # XML parsing error, so we'll let the more liberal code handle it.
                 pass
 
@@ -539,7 +530,7 @@ class Solr(object):
         else:
             # Let's assume others do produce a valid XML response
             try:
-                dom_tree = ET.fromstring(response)
+                dom_tree = ElementTree.fromstring(response)
                 reason_node = None
 
                 # html page might be different for every server
@@ -552,8 +543,8 @@ class Solr(object):
                     reason = reason_node.text
 
                 if reason is None:
-                    full_html = ET.tostring(dom_tree)
-            except (SyntaxError, ExpatError) as err:
+                    full_html = ElementTree.tostring(dom_tree)
+            except SyntaxError as err:
                 full_html = "%s" % response
 
         full_html = force_unicode(full_html)
@@ -774,7 +765,7 @@ class Solr(object):
         return res
 
     def _build_doc(self, doc, boost=None, fieldUpdates=None):
-        doc_elem = ET.Element('doc')
+        doc_elem = ElementTree.Element('doc')
 
         for key, value in doc.items():
             if key == 'boost':
@@ -799,7 +790,7 @@ class Solr(object):
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
 
-                field = ET.Element('field', **attrs)
+                field = ElementTree.Element('field', **attrs)
                 field.text = self._from_python(bit)
 
                 doc_elem.append(field)
@@ -842,7 +833,7 @@ class Solr(object):
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
-        message = ET.Element('add')
+        message = ElementTree.Element('add')
 
         if commitWithin:
             message.set('commitWithin', commitWithin)
@@ -851,7 +842,7 @@ class Solr(object):
             message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
 
         # This returns a bytestring. Ugh.
-        m = ET.tostring(message, encoding='utf-8')
+        m = ElementTree.tostring(message, encoding='utf-8')
         # Convert back to Unicode please.
         m = force_unicode(m)
 
