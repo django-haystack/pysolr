@@ -11,6 +11,7 @@ from pysolr import (IS_PY3, Results, Solr, SolrCloud, SolrError, ZooKeeper,
                     safe_urlencode, sanitize, unescape_html)
 
 from .test_client import SolrTestCase
+from .utils import start_solr_cloud
 
 try:
     from urllib.parse import unquote_plus
@@ -25,6 +26,10 @@ except ImportError:
 
 @unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):
+    @classmethod
+    def setUpClass(cls):
+        start_solr_cloud()
+
     def setUp(self):
         super(SolrTestCase, self).setUp()
         self.zk = ZooKeeper("localhost:9983")
