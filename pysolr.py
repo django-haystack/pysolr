@@ -1203,8 +1203,9 @@ class ZooKeeper(object):
 
         @self.zk.DataWatch(CLUSTER_STATE)
         def watchClusterState(data, *args, **kwargs):
-            self.collections = json.loads(data)
-            LOG.info("Updated collections")
+            collection_data = json.loads(data.decode('utf-8'))
+            self.collections = collection_data
+            LOG.info('Updated collections: %s', collection_data)
 
         @self.zk.ChildrenWatch(LIVE_NODES_ZKNODE)
         def watchLiveNodes(children):
