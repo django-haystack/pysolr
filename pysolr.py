@@ -1150,26 +1150,25 @@ class SolrCloud(Solr):
 
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
-        LOG.debug("Using random URL: %s" % self.url)
+        LOG.debug('Using random URL: %s', self.url)
         return Solr._send_request(self, method, path, body, headers, files)
 
     def _send_request(self, method, path='', body=None, headers=None, files=None):
         try:
-            LOG.debug("Trying first pass")
             return self._randomized_request(method, path, body, headers, files)
-        except requests.exceptions.RequestException as e:
-            LOG.debug("RequestException, sleeping .02s")
+        except requests.exceptions.RequestException:
+            LOG.warning('RequestException, sleeping .02s', exc_info=True)
             time.sleep(0.2)  # give zookeeper time to notice
             return self._randomized_request(method, path, body, headers, files)
         except SolrError:
-            LOG.debug("SolrException, sleeping .02s")
+            LOG.warning('SolrException, sleeping .02s', exc_info=True)
             time.sleep(0.2)  # give zookeeper time to notice
             return self._randomized_request(method, path, body, headers, files)
 
     def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None,
                 waitSearcher=None):
         self.url = self.zookeeper.getLeaderURL(self.collection)
-        LOG.debug("Using random leader URL: %s" % self.url)
+        LOG.debug('Using random leader URL: %s', self.url)
         return Solr._update(self, message, clean_ctrl_chars, commit, softCommit, waitFlush, waitSearcher)
 
 LIVE_NODES_ZKNODE = "/live_nodes"
