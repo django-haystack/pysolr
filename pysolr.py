@@ -1139,6 +1139,7 @@ def sanitize(data):
 
     return force_unicode(fixed_string)
 
+
 class SolrCloud(Solr):
 
     def __init__(self, zookeeper, collection, decoder=None, timeout=60):
@@ -1165,7 +1166,8 @@ class SolrCloud(Solr):
             time.sleep(0.2)  # give zookeeper time to notice
             return self._randomized_request(method, path, body, headers, files)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None,
+                waitSearcher=None):
         self.url = self.zookeeper.getLeaderURL(self.collection)
         LOG.debug("Using random leader URL: %s" % self.url)
         return Solr._update(self, message, clean_ctrl_chars, commit, softCommit, waitFlush, waitSearcher)
@@ -1182,6 +1184,7 @@ BASE_URL = "base_url"
 TRUE = "true"
 FALSE = "false"
 COLLECTION = "collection"
+
 
 class ZooKeeper:
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
