@@ -30,52 +30,12 @@ class SolrCloudTestCase(SolrTestCase):
     def setUpClass(cls):
         start_solr_cloud()
 
-    def setUp(self):
-        super(SolrTestCase, self).setUp()
-        self.zk = ZooKeeper("localhost:9982")
-        self.default_solr = SolrCloud(self.zk, "core0")
-        # Short timeouts.
-        self.solr = SolrCloud(self.zk, "core0", timeout=2)
-        self.docs = [
-            {
-                'id': 'doc_1',
-                'title': 'Example doc 1',
-                'price': 12.59,
-                'popularity': 10,
-            },
-            {
-                'id': 'doc_2',
-                'title': 'Another example ☃ doc 2',
-                'price': 13.69,
-                'popularity': 7,
-            },
-            {
-                'id': 'doc_3',
-                'title': 'Another thing',
-                'price': 2.35,
-                'popularity': 8,
-            },
-            {
-                'id': 'doc_4',
-                'title': 'doc rock',
-                'price': 99.99,
-                'popularity': 10,
-            },
-            {
-                'id': 'doc_5',
-                'title': 'Boring',
-                'price': 1.12,
-                'popularity': 2,
-            },
-        ]
+    def get_solr(self, collection, timeout=60):
+        # TODO: make self.zk a memoized property:
+        if not getattr(self, 'zk', None):
+            self.zk = ZooKeeper("localhost:9982")
 
-        # Clear it.
-        self.solr.delete(q='*:*')
-
-        # Index our docs. Yes, this leans on functionality we're going to test
-        # later & if it's broken, everything will catastrophically fail.
-        # Such is life.
-        self.solr.add(self.docs)
+        return SolrCloud(self.zk, "core0", timeout=timeout)
 
     def tearDown(self):
         super(SolrCloudTestCase, self).tearDown()
