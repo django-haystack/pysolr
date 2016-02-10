@@ -12,7 +12,6 @@ SOLR_VERSION=4.10.4
 ROOT=$(cd `dirname $0`; pwd)
 APP=$ROOT/solr-app
 PIDS=$ROOT/solr.pids
-BACKGROUND_SOLR=true
 export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
 LOG=test-run.log
 
@@ -76,7 +75,7 @@ function upload_configs() {
     CONFIGS=$2
     APP=${ROOT}/solr-app
 
-    echo "Uploading $CONFIGS configs to Zookeeper at $ZKHOST"
+    echo "Uploading $CONFIGS configs to ZooKeeper at $ZKHOST"
     $APP/example/scripts/cloud-scripts/zkcli.sh -cmd upconfig -confdir ${CONFIGS} -confname config -zkhost ${ZKHOST} >> $LOG 2>&1
 }
 
@@ -84,17 +83,17 @@ function wait_for() {
     NAME=$1
     PORT=$2
     COUNT=0
-    echo -n "Waiting for ${NAME} -"
+    echo -n "Waiting for ${NAME} to start on ${PORT}"
     while ! curl -s "http://localhost:${PORT}" > /dev/null; do
-      echo -n '-'
-      COUNT=$((COUNT+1))
-      if [ $COUNT -gt 30 ]; then
-        echo "Port ${PORT} not responding, quitting."
-        exit 1
-      fi
-      sleep 1
+        echo -n '.'
+        COUNT=$((COUNT+1))
+        if [ $COUNT -gt 30 ]; then
+            echo "Port ${PORT} not responding, quitting!"
+            exit 1
+        fi
+        sleep 1
     done
-    echo
+    echo " done"
 }
 
 function create_collection() {
@@ -109,48 +108,45 @@ function start_solr() {
     SOLR_HOME=$1
     PORT=$2
     ARGS=$3
+    echo
     echo "Starting server from ${SOLR_HOME} on port ${PORT}"
     # We use exec to allow process monitors to correctly kill the
     # actual Java process rather than this launcher script:
     export CMD="java -Djetty.port=${PORT} -Dsolr.install.dir=${APP} -Djava.awt.headless=true -Dapple.awt.UIElement=true -Dhost=localhost -Dsolr.solr.home=${SOLR_HOME} ${ARGS} -jar start.jar"
     pushd $APP/example > /dev/null
-    if [ -z "${BACKGROUND_SOLR}" ]; then
-        exec $CMD
-        echo $! >> ${PIDS}
-    else
-        exec $CMD >/dev/null &
-        echo $! >> ${PIDS}
-    fi
+
+    exec $CMD >/dev/null &
+    echo $! >> ${PIDS}
+
     popd > /dev/null
 }
 
 function stop_solr() {
-  if [  -e $PIDS ]; then
     echo
-    for PID in $(cat ${PIDS}); do
-      echo "Terminating ${PID}"
-      kill ${PID}
-    done
-    rm ${PIDS}
-  fi
+    if [ -f $PIDS ]; then
+        echo -n "Stopping Solr"
+        xargs kill < $PIDS
+        rm ${PIDS}
+        echo " stopped"
+    fi
 }
 
 function confirm_down() {
-  NAME=$1
-  PORT=$2
+    NAME=$1
+    PORT=$2
 
-  if curl -s http://localhost:${PORT} > /dev/null 2>&1; then
-    echo "Port ${PORT} for ${NAME} in use. Quitting."
-    exit 1
-  fi
+    if curl -s http://localhost:${PORT} > /dev/null 2>&1; then
+        echo "Port ${PORT} for ${NAME} in use. Quitting."
+        exit 1
+    fi
 }
 
-if [ $# -eq 0 ]; then
-    echo "$0 [prepare] [start-simple] [start-cloud] [stop]"
-    exit
-fi
-
 function prepare() {
+    if [ -f $PIDS ]; then
+        echo "Found existing ${PIDS} file; stopping stale Solr instances" 1>&2
+        stop_solr
+    fi
+
     rm -rf $APP
     rm -rf $ROOT/solr
     echo "Preparing SOLR_HOME for tests at $ROOT/solr"
@@ -165,35 +161,43 @@ function prepare() {
     prepare_core $ROOT/solr/cloud-configs cloud
 }
 
+if [ $# -eq 0 ]; then
+    echo "$0 [prepare] [start-simple] [start-cloud] [stop]"
+    exit
+fi
+
 while [ $# -gt 0 ]; do
-
     if [ "$1" = "prepare" ]; then
-      prepare
+        prepare
     elif [ "$1" = "stop" ]; then
-      stop_solr
+        stop_solr
     elif [ "$1" = "start-simple" ]; then
-      confirm_down non-cloud 8983
-      start_solr $ROOT/solr/non-cloud 8983
-      wait_for simple-solr 8983
-
+        echo 'Starting Solr (non-Cloud)'
+        confirm_down non-cloud 8983
+        start_solr $ROOT/solr/non-cloud 8983
+        wait_for simple-solr 8983
+        echo 'Solr started'
     elif [ "$1" = "start-cloud" ]; then
-      confirm_down cloud-zk 8982
-      confirm_down cloud-node0 8983
-      confirm_down cloud-node1 8984
+        echo 'Starting SolrCloud'
+        confirm_down cloud-zk 8982
+        confirm_down cloud-node0 8983
+        confirm_down cloud-node1 8984
 
-      start_solr $ROOT/solr/cloud-zk-node 8982 -DzkRun
-      wait_for Zookeeper 8982
-      upload_configs localhost:9982 $ROOT/solr/cloud-configs/cloud/conf
+        start_solr $ROOT/solr/cloud-zk-node 8982 -DzkRun
+        wait_for ZooKeeper 8982
+        upload_configs localhost:9982 $ROOT/solr/cloud-configs/cloud/conf
 
-      start_solr $ROOT/solr/cloud-node0 8983 -DzkHost=localhost:9982
-      start_solr $ROOT/solr/cloud-node1 8984 -DzkHost=localhost:9982
-      wait_for cloud-node0 8983
-      wait_for cloud-node1 8984
-      create_collection 8983 core0 localhost:8983_solr,localhost:8984_solr
-      create_collection 8983 core1 localhost:8983_solr,localhost:8984_solr
+        start_solr $ROOT/solr/cloud-node0 8983 -DzkHost=localhost:9982
+        start_solr $ROOT/solr/cloud-node1 8984 -DzkHost=localhost:9982
+        wait_for cloud-node0 8983
+        wait_for cloud-node1 8984
+        create_collection 8983 core0 localhost:8983_solr,localhost:8984_solr
+        create_collection 8983 core1 localhost:8983_solr,localhost:8984_solr
+        echo 'SolrCloud started'
     else
         echo "Unknown command: $1"
         exit 1
     fi
+
     shift
 done
