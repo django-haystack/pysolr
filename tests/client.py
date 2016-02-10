@@ -7,7 +7,7 @@ import re
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string, SolrCloud, Zookeeper)
+                    clean_xml_string, SolrCloud, ZooKeeper)
 from tests import utils
 
 try:
@@ -609,7 +609,7 @@ class SolrTestCase(unittest.TestCase):
 class SolrCloudTestCase(SolrTestCase):
 
     def get_solr(self, core, timeout=60):
-        return SolrCloud(Zookeeper('localhost:9982'), core, timeout=timeout)
+        return SolrCloud(ZooKeeper('localhost:9982'), core, timeout=timeout)
 
     @classmethod
     def setUpClass(cls):

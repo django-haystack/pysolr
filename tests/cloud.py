@@ -5,7 +5,7 @@ import datetime
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string, Zookeeper, SolrCloud)
+                    clean_xml_string, ZooKeeper, SolrCloud)
 
 try:
     import unittest2 as unittest
@@ -33,7 +33,7 @@ from .client import SolrTestCase
 class SolrCloudTestCase(SolrTestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.zk = Zookeeper("localhost:9983")
+        self.zk = ZooKeeper("localhost:9983")
         self.default_solr = SolrCloud(self.zk, "core0")
         # Short timeouts.
         self.solr = SolrCloud(self.zk, "core0", timeout=2)

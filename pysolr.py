@@ -1183,8 +1183,7 @@ TRUE = "true"
 FALSE = "false"
 COLLECTION = "collection"
 
-class Zookeeper:
-
+class ZooKeeper:
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
         if KazooClient is None:
             logging.error('ZooKeeper requires the `kazoo` library to be installed')
