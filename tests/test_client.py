@@ -187,10 +187,6 @@ class SolrTestCase(unittest.TestCase):
         # Such is life.
         self.solr.add(self.docs)
 
-    def tearDown(self):
-        self.solr.delete(q='*:*')
-        super(SolrTestCase, self).tearDown()
-
     def test_init(self):
         self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
@@ -228,18 +224,15 @@ class SolrTestCase(unittest.TestCase):
         })
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
-        # Test a non-existent URL.
-        old_url = self.solr.url
+    def test__send_request_to_bad_path(self):
+        # Test a non-existent URL:
         self.solr.url = 'http://127.0.0.1:567898/wahtever'
         self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        self.solr.url = old_url
 
-        # Test bad core as well
+    def test_send_request_to_bad_core(self):
+        # Test a bad core on a valid URL:
         self.solr.url = 'http://localhost:8983/solr/bad_core'
-        try:
-            self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        finally:
-            self.solr.url = old_url
+        self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
 
     def test__select(self):
         # Short params.
