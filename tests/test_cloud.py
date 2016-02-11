@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import datetime
+import json
 import unittest
-from io import StringIO
-from xml.etree import ElementTree
 
-from pysolr import (IS_PY3, Results, Solr, SolrCloud, SolrError, ZooKeeper,
-                    clean_xml_string, force_bytes, force_unicode, json,
-                    safe_urlencode, sanitize, unescape_html)
+from pysolr import SolrCloud, ZooKeeper
 
 from .test_client import SolrTestCase
 from .utils import start_solr_cloud
-
-try:
-    from urllib.parse import unquote_plus
-except ImportError:
-    from urllib import unquote_plus
 
 try:
     from kazoo.client import KazooClient
@@ -51,7 +42,7 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertEqual(self.solr.timeout, 2)
 
     def test__create_full_url(self):
-        pass # tested within parent SolrTestCase
+        pass  # tested within parent SolrTestCase
 
     # removes test for invalid URL from parent SolrTestCase.test__send_request
     # which is not relevant in SolrCloud
