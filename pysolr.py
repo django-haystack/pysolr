@@ -1139,13 +1139,14 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60, *args, **kwargs):
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
         url = zookeeper.getRandomURL(collection)
 
         super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
 
         self.zookeeper = zookeeper
         self.collection = collection
+        self.retry_timeout = retry_timeout
 
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
@@ -1153,15 +1154,16 @@ class SolrCloud(Solr):
         return Solr._send_request(self, method, path, body, headers, files)
 
     def _send_request(self, method, path='', body=None, headers=None, files=None):
+        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
         try:
             return self._randomized_request(method, path, body, headers, files)
         except requests.exceptions.RequestException:
-            LOG.warning('RequestException, sleeping .02s', exc_info=True)
-            time.sleep(0.2)  # give zookeeper time to notice
+            LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
             return self._randomized_request(method, path, body, headers, files)
         except SolrError:
-            LOG.warning('SolrException, sleeping .02s', exc_info=True)
-            time.sleep(0.2)  # give zookeeper time to notice
+            LOG.warning('SolrException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
             return self._randomized_request(method, path, body, headers, files)
 
     def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None,
