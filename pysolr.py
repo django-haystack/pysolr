@@ -1218,7 +1218,7 @@ class ZooKeeper(object):
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
         def watchLiveNodes(children):
             self.liveNodes = children
-            LOG.info("Updated live nodes")
+            LOG.info("Updated live nodes: %s", children)
 
         @self.zk.DataWatch(ZooKeeper.ALIASES)
         def watchAliases(data, stat):
@@ -1226,7 +1226,7 @@ class ZooKeeper(object):
                 self.aliases = json.loads(data)[ZooKeeper.COLLECTION]
             else:
                 self.aliases = None
-            LOG.info("Updated aliases")
+            LOG.info("Updated aliases: %s", self.aliases)
 
     def __del__(self):
         # Avoid leaking connection handles in Kazoo's atexit handler:
@@ -1257,7 +1257,7 @@ class ZooKeeper(object):
     def _getAliasHosts(self, collname, only_leader, seen_aliases):
         if seen_aliases:
             if collname in seen_aliases:
-                LOG.warn("%s in circular alias definition - ignored" % collname)
+                LOG.warn("%s in circular alias definition - ignored", collname)
                 return []
         else:
             seen_aliases = []
