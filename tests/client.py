@@ -6,15 +6,14 @@ import unittest
 from io import StringIO
 from xml.etree import ElementTree
 
-from pysolr import (IS_PY3, Results, Solr, SolrError, clean_xml_string,
-                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
+from pysolr import (Results, Solr, SolrError, clean_xml_string, force_bytes,
+                    force_unicode, json, safe_urlencode, sanitize,
                     unescape_html)
 
 try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
-
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -241,11 +240,10 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(resp_data['responseHeader']['params']['q']), 3 * 1024)
 
         # Test Deep Pagination CursorMark
-        resp_body = self.solr._select({'q': '*', 'cursorMark':'*', 'sort':'id desc', 'start':0, 'rows': 2})
+        resp_body = self.solr._select({'q': '*', 'cursorMark': '*', 'sort': 'id desc', 'start': 0, 'rows': 2})
         resp_data = json.loads(resp_body)
         self.assertEqual(len(resp_data['response']['docs']), 2)
         self.assertIn('nextCursorMark', resp_data)
-
 
     def test__mlt(self):
         resp_body = self.solr._mlt({'q': 'id:doc_1', 'mlt.fl': 'title'})
@@ -332,7 +330,6 @@ class SolrTestCase(unittest.TestCase):
         reason, full_html = self.solr._scrape_response({'server': 'coyote'}, bogus_xml)
         self.assertEqual(reason, None)
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
-
 
     def test__from_python(self):
         self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
@@ -466,7 +463,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(originalDocs), 3)
         updateList = []
         for i, doc in enumerate(originalDocs):
-            updateList.append( {'id': doc['id'], 'popularity': 5} )
+            updateList.append({'id': doc['id'], 'popularity': 5})
         self.solr.add(updateList, fieldUpdates={'popularity': 'inc'})
 
         updatedDocs = self.solr.search('doc')
@@ -474,7 +471,9 @@ class SolrTestCase(unittest.TestCase):
         for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc['popularity'], originalDoc['popularity'] + 5)
-            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'popularity']))
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'popularity']))
 
         self.solr.add([
             {
@@ -493,7 +492,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(originalDocs), 2)
         updateList = []
         for i, doc in enumerate(originalDocs):
-            updateList.append( {'id': doc['id'], 'word_ss': ['epsilon', 'gamma']} )
+            updateList.append({'id': doc['id'], 'word_ss': ['epsilon', 'gamma']})
         self.solr.add(updateList, fieldUpdates={'word_ss': 'add'})
 
         updatedDocs = self.solr.search('multivalued')
@@ -501,7 +500,9 @@ class SolrTestCase(unittest.TestCase):
         for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc['word_ss'], originalDoc['word_ss'] + ['epsilon', 'gamma'])
-            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'word_ss']))
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'word_ss']))
 
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
