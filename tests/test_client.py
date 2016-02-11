@@ -10,8 +10,6 @@ from pysolr import (Results, Solr, SolrError, clean_xml_string, force_bytes,
                     force_unicode, json, safe_urlencode, sanitize,
                     unescape_html)
 
-from . import utils
-
 try:
     from urllib.parse import unquote_plus
 except ImportError:
@@ -129,18 +127,6 @@ class ResultsTestCase(unittest.TestCase):
 
 
 class SolrTestCase(unittest.TestCase):
-
-    def get_solr(self, collection, timeout=60):
-        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
-
-    @classmethod
-    def setUpClass(cls):
-        utils.start_simple_solr()
-
-    @classmethod
-    def tearDownClass(cls):
-        utils.stop_solr()
-
     def setUp(self):
         super(SolrTestCase, self).setUp()
         self.default_solr = self.get_solr("core0")
@@ -186,6 +172,9 @@ class SolrTestCase(unittest.TestCase):
         # later & if it's broken, everything will catastrophically fail.
         # Such is life.
         self.solr.add(self.docs)
+
+    def get_solr(self, collection, timeout=60):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
 
     def test_init(self):
         self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')

@@ -3,23 +3,21 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-import sys
 import unittest
 
 from tests import utils as test_utils
 
 
 def main():
-    print('Preparing Solr')
     test_utils.prepare()
+    test_utils.start_simple_solr()
+    test_utils.start_solr_cloud()
 
-    print('Running unittest.main()')
     try:
         unittest.main(module='tests')
     finally:
-        print('Halting Solr servers…')
+        print('Tests complete; halting Solr servers…')
         test_utils.stop_solr()
-        print('Done')
 
 if __name__ == "__main__":
     main()

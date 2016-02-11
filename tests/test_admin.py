@@ -5,19 +5,8 @@ import unittest
 
 from pysolr import SolrCoreAdmin
 
-from . import utils
-
 
 class SolrCoreAdminTestCase(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        utils.start_simple_solr()
-
-    @classmethod
-    def tearDownClass(cls):
-        utils.stop_solr()
-
     def setUp(self):
         super(SolrCoreAdminTestCase, self).setUp()
         self.solr_admin = SolrCoreAdmin('http://localhost:8983/solr/admin/cores')

@@ -7,7 +7,6 @@ import unittest
 from pysolr import SolrCloud, ZooKeeper
 
 from .test_client import SolrTestCase
-from .utils import start_solr_cloud
 
 try:
     from kazoo.client import KazooClient
@@ -17,20 +16,12 @@ except ImportError:
 
 @unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):
-    @classmethod
-    def setUpClass(cls):
-        start_solr_cloud()
-
     def get_solr(self, collection, timeout=60):
         # TODO: make self.zk a memoized property:
         if not getattr(self, 'zk', None):
-            self.zk = ZooKeeper("localhost:9982")
+            self.zk = ZooKeeper("localhost:9992")
 
         return SolrCloud(self.zk, "core0", timeout=timeout)
-
-    def tearDown(self):
-        super(SolrCloudTestCase, self).tearDown()
-        del self.zk
 
     def test_init(self):
         self.assertTrue(self.default_solr.url.endswith('/solr/core0'))
