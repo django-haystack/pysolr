@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, unicode_literals
 
-from pysolr import SolrCoreAdmin, json
+from pysolr import SolrCoreAdmin
 
 try:
     import unittest2 as unittest
