@@ -187,12 +187,10 @@ def is_valid_xml_char_ordinal(i):
     Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
     """
     # conditions ordered by presumed frequency
-    return (
-        0x20 <= i <= 0xD7FF
-        or i in (0x9, 0xA, 0xD)
-        or 0xE000 <= i <= 0xFFFD
-        or 0x10000 <= i <= 0x10FFFF
-        )
+    return (0x20 <= i <= 0xD7FF
+            or i in (0x9, 0xA, 0xD)
+            or 0xE000 <= i <= 0xFFFD
+            or 0x10000 <= i <= 0x10FFFF)
 
 
 def clean_xml_string(s):
