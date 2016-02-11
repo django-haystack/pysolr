@@ -32,19 +32,15 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 2)
 
+    @unittest.expectedFailure
     def test__create_full_url(self):
-        pass  # tested within parent SolrTestCase
+        # FIXME: This test needs to be updated to handle the random selection of one of the cluster nodes
+        super(SolrCloudTestCase, self).test__create_full_url()
 
-    # removes test for invalid URL from parent SolrTestCase.test__send_request
-    # which is not relevant in SolrCloud
-    def test__send_request(self):
-        # Test a valid request.
-        resp_body = self.solr._send_request('GET', 'select/?q=doc&wt=json')
-        self.assertTrue('"numFound":3' in resp_body)
+    @unittest.expectedFailure
+    def test__send_request_to_bad_path(self):
+        super(SolrCloudTestCase, self).test__send_request_to_bad_path()
 
-        # Test a lowercase method & a body.
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'
-        resp_body = self.solr._send_request('POST', 'update/?commit=true', body=xml_body, headers={
-            'Content-type': 'text/xml; charset=utf-8',
-        })
-        self.assertTrue('<int name="status">0</int>' in resp_body)
+    @unittest.expectedFailure
+    def test_send_request_to_bad_core(self):
+        super(SolrCloudTestCase, self).test_send_request_to_bad_core()
