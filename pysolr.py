@@ -1170,21 +1170,22 @@ class SolrCloud(Solr):
         LOG.debug('Using random leader URL: %s', self.url)
         return Solr._update(self, message, clean_ctrl_chars, commit, softCommit, waitFlush, waitSearcher)
 
-LIVE_NODES_ZKNODE = "/live_nodes"
-ALIASES = "/aliases.json"
-CLUSTER_STATE = "/clusterstate.json"
-SHARDS = "shards"
-REPLICAS = "replicas"
-STATE = "state"
-ACTIVE = "active"
-LEADER = "leader"
-BASE_URL = "base_url"
-TRUE = "true"
-FALSE = "false"
-COLLECTION = "collection"
-
 
 class ZooKeeper(object):
+    # Constants used by the REST API:
+    LIVE_NODES_ZKNODE = '/live_nodes'
+    ALIASES = '/aliases.json'
+    CLUSTER_STATE = '/clusterstate.json'
+    SHARDS = 'shards'
+    REPLICAS = 'replicas'
+    STATE = 'state'
+    ACTIVE = 'active'
+    LEADER = 'leader'
+    BASE_URL = 'base_url'
+    TRUE = 'true'
+    FALSE = 'false'
+    COLLECTION = 'collection'
+
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
         if KazooClient is None:
             logging.error('ZooKeeper requires the `kazoo` library to be installed')
@@ -1206,21 +1207,21 @@ class ZooKeeper(object):
                 self.state = state
         self.zk.add_listener(connectionListener)
 
-        @self.zk.DataWatch(CLUSTER_STATE)
+        @self.zk.DataWatch(ZooKeeper.CLUSTER_STATE)
         def watchClusterState(data, *args, **kwargs):
             collection_data = json.loads(data.decode('utf-8'))
             self.collections = collection_data
             LOG.info('Updated collections: %s', collection_data)
 
-        @self.zk.ChildrenWatch(LIVE_NODES_ZKNODE)
+        @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
         def watchLiveNodes(children):
             self.liveNodes = children
             LOG.info("Updated live nodes")
 
-        @self.zk.DataWatch(ALIASES)
+        @self.zk.DataWatch(ZooKeeper.ALIASES)
         def watchAliases(data, stat):
             if data:
-                self.aliases = json.loads(data)[COLLECTION]
+                self.aliases = json.loads(data)[ZooKeeper.COLLECTION]
             else:
                 self.aliases = None
             LOG.info("Updated aliases")
@@ -1236,17 +1237,17 @@ class ZooKeeper(object):
 
         hosts = []
         collection = self.collections[collname]
-        shards = collection[SHARDS]
+        shards = collection[ZooKeeper.SHARDS]
         for shardname in shards.keys():
             shard = shards[shardname]
-            if shard[STATE] == ACTIVE:
-                replicas = shard[REPLICAS]
+            if shard[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                replicas = shard[ZooKeeper.REPLICAS]
                 for replicaname in replicas.keys():
                     replica = replicas[replicaname]
 
-                    if replica[STATE] == ACTIVE:
-                        if not only_leader or replica.get(LEADER, FALSE) == TRUE:
-                            base_url = replica[BASE_URL]
+                    if replica[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                        if not only_leader or (replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
+                            base_url = replica[ZooKeeper.BASE_URL]
                             if base_url not in hosts:
                                 hosts.append(base_url)
         return hosts
