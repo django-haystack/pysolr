@@ -16,6 +16,10 @@ except ImportError:
 
 @unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):
+    def assertURLStartsWith(self, url, path):
+        node_urls = self.zk.getHosts('core0')
+        self.assertIn(url, {'%s/%s' % (node_url, path) for node_url in node_urls})
+
     def get_solr(self, collection, timeout=60):
         # TODO: make self.zk a memoized property:
         if not getattr(self, 'zk', None):
@@ -31,11 +35,6 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertTrue(self.solr.url.endswith('/solr/core0'))
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 2)
-
-    @unittest.expectedFailure
-    def test__create_full_url(self):
-        # FIXME: This test needs to be updated to handle the random selection of one of the cluster nodes
-        super(SolrCloudTestCase, self).test__create_full_url()
 
     @unittest.expectedFailure
     def test__send_request_to_bad_path(self):
