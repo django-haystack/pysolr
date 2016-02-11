@@ -395,12 +395,12 @@ class SolrTestCase(unittest.TestCase):
         misspelled_words = 'anthr thng'
         # By default, the 'select' search handler should be used
         results = self.solr.search(q=misspelled_words)
-        self.assertEquals(results.spellcheck, {})
+        self.assertEqual(results.spellcheck, {})
         # spell search handler should return suggestions
         # NB: this test relies on the spell search handler in the
         # solrconfig (see the SOLR_ARCHIVE used by the start-solr-test-server script)
         results = self.solr.search(q=misspelled_words, search_handler='spell')
-        self.assertNotEquals(results.spellcheck, {})
+        self.assertNotEqual(results.spellcheck, {})
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
