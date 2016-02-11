@@ -1233,9 +1233,9 @@ class ZooKeeper(object):
         self.zk.stop()
         self.zk.close()
 
-    def _getHosts(self, collname, only_leader=False, seen_aliases=None):
+    def getHosts(self, collname, only_leader=False, seen_aliases=None):
         if self.aliases and collname in self.aliases:
-            return self._getAliasHosts(collname, only_leader, seen_aliases)
+            return self.getAliasHosts(collname, only_leader, seen_aliases)
 
         hosts = []
         collection = self.collections[collname]
@@ -1254,7 +1254,7 @@ class ZooKeeper(object):
                                 hosts.append(base_url)
         return hosts
 
-    def _getAliasHosts(self, collname, only_leader, seen_aliases):
+    def getAliasHosts(self, collname, only_leader, seen_aliases):
         if seen_aliases:
             if collname in seen_aliases:
                 LOG.warn("%s in circular alias definition - ignored", collname)
@@ -1265,13 +1265,13 @@ class ZooKeeper(object):
         collections = self.aliases[collname].split(",")
         hosts = []
         for collection in collections:
-            for host in self._getHosts(collection, only_leader, seen_aliases):
+            for host in self.getHosts(collection, only_leader, seen_aliases):
                 if host not in hosts:
                     hosts.append(host)
         return hosts
 
     def getRandomURL(self, collname):
-        return random.choice(self._getHosts(collname, only_leader=False)) + "/" + collname
+        return random.choice(self.getHosts(collname, only_leader=False)) + "/" + collname
 
     def getLeaderURL(self, collname):
-        return random.choice(self._getHosts(collname, only_leader=True)) + "/" + collname
+        return random.choice(self.getHosts(collname, only_leader=True)) + "/" + collname
