@@ -1002,6 +1002,24 @@ class Solr(object):
 
         return data
 
+    def system_info(self):
+        """
+        Returns system info as returned by Solr's SystemInfoHandler
+        parsed into a dict
+        """
+        params = {'wt': 'json'}
+        params_encoded = safe_urlencode(params, True)
+
+        path = 'admin/system/?%s' % params_encoded
+        resp = self._send_request('get', path)
+        try:
+            data = json.loads(resp)
+        except ValueError as err:
+            self.log.error("Failed to load JSON response: %s", err,
+                           exc_info=True)
+            raise
+        return data
+
 
 class SolrCoreAdmin(object):
     """
@@ -1022,7 +1040,7 @@ class SolrCoreAdmin(object):
         self.url = url
 
     def _get_url(self, url, params={}, headers={}):
-        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
+        resp = requests.get(url, params=params, headers=headers)
         return force_unicode(resp.content)
 
     def status(self, core=None):
@@ -1041,14 +1059,10 @@ class SolrCoreAdmin(object):
         params = {
             'action': 'CREATE',
             'name': name,
+            'instanceDir': instance_dir or name,
             'config': config,
             'schema': schema,
         }
-
-        if instance_dir is None:
-            params.update(instanceDir=name)
-        else:
-            params.update(instanceDir=instance_dir)
 
         return self._get_url(self.url, params=params)
 
