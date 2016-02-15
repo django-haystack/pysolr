@@ -324,7 +324,8 @@ class Solr(object):
         self.results_cls = results_cls
 
     def __del__(self):
-        self.session.close()
+        if hasattr(self, "session"):
+            self.session.close()
 
     def _get_log(self):
         return LOG
