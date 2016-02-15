@@ -24,7 +24,7 @@ class SolrCloudTestCase(SolrTestCase):
         if not getattr(self, 'zk', None):
             self.zk = ZooKeeper("localhost:9992")
 
-        return SolrCloud(self.zk, "core0", timeout=timeout)
+        return SolrCloud(self.zk, collection, timeout=timeout)
 
     def test_init(self):
         self.assertTrue(self.default_solr.url.endswith('/solr/core0'))
