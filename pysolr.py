@@ -5,20 +5,17 @@ import ast
 import datetime
 import logging
 import os
+import random
 import re
 import time
-# We can remove ExpatError when we drop support for Python 2.6:
-from xml.parsers.expat import ExpatError
+from xml.etree import ElementTree
 
 import requests
 
 try:
-    from xml.etree import ElementTree as ET
+    from kazoo.client import KazooClient, KazooState
 except ImportError:
-    raise ImportError("No suitable ElementTree implementation was found.")
-
-# Remove this when we drop Python 2.6:
-ParseError = getattr(ET, 'ParseError', SyntaxError)
+    KazooClient = KazooState = None
 
 try:
     # Prefer simplejson, if installed.
@@ -157,7 +154,7 @@ def unescape_html(text):
                 text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
-        return text # leave as is
+        return text  # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
 
@@ -195,7 +192,8 @@ def is_valid_xml_char_ordinal(i):
 
     Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
     """
-    return ( # conditions ordered by presumed frequency
+    # conditions ordered by presumed frequency
+    return (
         0x20 <= i <= 0xD7FF
         or i in (0x9, 0xA, 0xD)
         or 0xE000 <= i <= 0xFFFD
@@ -324,6 +322,10 @@ class Solr(object):
         self.session = requests.Session()
         self.session.stream = False
         self.results_cls = results_cls
+
+    def __del__(self):
+        if hasattr(self, "session"):
+            self.session.close()
 
     def _get_log(self):
         return LOG
@@ -511,7 +513,7 @@ class Solr(object):
         if response.startswith('<?xml'):
             # Try a strict XML parse
             try:
-                soup = ET.fromstring(response)
+                soup = ElementTree.fromstring(response)
 
                 reason_node = soup.find('lst[@name="error"]/str[@name="msg"]')
                 tb_node = soup.find('lst[@name="error"]/str[@name="trace"]')
@@ -525,7 +527,7 @@ class Solr(object):
                 # Since we had a precise match, we'll return the results now:
                 if reason and full_html:
                     return reason, full_html
-            except (ParseError, ExpatError):
+            except ElementTree.ParseError:
                 # XML parsing error, so we'll let the more liberal code handle it.
                 pass
 
@@ -539,7 +541,7 @@ class Solr(object):
         else:
             # Let's assume others do produce a valid XML response
             try:
-                dom_tree = ET.fromstring(response)
+                dom_tree = ElementTree.fromstring(response)
                 reason_node = None
 
                 # html page might be different for every server
@@ -552,8 +554,10 @@ class Solr(object):
                     reason = reason_node.text
 
                 if reason is None:
-                    full_html = ET.tostring(dom_tree)
-            except (SyntaxError, ExpatError) as err:
+                    full_html = ElementTree.tostring(dom_tree)
+            except SyntaxError as err:
+                LOG.warning('Unable to extract error message from invalid XML: %s', err,
+                            extra={'data': {'response': response}})
                 full_html = "%s" % response
 
         full_html = force_unicode(full_html)
@@ -625,7 +629,7 @@ class Solr(object):
             if isinstance(value, basestring):
                 is_string = True
 
-        if is_string == True:
+        if is_string:
             possible_datetime = DATETIME_REGEX.search(value)
 
             if possible_datetime:
@@ -774,7 +778,7 @@ class Solr(object):
         return res
 
     def _build_doc(self, doc, boost=None, fieldUpdates=None):
-        doc_elem = ET.Element('doc')
+        doc_elem = ElementTree.Element('doc')
 
         for key, value in doc.items():
             if key == 'boost':
@@ -799,7 +803,7 @@ class Solr(object):
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
 
-                field = ET.Element('field', **attrs)
+                field = ElementTree.Element('field', **attrs)
                 field.text = self._from_python(bit)
 
                 doc_elem.append(field)
@@ -842,7 +846,7 @@ class Solr(object):
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
-        message = ET.Element('add')
+        message = ElementTree.Element('add')
 
         if commitWithin:
             message.set('commitWithin', commitWithin)
@@ -851,7 +855,7 @@ class Solr(object):
             message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
 
         # This returns a bytestring. Ugh.
-        m = ET.tostring(message, encoding='utf-8')
+        m = ElementTree.tostring(message, encoding='utf-8')
         # Convert back to Unicode please.
         m = force_unicode(m)
 
@@ -1093,36 +1097,37 @@ class SolrCoreAdmin(object):
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
     # Nuke nasty control characters.
-    (b'\x00', b''), # Start of heading
-    (b'\x01', b''), # Start of heading
-    (b'\x02', b''), # Start of text
-    (b'\x03', b''), # End of text
-    (b'\x04', b''), # End of transmission
-    (b'\x05', b''), # Enquiry
-    (b'\x06', b''), # Acknowledge
-    (b'\x07', b''), # Ring terminal bell
-    (b'\x08', b''), # Backspace
-    (b'\x0b', b''), # Vertical tab
-    (b'\x0c', b''), # Form feed
-    (b'\x0e', b''), # Shift out
-    (b'\x0f', b''), # Shift in
-    (b'\x10', b''), # Data link escape
-    (b'\x11', b''), # Device control 1
-    (b'\x12', b''), # Device control 2
-    (b'\x13', b''), # Device control 3
-    (b'\x14', b''), # Device control 4
-    (b'\x15', b''), # Negative acknowledge
-    (b'\x16', b''), # Synchronous idle
-    (b'\x17', b''), # End of transmission block
-    (b'\x18', b''), # Cancel
-    (b'\x19', b''), # End of medium
-    (b'\x1a', b''), # Substitute character
-    (b'\x1b', b''), # Escape
-    (b'\x1c', b''), # File separator
-    (b'\x1d', b''), # Group separator
-    (b'\x1e', b''), # Record separator
-    (b'\x1f', b''), # Unit separator
+    (b'\x00', b''),  # Start of heading
+    (b'\x01', b''),  # Start of heading
+    (b'\x02', b''),  # Start of text
+    (b'\x03', b''),  # End of text
+    (b'\x04', b''),  # End of transmission
+    (b'\x05', b''),  # Enquiry
+    (b'\x06', b''),  # Acknowledge
+    (b'\x07', b''),  # Ring terminal bell
+    (b'\x08', b''),  # Backspace
+    (b'\x0b', b''),  # Vertical tab
+    (b'\x0c', b''),  # Form feed
+    (b'\x0e', b''),  # Shift out
+    (b'\x0f', b''),  # Shift in
+    (b'\x10', b''),  # Data link escape
+    (b'\x11', b''),  # Device control 1
+    (b'\x12', b''),  # Device control 2
+    (b'\x13', b''),  # Device control 3
+    (b'\x14', b''),  # Device control 4
+    (b'\x15', b''),  # Negative acknowledge
+    (b'\x16', b''),  # Synchronous idle
+    (b'\x17', b''),  # End of transmission block
+    (b'\x18', b''),  # Cancel
+    (b'\x19', b''),  # End of medium
+    (b'\x1a', b''),  # Substitute character
+    (b'\x1b', b''),  # Escape
+    (b'\x1c', b''),  # File separator
+    (b'\x1d', b''),  # Group separator
+    (b'\x1e', b''),  # Record separator
+    (b'\x1f', b''),  # Unit separator
 )
+
 
 def sanitize(data):
     fixed_string = force_bytes(data)
@@ -1131,3 +1136,151 @@ def sanitize(data):
         fixed_string = fixed_string.replace(bad, good)
 
     return force_unicode(fixed_string)
+
+
+class SolrCloud(Solr):
+
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
+        url = zookeeper.getRandomURL(collection)
+
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
+
+        self.zookeeper = zookeeper
+        self.collection = collection
+        self.retry_timeout = retry_timeout
+
+    def _randomized_request(self, method, path, body, headers, files):
+        self.url = self.zookeeper.getRandomURL(self.collection)
+        LOG.debug('Using random URL: %s', self.url)
+        return Solr._send_request(self, method, path, body, headers, files)
+
+    def _send_request(self, method, path='', body=None, headers=None, files=None):
+        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
+        try:
+            return self._randomized_request(method, path, body, headers, files)
+        except requests.exceptions.RequestException:
+            LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+        except SolrError:
+            LOG.warning('SolrException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None,
+                waitSearcher=None):
+        self.url = self.zookeeper.getLeaderURL(self.collection)
+        LOG.debug('Using random leader URL: %s', self.url)
+        return Solr._update(self, message, clean_ctrl_chars, commit, softCommit, waitFlush, waitSearcher)
+
+
+class ZooKeeper(object):
+    # Constants used by the REST API:
+    LIVE_NODES_ZKNODE = '/live_nodes'
+    ALIASES = '/aliases.json'
+    CLUSTER_STATE = '/clusterstate.json'
+    SHARDS = 'shards'
+    REPLICAS = 'replicas'
+    STATE = 'state'
+    ACTIVE = 'active'
+    LEADER = 'leader'
+    BASE_URL = 'base_url'
+    TRUE = 'true'
+    FALSE = 'false'
+    COLLECTION = 'collection'
+
+    def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
+        if KazooClient is None:
+            logging.error('ZooKeeper requires the `kazoo` library to be installed')
+            raise RuntimeError
+
+        self.collections = {}
+        self.liveNodes = {}
+        self.aliases = {}
+        self.state = None
+
+        self.zk = KazooClient(zkServerAddress, read_only=True)
+
+        self.zk.start()
+
+        def connectionListener(state):
+            if state == KazooState.LOST:
+                self.state = state
+            elif state == KazooState.SUSPENDED:
+                self.state = state
+        self.zk.add_listener(connectionListener)
+
+        @self.zk.DataWatch(ZooKeeper.CLUSTER_STATE)
+        def watchClusterState(data, *args, **kwargs):
+            if not data:
+                LOG.warning("No cluster state available: no collections defined?")
+            else:
+                self.collections = json.loads(data)
+                LOG.info("Updated collections")
+
+            collection_data = json.loads(data.decode('utf-8'))
+            self.collections = collection_data
+            LOG.info('Updated collections: %s', collection_data)
+
+        @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
+        def watchLiveNodes(children):
+            self.liveNodes = children
+            LOG.info("Updated live nodes: %s", children)
+
+        @self.zk.DataWatch(ZooKeeper.ALIASES)
+        def watchAliases(data, stat):
+            if data:
+                self.aliases = json.loads(data)[ZooKeeper.COLLECTION]
+            else:
+                self.aliases = None
+            LOG.info("Updated aliases: %s", self.aliases)
+
+    def __del__(self):
+        # Avoid leaking connection handles in Kazoo's atexit handler:
+        self.zk.stop()
+        self.zk.close()
+
+    def getHosts(self, collname, only_leader=False, seen_aliases=None):
+        if self.aliases and collname in self.aliases:
+            return self.getAliasHosts(collname, only_leader, seen_aliases)
+
+        hosts = []
+        if not self.collections.has_key(collname):
+            raise SolrError("Unknown collection: %s", collname)
+        collection = self.collections[collname]
+        shards = collection[ZooKeeper.SHARDS]
+        for shardname in shards.keys():
+            shard = shards[shardname]
+            if shard[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                replicas = shard[ZooKeeper.REPLICAS]
+                for replicaname in replicas.keys():
+                    replica = replicas[replicaname]
+
+                    if replica[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                        if not only_leader or (replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
+                            base_url = replica[ZooKeeper.BASE_URL]
+                            if base_url not in hosts:
+                                hosts.append(base_url)
+        return hosts
+
+    def getAliasHosts(self, collname, only_leader, seen_aliases):
+        if seen_aliases:
+            if collname in seen_aliases:
+                LOG.warn("%s in circular alias definition - ignored", collname)
+                return []
+        else:
+            seen_aliases = []
+        seen_aliases.append(collname)
+        collections = self.aliases[collname].split(",")
+        hosts = []
+        for collection in collections:
+            for host in self.getHosts(collection, only_leader, seen_aliases):
+                if host not in hosts:
+                    hosts.append(host)
+        return hosts
+
+    def getRandomURL(self, collname):
+        return random.choice(self.getHosts(collname, only_leader=False)) + "/" + collname
+
+    def getLeaderURL(self, collname):
+        return random.choice(self.getHosts(collname, only_leader=True)) + "/" + collname

@@ -28,5 +28,10 @@ setup(
     license='BSD',
     install_requires=[
         'requests>=2.0'
-    ]
+    ],
+    extras_require={
+        'solrcloud': [
+	    'kazoo==2.2'
+        ]
+    }
 )
