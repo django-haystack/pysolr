@@ -4,6 +4,7 @@ dist/
 MANIFEST
 solr/
 solr-app/
+logs/
 env
 env3
 pysolr.egg-info/

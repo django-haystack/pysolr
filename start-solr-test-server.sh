@@ -13,7 +13,7 @@ ROOT=$(cd `dirname $0`; pwd)
 APP=$ROOT/solr-app
 PIDS=$ROOT/solr.pids
 export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
-LOG=test-run.log
+LOGS=$ROOT/logs
 
 cd $ROOT
 
@@ -76,7 +76,7 @@ function upload_configs() {
     APP=${ROOT}/solr-app
 
     echo "Uploading $CONFIGS configs to ZooKeeper at $ZKHOST"
-    $APP/example/scripts/cloud-scripts/zkcli.sh -cmd upconfig -confdir ${CONFIGS} -confname config -zkhost ${ZKHOST} >> $LOG 2>&1
+    $APP/example/scripts/cloud-scripts/zkcli.sh -cmd upconfig -confdir ${CONFIGS} -confname config -zkhost ${ZKHOST} >> $LOGS/upload.log 2>&1
 }
 
 function wait_for() {
@@ -101,13 +101,15 @@ function create_collection() {
     COLLECTION=$2
     NODES=$3
     echo "Creating collection $COLLECTION on nodes $NODES"
-    curl -s "http://localhost:${PORT}/solr/admin/collections?action=CREATE&name=${COLLECTION}&numShards=1&replicationFactor=2&collection.configName=config&createNodeSet=${NODES}" > $LOG
+    URL="http://localhost:${PORT}/solr/admin/collections?action=CREATE&name=${COLLECTION}&numShards=1&replicationFactor=2&collection.configName=config&createNodeSet=${NODES}"
+    curl -s $URL > $LOGS/create-$COLLECTION.log
 }
 
 function start_solr() {
     SOLR_HOME=$1
     PORT=$2
-    ARGS=$3
+    NAME=$3
+    ARGS=$4
     echo
     echo "Starting server from ${SOLR_HOME} on port ${PORT}"
     # We use exec to allow process monitors to correctly kill the
@@ -115,7 +117,7 @@ function start_solr() {
     export CMD="java -Djetty.port=${PORT} -Dsolr.install.dir=${APP} -Djava.awt.headless=true -Dapple.awt.UIElement=true -Dhost=localhost -Dsolr.solr.home=${SOLR_HOME} ${ARGS} -jar start.jar"
     pushd $APP/example > /dev/null
 
-    exec $CMD >/dev/null &
+    exec $CMD >$LOGS/solr-$NAME.log &
     echo $! >> ${PIDS}
 
     popd > /dev/null
@@ -149,6 +151,9 @@ function prepare() {
 
     rm -rf $APP
     rm -rf $ROOT/solr
+    mkdir -p $LOGS
+    rm $LOGS/*
+    
     echo "Preparing SOLR_HOME for tests at $ROOT/solr"
     download_solr
     extract_solr
@@ -178,13 +183,13 @@ while [ $# -gt 0 ]; do
         confirm_down cloud-node0 8993
         confirm_down cloud-node1 8994
 
-        start_solr $ROOT/solr/cloud-zk-node 8992 -DzkRun
+        start_solr $ROOT/solr/cloud-zk-node 8992 zk -DzkRun
         wait_for ZooKeeper 8992
         upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
 
-        start_solr $ROOT/solr/non-cloud 8983
-        start_solr $ROOT/solr/cloud-node0 8993 -DzkHost=localhost:9992
-        start_solr $ROOT/solr/cloud-node1 8994 -DzkHost=localhost:9992
+        start_solr $ROOT/solr/non-cloud 8983 non-cloud
+        start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992
+        start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992
         wait_for simple-solr 8983
         wait_for cloud-node0 8993
         wait_for cloud-node1 8994
