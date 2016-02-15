@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import json
 import unittest
 
-from pysolr import SolrCloud, ZooKeeper
+from pysolr import SolrCloud, ZooKeeper, json, SolrError
 
 from .test_client import SolrTestCase
 
