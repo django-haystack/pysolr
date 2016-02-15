@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import unittest
+import re
 
 from pysolr import SolrCloud, ZooKeeper, json, SolrError
 
@@ -35,10 +36,37 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 2)
 
-    @unittest.expectedFailure
-    def test__send_request_to_bad_path(self):
-        super(SolrCloudTestCase, self).test__send_request_to_bad_path()
+    def test_custom_results_class(self):
+        solr = SolrCloud(ZooKeeper('localhost:9982'), "core0", results_cls=dict)
 
-    @unittest.expectedFailure
+        results = solr.search(q='*:*')
+        assert isinstance(results, dict)
+        assert 'responseHeader' in results
+        assert 'response' in results
+
+    def test__send_request_to_bad_path(self):
+        # This test makes no sense in a SolrCloud world.
+        pass
+
     def test_send_request_to_bad_core(self):
-        super(SolrCloudTestCase, self).test_send_request_to_bad_core()
+        # This test makes no sense in a SolrCloud world, see test_invalid_collection
+        pass
+
+    def test_invalid_collection(self):
+        self.assertRaises(SolrError, SolrCloud, self.zk, "core12345")
+
+    def test__create_full_url(self):
+        # Nada.
+        self.assertRegexpMatches(self.solr._create_full_url(path=''), r"http://localhost:89../solr/core0$")
+        # Basic path.
+        self.assertRegexpMatches(self.solr._create_full_url(path='pysolr_tests'), r"http://localhost:89../solr/core0/pysolr_tests$")
+        # Leading slash (& making sure we don't touch the trailing slash).
+        self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
+
+    def test_custom_results_class(self):
+        solr = SolrCloud(self.zk, "core0", results_cls=dict)
+
+        results = solr.search(q='*:*')
+        assert isinstance(results, dict)
+        assert 'responseHeader' in results
+        assert 'response' in results
