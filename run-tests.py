@@ -10,11 +10,10 @@ from tests import utils as test_utils
 
 def main():
     test_utils.prepare()
-    test_utils.start_simple_solr()
-    test_utils.start_solr_cloud()
+    test_utils.start_solr()
 
     try:
-        unittest.main(module='tests')
+        unittest.main(module='tests', verbosity=1)
     finally:
         print('Tests complete; halting Solr servers…')
         test_utils.stop_solr()

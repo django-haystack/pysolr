@@ -124,7 +124,7 @@ function start_solr() {
 function stop_solr() {
     echo
     if [ -f $PIDS ]; then
-        echo -n "Stopping Solr"
+        echo -n "Stopping Solr.."
         xargs kill < $PIDS
         rm ${PIDS}
         echo " stopped"
@@ -171,14 +171,9 @@ while [ $# -gt 0 ]; do
         prepare
     elif [ "$1" = "stop" ]; then
         stop_solr
-    elif [ "$1" = "start-simple" ]; then
-        echo 'Starting Solr (non-Cloud)'
+    elif [ "$1" = "start" ]; then
+        echo 'Starting Solr'
         confirm_down non-cloud 8983
-        start_solr $ROOT/solr/non-cloud 8983
-        wait_for simple-solr 8983
-        echo 'Solr started'
-    elif [ "$1" = "start-cloud" ]; then
-        echo 'Starting SolrCloud'
         confirm_down cloud-zk 8992
         confirm_down cloud-node0 8993
         confirm_down cloud-node1 8994
@@ -187,13 +182,15 @@ while [ $# -gt 0 ]; do
         wait_for ZooKeeper 8992
         upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
 
+        start_solr $ROOT/solr/non-cloud 8983
         start_solr $ROOT/solr/cloud-node0 8993 -DzkHost=localhost:9992
         start_solr $ROOT/solr/cloud-node1 8994 -DzkHost=localhost:9992
+        wait_for simple-solr 8983
         wait_for cloud-node0 8993
         wait_for cloud-node1 8994
         create_collection 8993 core0 localhost:8993_solr,localhost:8994_solr
         create_collection 8993 core1 localhost:8993_solr,localhost:8994_solr
-        echo 'SolrCloud started'
+        echo 'Solr started'
     else
         echo "Unknown command: $1"
         exit 1
