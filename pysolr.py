@@ -806,7 +806,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None):
+    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None, overwrite=None):
         """
         Adds or updates documents.
 
@@ -827,6 +827,8 @@ class Solr(object):
 
         Optionally accepts ``waitSearcher``. Default is ``None``.
 
+        Optionally accepts ``overwrite``. Default is ``None``.
+
         Usage::
 
             solr.add([
@@ -846,6 +848,9 @@ class Solr(object):
 
         if commitWithin:
             message.set('commitWithin', commitWithin)
+
+        if overwrite:
+            message.set('overwrite', overwrite)
 
         for doc in docs:
             message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
