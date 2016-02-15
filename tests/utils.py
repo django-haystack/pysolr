@@ -13,12 +13,8 @@ def prepare():
     _process("prepare")
 
 
-def start_simple_solr():
-    _process("start-simple")
-
-
-def start_solr_cloud():
-    _process("start-cloud")
+def start_solr():
+    _process("start")
 
 
 def stop_solr():
