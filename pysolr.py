@@ -1245,7 +1245,7 @@ class ZooKeeper(object):
             return self.getAliasHosts(collname, only_leader, seen_aliases)
 
         hosts = []
-        if not self.collections.has_key(collname):
+        if collname not in self.collections:
             raise SolrError("Unknown collection: %s", collname)
         collection = self.collections[collname]
         shards = collection[ZooKeeper.SHARDS]
