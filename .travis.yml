@@ -13,6 +13,10 @@ cache:
   directories:
       - $HOME/download-cache
 
+env:
+    - SOLRCLOUD=false
+    - SOLRCLOUD=true
+
 addons:
   apt_packages:
     - default-jdk
@@ -20,6 +24,7 @@ addons:
 install:
     - "pip install 'requests>2'"
     - "pip install ."
+    - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
 script:
     - python run-tests.py
