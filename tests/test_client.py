@@ -129,9 +129,9 @@ class ResultsTestCase(unittest.TestCase):
 class SolrTestCase(unittest.TestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.default_solr = Solr('http://localhost:8983/solr/core0')
+        self.default_solr = self.get_solr("core0")
         # Short timeouts.
-        self.solr = Solr('http://localhost:8983/solr/core0', timeout=2)
+        self.solr = self.get_solr("core0", timeout=2)
         self.docs = [
             {
                 'id': 'doc_1',
@@ -173,9 +173,14 @@ class SolrTestCase(unittest.TestCase):
         # Such is life.
         self.solr.add(self.docs)
 
-    def tearDown(self):
-        self.solr.delete(q='*:*')
-        super(SolrTestCase, self).tearDown()
+    def assertURLStartsWith(self, URL, path):
+        """Assert that the test URL provided starts with a known base and the provided path"""
+        # Note that we do not use urljoin to ensure that any changes in trailing
+        # slash handling are caught quickly:
+        return self.assertEqual(URL, '%s/%s' % (self.solr.url.replace('/core0', ''), path))
+
+    def get_solr(self, collection, timeout=60):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
 
     def test_init(self):
         self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')
@@ -194,13 +199,18 @@ class SolrTestCase(unittest.TestCase):
         assert 'responseHeader' in results
         assert 'response' in results
 
-    def test__create_full_url(self):
-        # Nada.
-        self.assertEqual(self.solr._create_full_url(path=''), 'http://localhost:8983/solr/core0')
-        # Basic path.
-        self.assertEqual(self.solr._create_full_url(path='pysolr_tests'), 'http://localhost:8983/solr/core0/pysolr_tests')
-        # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertEqual(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), 'http://localhost:8983/solr/core0/pysolr_tests/select/?whatever=/')
+    def test__create_full_url_base(self):
+        self.assertURLStartsWith(self.solr._create_full_url(path=''),
+                                 'core0')
+
+    def test__create_full_url_with_path(self):
+        self.assertURLStartsWith(self.solr._create_full_url(path='pysolr_tests'),
+                                 'core0/pysolr_tests')
+
+    def test__create_full_url_with_path_and_querystring(self):
+        # Note the use of a querystring parameter including a trailing slash to catch sloppy trimming:
+        self.assertURLStartsWith(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'),
+                                 'core0/pysolr_tests/select/?whatever=/')
 
     def test__send_request(self):
         # Test a valid request.
@@ -214,18 +224,15 @@ class SolrTestCase(unittest.TestCase):
         })
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
-        # Test a non-existent URL.
-        old_url = self.solr.url
+    def test__send_request_to_bad_path(self):
+        # Test a non-existent URL:
         self.solr.url = 'http://127.0.0.1:567898/wahtever'
         self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        self.solr.url = old_url
 
-        # Test bad core as well
+    def test_send_request_to_bad_core(self):
+        # Test a bad core on a valid URL:
         self.solr.url = 'http://localhost:8983/solr/bad_core'
-        try:
-            self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        finally:
-            self.solr.url = old_url
+        self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
 
     def test__select(self):
         # Short params.
@@ -399,12 +406,12 @@ class SolrTestCase(unittest.TestCase):
         misspelled_words = 'anthr thng'
         # By default, the 'select' search handler should be used
         results = self.solr.search(q=misspelled_words)
-        self.assertEquals(results.spellcheck, {})
+        self.assertEqual(results.spellcheck, {})
         # spell search handler should return suggestions
         # NB: this test relies on the spell search handler in the
         # solrconfig (see the SOLR_ARCHIVE used by the start-solr-test-server script)
         results = self.solr.search(q=misspelled_words, search_handler='spell')
-        self.assertNotEquals(results.spellcheck, {})
+        self.assertNotEqual(results.spellcheck, {})
 
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')

@@ -2,9 +2,12 @@
 build
 dist/
 MANIFEST
-solr4
+solr/
+solr-app/
+logs/
 env
 env3
 pysolr.egg-info/
 .tox
 solr*.tgz
+.idea
