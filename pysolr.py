@@ -1226,7 +1226,12 @@ class ZooKeeper(object):
         @self.zk.DataWatch(ZooKeeper.ALIASES)
         def watchAliases(data, stat):
             if data:
-                self.aliases = json.loads(data)[ZooKeeper.COLLECTION]
+                json_data = json.loads(data.decode('utf-8'))
+                if ZooKeeper.COLLECTION in json_data:
+                    self.aliases = json_data[ZooKeeper.COLLECTION]
+                else:
+                    LOG.warning('Expected to find %s in alias update %s',
+                                ZooKeeper.COLLECTION, json_data.keys())
             else:
                 self.aliases = None
             LOG.info("Updated aliases: %s", self.aliases)
