@@ -2,9 +2,8 @@
 from __future__ import unicode_literals
 
 import unittest
-import re
 
-from pysolr import SolrCloud, ZooKeeper, json, SolrError
+from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
 
