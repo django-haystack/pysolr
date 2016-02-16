@@ -36,7 +36,7 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertEqual(self.solr.timeout, 2)
 
     def test_custom_results_class(self):
-        solr = SolrCloud(ZooKeeper('localhost:9982'), "core0", results_cls=dict)
+        solr = SolrCloud(self.zk, "core0", results_cls=dict)
 
         results = solr.search(q='*:*')
         assert isinstance(results, dict)
@@ -61,11 +61,3 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertRegexpMatches(self.solr._create_full_url(path='pysolr_tests'), r"http://localhost:89../solr/core0/pysolr_tests$")
         # Leading slash (& making sure we don't touch the trailing slash).
         self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
-
-    def test_custom_results_class(self):
-        solr = SolrCloud(self.zk, "core0", results_cls=dict)
-
-        results = solr.search(q='*:*')
-        assert isinstance(results, dict)
-        assert 'responseHeader' in results
-        assert 'response' in results
