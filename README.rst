@@ -14,6 +14,7 @@ Status
 .. image:: https://secure.travis-ci.org/toastdriven/pysolr.png
    :target: https://secure.travis-ci.org/toastdriven/pysolr
 
+`Changelog <CHANGELOG.rst>`_
 
 Features
 ========
@@ -98,7 +99,7 @@ Basic usage looks like:
 
 .. code-block:: python
     # For SolrCloud mode, initialize your Solr like this:
-    
+
     zookeeper = pysolr.Zookeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
     solr = pysolr.SolrCloud(zookeeper, "collection1")
 
@@ -107,7 +108,6 @@ LICENSE
 =======
 
 ``pysolr`` is licensed under the New BSD license.
-
 
 Running Tests
 =============
