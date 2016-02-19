@@ -424,7 +424,7 @@ class Solr(object):
         path = 'terms/?%s' % safe_urlencode(params, True)
         return self._send_request('get', path)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, overwrite=None):
         """
         Posts the given xml message to http://<self.url>/update and
         returns the result.
@@ -448,6 +448,9 @@ class Solr(object):
 
         if waitFlush is not None:
             query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
+
+        if overwrite is not None:
+            query_vars.append('overwrite=%s' % str(bool(overwrite)).lower())
 
         if waitSearcher is not None:
             query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
@@ -849,9 +852,6 @@ class Solr(object):
         if commitWithin:
             message.set('commitWithin', commitWithin)
 
-        if overwrite:
-            message.set('overwrite', overwrite)
-
         for doc in docs:
             message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
 
@@ -862,7 +862,7 @@ class Solr(object):
 
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
-        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, overwrite=overwrite)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
         """
