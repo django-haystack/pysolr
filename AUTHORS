@@ -35,3 +35,4 @@ Contributors:
 * Emmanuel Leblond (@touilleMan) for fixing error handling on Python 3
 * Michał Jaworski (@swistakm) for improved Sentry-friendly logging
 * Upayavira (@upayavira) for SolrCloud support
+* Kwame Porter Robinson (@robinsonkwame) for adding overwrite support to Solr.add
