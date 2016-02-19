@@ -309,7 +309,6 @@ class Solr(object):
 
         solr = pysolr.Solr('http://localhost:8983/solr')
         # With a 10 second timeout.
-
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
         # with a dict as a default results class instead of pysolr.Results
@@ -429,7 +428,7 @@ class Solr(object):
         Posts the given xml message to http://<self.url>/update and
         returns the result.
 
-        Passing `sanitize` as False will prevent the message from being cleaned
+        Passing `clean_ctrl_chars` as False will prevent the message from being cleaned
         of control characters (default True). This is done by default because
         these characters would cause Solr to fail to parse the XML. Only pass
         False if you're positive your data is clean.
