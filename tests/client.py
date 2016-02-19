@@ -540,7 +540,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(self.solr.search('doc')), 4)
 
     def test_overwrite(self):
-        self.assertEqual(len(self.solr.search('doc_overwrite')), 0)
+        self.assertEqual(len(self.solr.search('doc_overwrite_1')), 0)
         self.solr.add([
             {
                 'id': 'doc_overwrite_1',
@@ -551,7 +551,7 @@ class SolrTestCase(unittest.TestCase):
                 'title': 'Kim is more awesome.',
             }
         ], overwrite=False)
-        self.assertEqual(len(self.solr.search('doc_overwrite_1')), 2)
+        self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 2)
 
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
