@@ -129,9 +129,7 @@ class ResultsTestCase(unittest.TestCase):
 class SolrTestCase(unittest.TestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.default_solr = self.get_solr("core0")
-        # Short timeouts.
-        self.solr = self.get_solr("core0", timeout=2)
+        self.solr = self.get_solr("core0")
         self.docs = [
             {
                 'id': 'doc_1',
@@ -183,13 +181,12 @@ class SolrTestCase(unittest.TestCase):
         return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
 
     def test_init(self):
-        self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')
-        self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.default_solr.timeout, 60)
-
         self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.solr.timeout, 2)
+        self.assertEqual(self.solr.timeout, 60)
+
+        custom_solr = self.get_solr("core0", timeout=17)
+        self.assertEqual(custom_solr.timeout, 17)
 
     def test_custom_results_class(self):
         solr = Solr('http://localhost:8983/solr/core0', results_cls=dict)

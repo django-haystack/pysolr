@@ -27,13 +27,12 @@ class SolrCloudTestCase(SolrTestCase):
         return SolrCloud(self.zk, collection, timeout=timeout)
 
     def test_init(self):
-        self.assertTrue(self.default_solr.url.endswith('/solr/core0'))
-        self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.default_solr.timeout, 60)
-
         self.assertTrue(self.solr.url.endswith('/solr/core0'))
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.solr.timeout, 2)
+        self.assertEqual(self.solr.timeout, 60)
+
+        custom_solr = self.get_solr("core0", timeout=17)
+        self.assertEqual(custom_solr.timeout, 17)
 
     def test_custom_results_class(self):
         solr = SolrCloud(self.zk, "core0", results_cls=dict)
