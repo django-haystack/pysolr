@@ -11,6 +11,11 @@ from pysolr import (Results, Solr, SolrError, clean_xml_string, force_bytes,
                     unescape_html)
 
 try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
+
+try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
@@ -170,6 +175,10 @@ class SolrTestCase(unittest.TestCase):
         # later & if it's broken, everything will catastrophically fail.
         # Such is life.
         self.solr.add(self.docs)
+
+        # Mock the _send_request method on the solr instance so that we can
+        # test that custom handlers are called correctly.
+        self.solr._send_request = Mock(wraps=self.solr._send_request)
 
     def assertURLStartsWith(self, URL, path):
         """Assert that the test URL provided starts with a known base and the provided path"""
@@ -415,7 +424,7 @@ class SolrTestCase(unittest.TestCase):
 
         # search should support custom handlers
         with self.assertRaises(SolrError):
-            self.solr.search('doc', handler='fakehandler')
+            self.solr.search('doc', search_handler='fakehandler')
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('fakehandler'))
 
@@ -685,7 +694,7 @@ class SolrTestCase(unittest.TestCase):
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('select'))
 
-        response = self.solr.search('my', handler='/autocomplete')
+        response = self.solr.search('my', search_handler='/autocomplete')
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('select'))
         self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)

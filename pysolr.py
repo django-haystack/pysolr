@@ -313,7 +313,7 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler=None, use_qt_param=False):
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
@@ -398,10 +398,15 @@ class Solr(object):
 
         return force_unicode(resp.content)
 
-    def _select(self, params, search_handler=None):
+    def _select(self, params, handler=None):
+        """
+        :param params:
+        :param handler: defaults to self.search_handler (fallback to 'select')
+        :return:
+        """
         # specify json encoding of results
         params['wt'] = 'json'
-        custom_handler = search_handler or self.search_handler
+        custom_handler = handler or self.search_handler
         handler = 'select'
         if custom_handler:
             if self.use_qt_param:
@@ -713,7 +718,7 @@ class Solr(object):
         """
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params, search_handler=search_handler)
+        response = self._select(params, handler=search_handler)
         decoded = self.decoder.decode(response)
 
         self.log.debug(
