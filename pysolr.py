@@ -1015,6 +1015,13 @@ class SolrCoreAdmin(object):
     """
     Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
 
+    Requires to be initializated with the full path to cores admin.
+
+    Usage::
+
+        solr_admin = SolrCoreAdmin('http://localhost:8983/solr/admin/cores')
+        status = solr_admin.status()
+
     Operations offered by Solr are:
        1. STATUS
        2. CREATE
