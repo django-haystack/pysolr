@@ -2,10 +2,12 @@
 from __future__ import unicode_literals
 
 import unittest
+import time
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
+from tests import utils as test_utils
 
 try:
     from kazoo.client import KazooClient
@@ -60,3 +62,17 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertRegexpMatches(self.solr._create_full_url(path='pysolr_tests'), r"http://localhost:89../solr/core0/pysolr_tests$")
         # Leading slash (& making sure we don't touch the trailing slash).
         self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
+
+    def test_failover(self):
+        test_utils.start_chaos_monkey()
+
+        start = time.time()
+        RUN_LENGTH=15
+        count=0
+        now=start
+        while now < start + RUN_LENGTH:
+            results = self.solr.search('doc')
+            self.assertEqual(len(results), 3)
+            now=int(time.time())
+            if int(time.time()) > now:
+                print(":"),

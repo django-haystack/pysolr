@@ -14,6 +14,9 @@ APP=$ROOT/solr-app
 PIDS=$ROOT/solr.pids
 export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
 LOGS=$ROOT/logs
+SIGNAL_STOP=-17
+SIGNAL_START=-19
+
 
 cd $ROOT
 
@@ -110,17 +113,19 @@ function start_solr() {
     PORT=$2
     NAME=$3
     ARGS=$4
-    echo
-    echo "Starting server from ${SOLR_HOME} on port ${PORT}"
+    echo > /dev/stderr
+    echo "Starting server from ${SOLR_HOME} on port ${PORT}" > /dev/stderr
     # We use exec to allow process monitors to correctly kill the
     # actual Java process rather than this launcher script:
     export CMD="java -Djetty.port=${PORT} -Dsolr.install.dir=${APP} -Djava.awt.headless=true -Dapple.awt.UIElement=true -Dhost=localhost -Dsolr.solr.home=${SOLR_HOME} ${ARGS} -jar start.jar"
     pushd $APP/example > /dev/null
 
     exec $CMD >$LOGS/solr-$NAME.log &
-    echo $! >> ${PIDS}
+    PID=$!
+    echo $PID >> ${PIDS}
 
     popd > /dev/null
+    echo $PID
 }
 
 function stop_solr() {
@@ -166,6 +171,28 @@ function prepare() {
     prepare_core $ROOT/solr/cloud-configs cloud
 }
 
+function send_signal() {
+    PID=$1
+    SIGNAL=$2
+    kill $SIGNAL $PID
+}
+
+# This is used to pause/restart nodes during a test run of 10+ seconds:
+function pause_nodes() {
+    NODE1_PID=$(cat ${ROOT}/node1.pid)
+    NODE2_PID=$(cat ${ROOT}/node2.pid)
+
+    sleep 2
+    send_signal ${NODE1_PID} ${SIGNAL_STOP}
+    sleep 2
+    send_signal ${NODE1_PID} ${SIGNAL_START}
+    sleep 2
+    send_signal ${NODE2_PID} ${SIGNAL_STOP}
+    sleep 2
+    send_signal ${NODE2_PID} ${SIGNAL_START}
+    sleep 2
+}
+
 if [ $# -eq 0 ]; then
     echo "$0 [prepare] [start-simple] [start-cloud] [stop]"
     exit
@@ -176,6 +203,8 @@ while [ $# -gt 0 ]; do
         prepare
     elif [ "$1" = "stop" ]; then
         stop_solr
+    elif [ "$1" = "pause-nodes" ]; then
+        pause_nodes
     elif [ "$1" = "start" ]; then
         echo 'Starting Solr'
         confirm_down non-cloud 8983
@@ -186,16 +215,17 @@ while [ $# -gt 0 ]; do
         start_solr $ROOT/solr/cloud-zk-node 8992 zk -DzkRun
         wait_for ZooKeeper 8992
         upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
-
         start_solr $ROOT/solr/non-cloud 8983 non-cloud
-        start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992
-        start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992
+        NODE1_PID=$(start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992)
+        NODE2_PID=$(start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992)
         wait_for simple-solr 8983
         wait_for cloud-node0 8993
         wait_for cloud-node1 8994
         create_collection 8993 core0 localhost:8993_solr,localhost:8994_solr
         create_collection 8993 core1 localhost:8993_solr,localhost:8994_solr
         echo 'Solr started'
+        echo ${NODE1_PID} > ${ROOT}/node1.pid
+        echo ${NODE2_PID} > ${ROOT}/node2.pid
     else
         echo "Unknown command: $1"
         exit 1

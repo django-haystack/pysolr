@@ -4,9 +4,10 @@ from __future__ import absolute_import, unicode_literals
 
 import subprocess
 
+SCRIPT="./start-solr-test-server.sh"
 
 def _process(action):
-    subprocess.call(('./start-solr-test-server.sh', action))
+    subprocess.call((SCRIPT, action))
 
 
 def prepare():
@@ -19,3 +20,7 @@ def start_solr():
 
 def stop_solr():
     _process("stop")
+
+
+def start_chaos_monkey():
+    subprocess.Popen((SCRIPT, 'pause-nodes'))
