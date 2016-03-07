@@ -1284,7 +1284,13 @@ class ZooKeeper(object):
         return hosts
 
     def getRandomURL(self, collname):
-        return random.choice(self.getHosts(collname, only_leader=False)) + "/" + collname
+        hosts = self.getHosts(collname, only_leader=False)
+        if len(hosts)==0:
+            raise SolrError("No hosts available for %s" % collname)
+        return random.choice(hosts) + "/" + collname
 
     def getLeaderURL(self, collname):
+        hosts = self.getHosts(collname, only_leader=True)
+        if len(hosts)==0:
+            raise SolrError("No leaders available for %s" % collname)
         return random.choice(self.getHosts(collname, only_leader=True)) + "/" + collname
