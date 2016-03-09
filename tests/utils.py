@@ -23,4 +23,10 @@ def stop_solr():
 
 
 def start_chaos_monkey():
-    subprocess.Popen((SCRIPT, 'pause-nodes'))
+    return subprocess.Popen((SCRIPT, 'pause-nodes'))
+
+def start_disaster_monkey():
+    return subprocess.Popen((SCRIPT, 'pause-both-nodes'))
+
+def stop_monkeying(process):
+    process.terminate()

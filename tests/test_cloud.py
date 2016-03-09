@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import unittest
 import time
+import requests
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
@@ -64,15 +65,63 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
 
     def test_failover(self):
-        test_utils.start_chaos_monkey()
+        def check_port(port):
+            try:
+                requests.get("http://localhost:%s" % port, timeout=0.3)
+                return True
+            except requests.exceptions.Timeout:
+                return False
+
+        monkey_process = test_utils.start_chaos_monkey()
 
         start = time.time()
-        RUN_LENGTH=15
+        RUN_LENGTH=10
         count=0
         now=start
+        failures=0
         while now < start + RUN_LENGTH:
             results = self.solr.search('doc')
             self.assertEqual(len(results), 3)
             now=int(time.time())
             if int(time.time()) > now:
                 print(":"),
+            if not check_port(8993):
+                failures+=1
+            if not check_port(8994):
+                failures+=1
+            count+=1
+        self.assertGreater(failures, 0, "At least one port request failure recorded")
+        test_utils.stop_monkeying(monkey_process)
+
+    # this test shows that Solr will fail if both nodes are down
+    def test_failover_falldown(self):
+        monkey_process = test_utils.start_disaster_monkey()
+
+        start = time.time()
+        RUN_LENGTH=6
+        count=0
+        before_failure=0
+        after_failure=0
+        now=start
+        failures=0
+
+        solr = SolrCloud(self.zk, "core0", timeout=0.3)
+        while now < start + RUN_LENGTH:
+            try:
+                results = solr.search('doc')
+                now=int(time.time())
+                if int(time.time()) > now:
+                    print(":"),
+                if failures == 0:
+                    before_failure+=1
+                else:
+                    after_failure+=1
+                count+=1
+            except SolrError:
+                failures+=1
+                now=int(time.time())
+                if int(time.time()) > now:
+                    print("x"),
+        self.assertGreater(failures, 0, "At least one failure recorded")
+        self.assertGreater(after_failure, 0, "At least one successful request after failures")
+        test_utils.stop_monkeying(monkey_process)
