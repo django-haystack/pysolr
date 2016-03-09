@@ -14,6 +14,7 @@ import requests
 
 try:
     from kazoo.client import KazooClient, KazooState
+    from kazoo.exceptions import NoNodeError
 except ImportError:
     KazooClient = KazooState = None
 
@@ -1145,13 +1146,14 @@ def sanitize(data):
 class SolrCloud(Solr):
 
     def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
-        url = zookeeper.getRandomURL(collection)
+        url = "NULL_URL"
 
         super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
 
         self.zookeeper = zookeeper
         self.collection = collection
         self.retry_timeout = retry_timeout
+        self.zookeeper.watchCollection(collection)
 
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
@@ -1197,6 +1199,7 @@ class ZooKeeper(object):
             logging.error('ZooKeeper requires the `kazoo` library to be installed')
             raise RuntimeError
 
+        self.watchedCollections = []
         self.collections = {}
         self.liveNodes = {}
         self.aliases = {}
@@ -1238,6 +1241,18 @@ class ZooKeeper(object):
             else:
                 self.aliases = None
             LOG.info("Updated aliases: %s", self.aliases)
+
+    def watchCollection(self, collection):
+        path = "/collections/%s/state.json" % collection
+        def watch(event):
+            data = self.zk.get(path)
+            self.collections[collection] = json.loads(data[0].decode("utf8"))[collection]
+
+        try:
+            data = self.zk.get(path, watch=watch)
+            self.collections[collection] = json.loads(data[0].decode("utf-8"))[collection]
+        except NoNodeError, e:
+            raise SolrError("No collection %s" % collection)
 
     def __del__(self):
         # Avoid leaking connection handles in Kazoo's atexit handler:
