@@ -79,8 +79,9 @@ class SolrCloudTestCase(SolrTestCase):
         count=0
         now=start
         failures=0
+        solr = self.get_solr("core0", timeout=0.3)
         while now < start + RUN_LENGTH:
-            results = self.solr.search('doc')
+            results = solr.search('doc')
             self.assertEqual(len(results), 3)
             now=int(time.time())
             if int(time.time()) > now:
