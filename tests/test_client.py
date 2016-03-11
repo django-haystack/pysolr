@@ -171,6 +171,9 @@ class SolrTestCase(unittest.TestCase):
         # Such is life.
         self.solr.add(self.docs)
 
+    def tearDown(self):
+        del self.solr
+
     def assertURLStartsWith(self, URL, path):
         """Assert that the test URL provided starts with a known base and the provided path"""
         # Note that we do not use urljoin to ensure that any changes in trailing
