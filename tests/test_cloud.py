@@ -104,6 +104,37 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertEqual(exceptions, 0)
         self.assertGreater(success, 0)
 
+    # Confirm that we fail when more than both nodes go down, and that we recover when they are back
+    def test_falldown(self):
+        test_thread = CloudTestThread(self.zk)
+        test_thread.start()
+
+        time.sleep(2)
+
+        self.assertEqual(test_thread.exceptions, 0)
+
+        test_utils.stop_solr(8993)
+        test_utils.stop_solr(8994)
+        test_utils.wait_for_down(self.zk, "localhost:8993_solr")
+        test_utils.wait_for_down(self.zk, "localhost:8994_solr")
+
+        time.sleep(2)
+
+        test_utils.start_solr("cloud-node0", 8993)
+        test_utils.start_solr("cloud-node1", 8994)
+        test_utils.wait_for_up(self.zk, "core0", "http://localhost:8993/solr")
+        test_utils.wait_for_up(self.zk, "core0", "http://localhost:8994/solr")
+        self.assertGreater(test_thread.exceptions, 0)
+        test_thread.exceptions = 0
+        test_utils.wait_for_leader(self.zk, "core0")
+        time.sleep(2)
+
+        success, timeouts, exceptions = test_thread.stop()
+
+        self.assertEqual(timeouts, 0)
+        self.assertEqual(exceptions, 0)
+        self.assertGreater(success, 0)
+
 
 class CloudTestThread(threading.Thread):
     def __init__(self, zk):
