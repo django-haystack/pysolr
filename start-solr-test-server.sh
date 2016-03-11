@@ -95,8 +95,8 @@ function start_solr() {
     PORT=$2
     NAME=$3
     ARGS=$4
-    echo > /dev/stderr
-    echo "Starting server from ${SOLR_HOME} on port ${PORT}" > /dev/stderr
+    echo
+    echo "Starting server from ${SOLR_HOME} on port ${PORT}"
     # We use exec to allow process monitors to correctly kill the
     # actual Java process rather than this launcher script:
     (cd $APP; bin/solr start -s ${SOLR_HOME} -p ${PORT} -h localhost $ARGS)
