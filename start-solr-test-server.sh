@@ -104,9 +104,15 @@ function start_solr() {
 }
 
 function stop_solr() {
+    if [ "$1" = "" ]; then
+      PORT="-all"
+    else
+      PORT="-p $1"
+    fi
+
     echo
-    if [ -x $APP ]; then
-        (cd $APP; bin/solr stop -all)
+    if [ -x $APP/bin/solr ]; then
+        $APP/bin/solr stop $PORT
     fi
 }
 
@@ -115,9 +121,10 @@ function confirm_down() {
     PORT=$2
 
     if curl -s http://localhost:${PORT} > /dev/null 2>&1; then
-        echo "Port ${PORT} for ${NAME} in use. Quitting."
-        exit 1
+        echo "Port ${PORT} for ${NAME} in use, stopping Solr"
+        stop_solr ${PORT}
     fi
+
 }
 
 function prepare() {
@@ -140,40 +147,10 @@ function prepare() {
     prepare_core $ROOT/solr/cloud-configs cloud
 }
 
-function send_signal() {
-    PID=$1
-    SIGNAL=$2
-    kill ${SIGNAL} ${PID}
-}
-
-# This is used to pause/restart nodes during a test run of 10+ seconds:
-function pause_nodes() {
-    NODE1_PID=$(cat ${APP}/bin/solr-8993.pid)
-    NODE2_PID=$(cat ${APP}/bin/solr-8994.pid)
-
-    sleep 2
-    send_signal ${NODE1_PID} ${SIGNAL_STOP}
-    sleep 2
-    send_signal ${NODE1_PID} ${SIGNAL_START}
-    sleep 2
-    send_signal ${NODE2_PID} ${SIGNAL_STOP}
-    sleep 2
-    send_signal ${NODE2_PID} ${SIGNAL_START}
-    sleep 2
-}
-
-# This is used to pause/restart nodes during a test run of 10+ seconds:
-function pause_both_nodes() {
-    NODE1_PID=$(cat ${APP}/bin/solr-8993.pid)
-    NODE2_PID=$(cat ${APP}/bin/solr-8994.pid)
-
-    sleep 2
-    send_signal ${NODE1_PID} ${SIGNAL_STOP}
-    send_signal ${NODE2_PID} ${SIGNAL_STOP}
-    sleep 2
-    send_signal ${NODE1_PID} ${SIGNAL_START}
-    send_signal ${NODE2_PID} ${SIGNAL_START}
-    sleep 2
+function start_node() {
+    PORT=$1
+    NAME=$2
+    start_solr $ROOT/solr/${NAME} ${PORT} ${NAME} "-z localhost:9992"
 }
 
 
@@ -187,10 +164,15 @@ while [ $# -gt 0 ]; do
         prepare
     elif [ "$1" = "stop" ]; then
         stop_solr
-    elif [ "$1" = "pause-nodes" ]; then
-        pause_nodes
-    elif [ "$1" = "pause-both-nodes" ]; then
-        pause_both_nodes
+    elif [ "$1" = "stop-node" ]; then
+        PORT=$2
+        shift
+        stop_solr $PORT
+    elif [ "$1" = "start-node" ]; then
+        PORT=$2
+        NAME=$3
+        shift 2
+        start_node ${PORT} ${NAME}
     elif [ "$1" = "start" ]; then
         confirm_down non-cloud 8983
         confirm_down cloud-zk 8992

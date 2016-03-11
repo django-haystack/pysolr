@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import unittest
 import time
 import requests
+import threading
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
@@ -15,7 +16,6 @@ try:
 except ImportError:
     KazooClient = None
 
-
 @unittest.skipUnless(KazooClient is not None, 'kazoo is not installed; skipping SolrCloud tests')
 class SolrCloudTestCase(SolrTestCase):
     def assertURLStartsWith(self, url, path):
@@ -23,11 +23,16 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertIn(url, {'%s/%s' % (node_url, path) for node_url in node_urls})
 
     def get_solr(self, collection, timeout=60):
-        # TODO: make self.zk a memoized property:
-        if not getattr(self, 'zk', None):
-            self.zk = ZooKeeper("localhost:9992")
-
         return SolrCloud(self.zk, collection, timeout=timeout)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.zk = ZooKeeper("localhost:9992")
+
+    @classmethod
+    def tearDownClass(cls):
+        # Clear out Zookeeper to make tests close cleanly
+        del cls.zk
 
     def test_init(self):
         self.assertTrue(self.solr.url.endswith('/solr/core0'))
@@ -64,65 +69,63 @@ class SolrCloudTestCase(SolrTestCase):
         # Leading slash (& making sure we don't touch the trailing slash).
         self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
 
+    # Confirm that we can still serve requests when one, or other node is down
+    # (note, we must confirm that a node has recovered before taking the next one down)
     def test_failover(self):
-        def check_port(port):
-            try:
-                requests.get("http://localhost:%s" % port, timeout=0.3)
-                return True
-            except requests.exceptions.Timeout:
-                return False
 
-        monkey_process = test_utils.start_chaos_monkey()
+        test_thread = CloudTestThread(self.zk)
+        test_thread.start()
 
-        start = time.time()
-        RUN_LENGTH=10
-        count=0
-        now=start
-        failures=0
-        solr = self.get_solr("core0", timeout=0.3)
-        while now < start + RUN_LENGTH:
-            results = solr.search('doc')
-            self.assertEqual(len(results), 3)
-            now=int(time.time())
-            if int(time.time()) > now:
-                print(":"),
-            if not check_port(8993):
-                failures+=1
-            if not check_port(8994):
-                failures+=1
-            count+=1
-        self.assertGreater(failures, 0, "At least one port request failure recorded")
-        test_utils.stop_monkeying(monkey_process)
+        time.sleep(2)
 
-    # this test shows that Solr will fail if both nodes are down
-    def test_failover_falldown(self):
-        monkey_process = test_utils.start_disaster_monkey()
+        test_utils.stop_solr(8993)
+        test_utils.wait_for_down(self.zk, "localhost:8993_solr")
 
-        start = time.time()
-        RUN_LENGTH=6
-        count=0
-        before_failure=0
-        after_failure=0
-        now=start
-        failures=0
+        time.sleep(2)
 
+        test_utils.start_solr("cloud-node0", 8993)
+        test_utils.wait_for_up(self.zk, "core0", "http://localhost:8993/solr")
+
+        test_utils.wait_for_leader(self.zk, "core0")
+
+        test_utils.stop_solr(8994)
+        test_utils.wait_for_down(self.zk, "localhost:8994_solr")
+
+        time.sleep(2)
+
+        test_utils.start_solr("cloud-node1", 8994)
+        test_utils.wait_for_up(self.zk, "core0", "http://localhost:8994/solr")
+        test_utils.wait_for_leader(self.zk, "core0")
+        time.sleep(2)
+
+        success, timeouts, exceptions = test_thread.stop()
+
+        self.assertEqual(timeouts, 0)
+        self.assertEqual(exceptions, 0)
+        self.assertGreater(success, 0)
+
+
+class CloudTestThread(threading.Thread):
+    def __init__(self, zk):
+        threading.Thread.__init__(self)
+        self.zk = zk
+        self.should_stop = False
+        self.success = 0
+        self.exceptions = 0
+        self.timeouts = 0
+
+    def stop(self):
+        self.should_stop = True
+        return (self.success, self.timeouts, self.exceptions)
+
+    def run(self):
         solr = SolrCloud(self.zk, "core0", timeout=0.3)
-        while now < start + RUN_LENGTH:
+
+        while not self.should_stop:
             try:
                 results = solr.search('doc')
-                now=int(time.time())
-                if int(time.time()) > now:
-                    print(":"),
-                if failures == 0:
-                    before_failure+=1
-                else:
-                    after_failure+=1
-                count+=1
-            except SolrError:
-                failures+=1
-                now=int(time.time())
-                if int(time.time()) > now:
-                    print("x"),
-        self.assertGreater(failures, 0, "At least one failure recorded")
-        self.assertGreater(after_failure, 0, "At least one successful request after failures")
-        test_utils.stop_monkeying(monkey_process)
+                self.success += 1
+            except requests.exceptions.Timeout:
+                self.timeouts += 1
+            except Exception as e:
+                self.exceptions += 1
