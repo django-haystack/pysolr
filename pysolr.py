@@ -1193,6 +1193,7 @@ class ZooKeeper(object):
     TRUE = 'true'
     FALSE = 'false'
     COLLECTION = 'collection'
+    NODE_NAME = 'node_name'
 
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
         if KazooClient is None:
@@ -1278,7 +1279,8 @@ class ZooKeeper(object):
                         if not only_leader or (replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
                             base_url = replica[ZooKeeper.BASE_URL]
                             if base_url not in hosts:
-                                hosts.append(base_url)
+                                if replica[ZooKeeper.NODE_NAME] in self.liveNodes:
+                                    hosts.append(base_url)
         return hosts
 
     def getAliasHosts(self, collname, only_leader, seen_aliases):
