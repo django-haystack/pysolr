@@ -1153,7 +1153,8 @@ class SolrCloud(Solr):
         self.zookeeper = zookeeper
         self.collection = collection
         self.retry_timeout = retry_timeout
-        self.zookeeper.watchCollection(collection)
+        if collection:
+            self.zookeeper.watchCollection(collection)
 
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
