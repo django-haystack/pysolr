@@ -1244,13 +1244,12 @@ class ZooKeeper(object):
 
     def watchCollection(self, collection):
         path = "/collections/%s/state.json" % collection
-        def watch(event):
-            data = self.zk.get(path)
+        def watch(event=None):
+            data = self.zk.get(path, watch=watch)
             self.collections[collection] = json.loads(data[0].decode("utf8"))[collection]
 
         try:
-            data = self.zk.get(path, watch=watch)
-            self.collections[collection] = json.loads(data[0].decode("utf-8"))[collection]
+            watch()
         except NoNodeError, e:
             raise SolrError("No collection %s" % collection)
 
