@@ -135,6 +135,32 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertEqual(exceptions, 0)
         self.assertGreater(success, 0)
 
+    # Confirm that we survive ZK going down, for reads
+    def test_zk_failure(self):
+        return
+
+        test_thread = CloudTestThread(self.zk)
+        test_thread.start()
+
+        time.sleep(2)
+
+        self.assertEqual(test_thread.exceptions, 0)
+
+        test_utils.stop_solr(8992)
+        test_utils.wait_for_down(self.zk, "localhost:8992_solr")
+        time.sleep(2)
+
+        test_utils.start_solr("cloud-node0", 8992)
+        test_utils.wait_for_up(self.zk, None, "localhost:8992_solr")
+        time.sleep(2)
+
+        success, timeouts, exceptions = test_thread.stop()
+
+        self.assertEqual(timeouts, 0)
+        self.assertEqual(exceptions, 0)
+        self.assertGreater(success, 0)
+
+
 
 class CloudTestThread(threading.Thread):
     def __init__(self, zk):
