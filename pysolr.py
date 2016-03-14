@@ -1205,6 +1205,7 @@ class ZooKeeper(object):
         self.liveNodes = {}
         self.aliases = {}
         self.state = None
+        self.hasClusterState = False
 
         self.zk = KazooClient(zkServerAddress, read_only=True)
 
@@ -1224,6 +1225,7 @@ class ZooKeeper(object):
                 LOG.warning("No cluster state available: no collections defined?")
             else:
                 self.collections = json.loads(data.decode('utf-8'))
+                self.hasClusterState = True
                 LOG.info('Updated collections: %s', self.collections)
 
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
@@ -1253,7 +1255,8 @@ class ZooKeeper(object):
         try:
             watch()
         except NoNodeError, e:
-            raise SolrError("No collection %s" % collection)
+            if (self.hasClusterState and not self.collections.has_key(collection)) or not self.hasClusterState:
+                raise SolrError("No collection %s" % collection)
 
     def __del__(self):
         # Avoid leaking connection handles in Kazoo's atexit handler:
