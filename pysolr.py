@@ -1209,6 +1209,7 @@ class ZooKeeper(object):
         self.zk = KazooClient(zkServerAddress, read_only=True)
 
         self.zk.start()
+        random.seed()
 
         def connectionListener(state):
             if state == KazooState.LOST:
