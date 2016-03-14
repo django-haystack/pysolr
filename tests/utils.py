@@ -7,11 +7,14 @@ import shlex
 import time
 from pysolr import SolrError
 
-SCRIPT = "./start-solr-test-server.sh "
+
+def set_script(script_name):
+    global script
+    script = script_name
 
 
 def _process(args):
-    params = shlex.split(SCRIPT + args)
+    params = shlex.split(" ".join((script, args)))
     subprocess.call(params)
 
 
