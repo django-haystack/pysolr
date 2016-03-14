@@ -1145,7 +1145,7 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.02, retry_count=20, *args, **kwargs):
         url = "NULL_URL"
 
         super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
@@ -1153,6 +1153,7 @@ class SolrCloud(Solr):
         self.zookeeper = zookeeper
         self.collection = collection
         self.retry_timeout = retry_timeout
+        self.retry_count = retry_count
         if collection:
             self.zookeeper.watchCollection(collection)
 
@@ -1162,17 +1163,15 @@ class SolrCloud(Solr):
         return Solr._send_request(self, method, path, body, headers, files)
 
     def _send_request(self, method, path='', body=None, headers=None, files=None):
-        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
-        try:
-            return self._randomized_request(method, path, body, headers, files)
-        except requests.exceptions.RequestException:
-            LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
-        except SolrError:
-            LOG.warning('SolrException, retrying after %fs', self.retry_timeout, exc_info=True)
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
+        retry_count=self.retry_count
+        while retry_count > 0:
+            try:
+                return self._randomized_request(method, path, body, headers, files)
+            except (requests.exceptions.RequestException, SolrError) as e:
+                LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
+                time.sleep(self.retry_timeout)  # give zookeeper time to notice
+                retry_count -= 1
+        raise SolrError("Too many retries for %s" % path)
 
     def _update(self, *args, **kwargs):
         self.url = self.zookeeper.getLeaderURL(self.collection)
