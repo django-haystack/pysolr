@@ -1,31 +1,34 @@
+sudo: false
 language: python
 python:
-  - "2.7"
+    - "2.7"
+    - "3.3"
+    - "3.4"
+    - "3.5"
+    - "pypy"
 
-before_install:
-  - sudo apt-get update
-  - sudo apt-get install default-jdk
-  - pip install requests
-
-before_script:
-  - python get-solr-download-url.py 4.7.2 | xargs curl -sSO
-
-install:
-  - pip install tox
-
-script:
-  - tox -e $TOX_ENV
+cache:
+  apt: true
+  pip: true
+  directories:
+      - $HOME/download-cache
 
 env:
-  - TOX_ENV=py26
-  - TOX_ENV=py27
-  - TOX_ENV=py33
-  - TOX_ENV=py34
-  - TOX_ENV=py26-tomcat
-  - TOX_ENV=py27-tomcat
-  - TOX_ENV=py33-tomcat
-  - TOX_ENV=py34-tomcat
+    - SOLRCLOUD=false
+    - SOLRCLOUD=true
+
+addons:
+  apt_packages:
+    - default-jdk
+
+install:
+    - "pip install 'requests>2'"
+    - "pip install ."
+    - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
+
+script:
+    - python run-tests.py
 
 notifications:
-  #irc: "irc.freenode.org#pysolr"
-  email: false
+    # irc: "irc.freenode.org#pysolr"
+    email: false
