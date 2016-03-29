@@ -922,7 +922,7 @@ class Solr(object):
 
         return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
-    def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
+    def optimize(self,commit=True, waitFlush=None, waitSearcher=None, maxSegments=None):
         """
         Tells Solr to streamline the number of segments used, essentially a
         defragmentation operation.
@@ -943,7 +943,7 @@ class Solr(object):
         else:
             msg = '<optimize />'
 
-        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(msg, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
 
     def extract(self, file_obj, extractOnly=True, **kwargs):
         """
