@@ -7,10 +7,11 @@ if [ ! -t 0 ]; then
     exec 1>test-solr.stdout.log 2>test-solr.stderr.log
 fi
 
-SOLR_VERSION=5.5.0
+SOLR_VERSION=4.10.4
 
 ROOT=$(cd `dirname $0`; pwd)
 APP=$ROOT/solr-app
+PIDS=$ROOT/solr.pids
 export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
 LOGS=$ROOT/logs
 SIGNAL_STOP=-17
@@ -49,8 +50,8 @@ function prepare_solr_home() {
     echo "Preparing SOLR_HOME at $SOLR_HOME for host $HOST"
     APP=$(pwd)/solr-app
     mkdir -p ${SOLR_HOME}
-    cp solr-app/server/solr/solr.xml ${SOLR_HOME}/
-    cp solr-app/server/solr/zoo.cfg ${SOLR_HOME}/
+    cp solr-app/example/solr/solr.xml ${SOLR_HOME}/
+    cp solr-app/example/solr/zoo.cfg ${SOLR_HOME}/
 }
 
 function prepare_core() {
@@ -62,7 +63,7 @@ function prepare_core() {
     CORE_DIR=${SOLR_HOME}/${CORE}
     mkdir -p ${CORE_DIR}
 
-    cp -r solr-app/server/solr/configsets/sample_techproducts_configs/conf ${CORE_DIR}/
+    cp -r solr-app/example/solr/collection1/conf ${CORE_DIR}/
     perl -p -i -e 's|<lib dir="../../../contrib/|<lib dir="$APP/contrib/|'g ${CORE_DIR}/conf/solrconfig.xml
     perl -p -i -e 's|<lib dir="../../../dist/|<lib dir="$APP/dist/|'g ${CORE_DIR}/conf/solrconfig.xml
 
@@ -78,7 +79,24 @@ function upload_configs() {
     APP=${ROOT}/solr-app
 
     echo "Uploading $CONFIGS configs to ZooKeeper at $ZKHOST"
-    $APP/server/scripts/cloud-scripts/zkcli.sh -cmd upconfig -confdir ${CONFIGS} -confname config -zkhost ${ZKHOST} >> $LOGS/upload.log 2>&1
+    $APP/example/scripts/cloud-scripts/zkcli.sh -cmd upconfig -confdir ${CONFIGS} -confname config -zkhost ${ZKHOST} >> $LOGS/upload.log 2>&1
+}
+
+function wait_for() {
+    NAME=$1
+    PORT=$2
+    COUNT=0
+    echo -n "Waiting for ${NAME} to start on ${PORT}"
+    while ! curl -s "http://localhost:${PORT}" > /dev/null; do
+        echo -n '.'
+        COUNT=$((COUNT+1))
+        if [ $COUNT -gt 30 ]; then
+            echo "Port ${PORT} not responding, quitting!"
+            exit 1
+        fi
+        sleep 1
+    done
+    echo " done"
 }
 
 function create_collection() {
@@ -95,24 +113,53 @@ function start_solr() {
     PORT=$2
     NAME=$3
     ARGS=$4
-    echo
-    echo "Starting server from ${SOLR_HOME} on port ${PORT}"
+    echo > /dev/stderr
+    echo "Starting server from ${SOLR_HOME} on port ${PORT}" > /dev/stderr
     # We use exec to allow process monitors to correctly kill the
     # actual Java process rather than this launcher script:
-    (cd $APP; bin/solr start -s ${SOLR_HOME} -p ${PORT} -h localhost $ARGS)
-    echo "Started $NAME"
+    export CMD="java -Djetty.port=${PORT} -Dsolr.install.dir=${APP} -Djava.awt.headless=true -Dapple.awt.UIElement=true -Dhost=localhost -Dsolr.solr.home=${SOLR_HOME} ${ARGS} -jar start.jar"
+    pushd $APP/example > /dev/null
+
+    exec $CMD >$LOGS/solr-$NAME.log &
+    PID=$!
+    echo $PID >> ${PIDS}
+
+    popd > /dev/null
+    echo "STARTED PORT $2 AS PID: ${PID}" > /dev/stderr
+    echo $PID
+}
+
+function start_node() {
+    PORT=$1
+    NAME=$2
+    echo "Starting ${NAME} on port ${PORT}"
+    start_solr $ROOT/solr/${NAME} ${PORT} ${NAME} "-DzkHost=localhost:9992" > ${ROOT}/node-${PORT}.pid
+}
+
+function is_process_running() {
+    PID=$1
+    ps aux | awk '{print $2}' | tail -n +2 | grep -E "^${PID}$"
 }
 
 function stop_solr() {
-    if [ "$1" = "" ]; then
-      PORT="-all"
-    else
-      PORT="-p $1"
-    fi
-
-    echo
-    if [ -x $APP/bin/solr ]; then
-        $APP/bin/solr stop $PORT
+    PORT=$1
+    if [ "$PORT" != "" ]; then
+        PID=$(cat ${ROOT}/node-${PORT}.pid)
+        echo "Stopping ${PORT} - pid ${PID}"
+        kill ${PID}
+    elif [ -f $PIDS ]; then
+        echo
+        echo -n "Stopping Solr.."
+        for PID in $(cat $PIDS); do
+          if is_process_running $PID > /dev/null; then
+            kill $PID
+          else
+            echo "Skipping $PID as it isn't running"
+          fi
+        done
+        rm ${PIDS}
+        rm -f ${ROOT}/node-*.pid
+        echo " stopped"
     fi
 }
 
@@ -121,14 +168,16 @@ function confirm_down() {
     PORT=$2
 
     if curl -s http://localhost:${PORT} > /dev/null 2>&1; then
-        echo "Port ${PORT} for ${NAME} in use, stopping Solr"
-        stop_solr ${PORT}
+        echo "Port ${PORT} for ${NAME} in use. Quitting."
+        exit 1
     fi
-
 }
 
 function prepare() {
-    stop_solr
+    if [ -f $PIDS ]; then
+        echo "Found existing ${PIDS} file; stopping stale Solr instances"
+        stop_solr
+    fi
 
     rm -rf $APP
     rm -rf $ROOT/solr
@@ -146,13 +195,6 @@ function prepare() {
     prepare_solr_home $ROOT/solr/cloud-node1 localhost_node1
     prepare_core $ROOT/solr/cloud-configs cloud
 }
-
-function start_node() {
-    PORT=$1
-    NAME=$2
-    start_solr $ROOT/solr/${NAME} ${PORT} ${NAME} "-z localhost:9992"
-}
-
 
 if [ $# -eq 0 ]; then
     echo "$0 [prepare] [start-simple] [start-cloud] [stop]"
@@ -174,17 +216,21 @@ while [ $# -gt 0 ]; do
         shift 2
         start_node ${PORT} ${NAME}
     elif [ "$1" = "start" ]; then
+        echo 'Starting Solr'
         confirm_down non-cloud 8983
         confirm_down cloud-zk 8992
         confirm_down cloud-node0 8993
         confirm_down cloud-node1 8994
 
-        echo 'Starting Solr'
-        start_solr $ROOT/solr/cloud-zk-node 8992 zk -c
+        start_solr $ROOT/solr/cloud-zk-node 8992 zk -DzkRun
+        wait_for ZooKeeper 8992
         upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
         start_solr $ROOT/solr/non-cloud 8983 non-cloud
-        start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 "-z localhost:9992"
-        start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 "-z localhost:9992"
+        start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992 > ${ROOT}/node-8993.pid
+        start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992 > ${ROOT}/node-8994.pid
+        wait_for simple-solr 8983
+        wait_for cloud-node0 8993
+        wait_for cloud-node1 8994
         create_collection 8993 core0 localhost:8993_solr,localhost:8994_solr
         create_collection 8993 core1 localhost:8993_solr,localhost:8994_solr
         echo 'Solr started'

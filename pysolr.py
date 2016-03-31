@@ -14,6 +14,7 @@ import requests
 
 try:
     from kazoo.client import KazooClient, KazooState
+    from kazoo.exceptions import NoNodeError
 except ImportError:
     KazooClient = KazooState = None
 
@@ -1144,14 +1145,17 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
-        url = zookeeper.getRandomURL(collection)
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.02, retry_count=20, *args, **kwargs):
+        url = "NULL_URL"
 
         super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
 
         self.zookeeper = zookeeper
         self.collection = collection
         self.retry_timeout = retry_timeout
+        self.retry_count = retry_count
+        if collection:
+            self.zookeeper.watchCollection(collection)
 
     def _randomized_request(self, method, path, body, headers, files):
         self.url = self.zookeeper.getRandomURL(self.collection)
@@ -1159,17 +1163,15 @@ class SolrCloud(Solr):
         return Solr._send_request(self, method, path, body, headers, files)
 
     def _send_request(self, method, path='', body=None, headers=None, files=None):
-        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
-        try:
-            return self._randomized_request(method, path, body, headers, files)
-        except requests.exceptions.RequestException:
-            LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
-        except SolrError:
-            LOG.warning('SolrException, retrying after %fs', self.retry_timeout, exc_info=True)
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
+        retry_count=self.retry_count
+        while retry_count > 0:
+            try:
+                return self._randomized_request(method, path, body, headers, files)
+            except (requests.exceptions.RequestException, SolrError) as e:
+                LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
+                time.sleep(self.retry_timeout)  # give zookeeper time to notice
+                retry_count -= 1
+        raise SolrError("Too many retries for %s" % path)
 
     def _update(self, *args, **kwargs):
         self.url = self.zookeeper.getLeaderURL(self.collection)
@@ -1191,20 +1193,24 @@ class ZooKeeper(object):
     TRUE = 'true'
     FALSE = 'false'
     COLLECTION = 'collection'
+    NODE_NAME = 'node_name'
 
     def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
         if KazooClient is None:
             logging.error('ZooKeeper requires the `kazoo` library to be installed')
             raise RuntimeError
 
+        self.watchedCollections = []
         self.collections = {}
         self.liveNodes = {}
         self.aliases = {}
         self.state = None
+        self.hasClusterState = False
 
         self.zk = KazooClient(zkServerAddress, read_only=True)
 
         self.zk.start()
+        random.seed()
 
         def connectionListener(state):
             if state == KazooState.LOST:
@@ -1219,6 +1225,7 @@ class ZooKeeper(object):
                 LOG.warning("No cluster state available: no collections defined?")
             else:
                 self.collections = json.loads(data.decode('utf-8'))
+                self.hasClusterState = True
                 LOG.info('Updated collections: %s', self.collections)
 
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
@@ -1238,6 +1245,18 @@ class ZooKeeper(object):
             else:
                 self.aliases = None
             LOG.info("Updated aliases: %s", self.aliases)
+
+    def watchCollection(self, collection):
+        path = "/collections/%s/state.json" % collection
+        def watch(event=None):
+            data = self.zk.get(path, watch=watch)
+            self.collections[collection] = json.loads(data[0].decode("utf8"))[collection]
+
+        try:
+            watch()
+        except NoNodeError, e:
+            if (self.hasClusterState and not self.collections.has_key(collection)) or not self.hasClusterState:
+                raise SolrError("No collection %s" % collection)
 
     def __del__(self):
         # Avoid leaking connection handles in Kazoo's atexit handler:
@@ -1264,7 +1283,8 @@ class ZooKeeper(object):
                         if not only_leader or (replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
                             base_url = replica[ZooKeeper.BASE_URL]
                             if base_url not in hosts:
-                                hosts.append(base_url)
+                                if replica[ZooKeeper.NODE_NAME] in self.liveNodes:
+                                    hosts.append(base_url)
         return hosts
 
     def getAliasHosts(self, collname, only_leader, seen_aliases):
@@ -1284,7 +1304,13 @@ class ZooKeeper(object):
         return hosts
 
     def getRandomURL(self, collname):
-        return random.choice(self.getHosts(collname, only_leader=False)) + "/" + collname
+        hosts = self.getHosts(collname, only_leader=False)
+        if len(hosts)==0:
+            raise SolrError("No hosts available for %s" % collname)
+        return random.choice(hosts) + "/" + collname
 
     def getLeaderURL(self, collname):
+        hosts = self.getHosts(collname, only_leader=True)
+        if len(hosts)==0:
+            raise SolrError("No leaders available for %s" % collname)
         return random.choice(self.getHosts(collname, only_leader=True)) + "/" + collname
