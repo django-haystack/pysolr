@@ -247,26 +247,15 @@ class Results(object):
     Note that ``Results`` object does not support indexing and slicing. If you
     need to retrieve documents by index just use ``docs`` attribute.
 
-    Other response metadata (debug, highlighting, qtime, etc.) are available
-    as attributes. Note that not all response keys may be covered for current
-    version of pysolr. If you're sure that your queries return
-    something that is missing you can easily extend ``Results``
-    and provide it as a custom results class to ``pysolr.Solr``.
+    Other common response metadata (debug, highlighting, qtime, etc.) are available as attributes.
 
-    Example::
-
-        import pysolr
-
-        class CustomResults(pysolr.Results):
-            def __init__(self, decoded):
-                 self.some_new_attribute = decoded.get('not_covered_key' None)
-                 super(self, CustomResults).__init__(decoded)
-
-        solr = Solr('<solr url>', response_cls=CustomResults)
-
+    The full response from Solr is provided as the `raw_response` dictionary for use with features which
+    change the response format.
     """
 
     def __init__(self, decoded):
+        self.raw_response = decoded
+
         # main response part of decoded Solr response
         response_part = decoded.get('response') or {}
         self.docs = response_part.get('docs', ())
