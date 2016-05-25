@@ -24,7 +24,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 3',
     ],
-    url='http://github.com/toastdriven/pysolr/',
+    url='https://github.com/django-haystack/pysolr/',
     license='BSD',
     install_requires=[
         'requests>=2.0'
