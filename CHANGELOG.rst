@@ -4,6 +4,11 @@ Changelog
 %%version%% (unreleased)
 ------------------------
 
+- Update project URL. [Chris Adams]
+
+v3.5.0 (2016-05-24)
+-------------------
+
 New
 ~~~
 
@@ -12,6 +17,12 @@ New
   This makes life easier for anyone using custom extensions by
   removing the need to create a `Results` subclass just to get
   access to an extra dictionary key.
+
+- More flexible control of request handlers. [nuarhu]
+
+  This allows configuring the default search handler and overriding it for every query method
+
+  Thanks to @nuarhu for the patch
 
 - Start maintaining a changelog from gitchangelog. [Chris Adams]
 
@@ -28,6 +39,22 @@ New
 
 Other
 ~~~~~
+
+- V3.5.0. [Chris Adams]
+
+- Merge pull request #192 from dhruvpathak/optimize_commit_flag. [Chris
+  Adams]
+
+  chg: `optimize()` also accepts `commit` flag
+
+- Included commit flag in optimize() to let optimize call run with or
+  without commit. [dhruv.pathak]
+
+- Merge pull request #188 from TigorC/master. [Chris Adams]
+
+  Removed py26 from tox.ini
+
+- Removed py26 from tox.ini. [Igor Tokarev]
 
 - Tests: avoid timeout-based CI failures. [Chris Adams]
 
