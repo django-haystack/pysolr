@@ -14,7 +14,7 @@ Status
 .. image:: https://secure.travis-ci.org/django-haystack/pysolr.png
    :target: https://secure.travis-ci.org/django-haystack/pysolr
 
-`Changelog <CHANGELOG.rst>`_
+`Changelog <https://github.com/django-haystack/pysolr/blob/master/CHANGELOG.rst>`_
 
 Features
 ========
@@ -98,6 +98,7 @@ Basic usage looks like:
     solr.delete(q='*:*')
 
 .. code-block:: python
+
     # For SolrCloud mode, initialize your Solr like this:
 
     zookeeper = pysolr.Zookeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
