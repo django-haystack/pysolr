@@ -1195,7 +1195,7 @@ class ZooKeeper(object):
     FALSE = 'false'
     COLLECTION = 'collection'
 
-    def __init__(self, zkServerAddress, zkClientTimeout=15, zkClientConnectTimeout=15):
+    def __init__(self, zkServerAddress, zkClientTimeout=15, kazoo_client=None):
         if KazooClient is None:
             logging.error('ZooKeeper requires the `kazoo` library to be installed')
             raise RuntimeError
@@ -1205,7 +1205,10 @@ class ZooKeeper(object):
         self.aliases = {}
         self.state = None
 
-        self.zk = KazooClient(zkServerAddress, read_only=True, timeout=zkClientTimeout)
+        if kazoo_client is None:
+            self.zk = KazooClient(zkServerAddress, read_only=True, timeout=zkClientTimeout)
+        else:
+            self.zk = kazoo_client
 
         self.zk.start()
 
