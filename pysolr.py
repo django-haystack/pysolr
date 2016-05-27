@@ -313,10 +313,6 @@ class Solr(object):
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
 
-    def __del__(self):
-        if hasattr(self, "session"):
-            self.session.close()
-
     def _get_log(self):
         return LOG
 
@@ -1245,11 +1241,6 @@ class ZooKeeper(object):
             else:
                 self.aliases = None
             LOG.info("Updated aliases: %s", self.aliases)
-
-    def __del__(self):
-        # Avoid leaking connection handles in Kazoo's atexit handler:
-        self.zk.stop()
-        self.zk.close()
 
     def getHosts(self, collname, only_leader=False, seen_aliases=None):
         if self.aliases and collname in self.aliases:
