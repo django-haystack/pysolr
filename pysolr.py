@@ -1207,6 +1207,7 @@ class ZooKeeper(object):
 
         if kazoo_client is None:
             self.zk = KazooClient(zkServerAddress, read_only=True, timeout=timeout,
+                                  command_retry={'max_tries': max_retries},
                                   connection_retry={'max_tries': max_retries})
         else:
             self.zk = kazoo_client
