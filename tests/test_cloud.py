@@ -22,7 +22,7 @@ class SolrCloudTestCase(SolrTestCase):
     def get_solr(self, collection, timeout=60):
         # TODO: make self.zk a memoized property:
         if not getattr(self, 'zk', None):
-            self.zk = ZooKeeper("localhost:9992")
+            self.zk = ZooKeeper("localhost:9992", timeout=timeout, max_retries=15)
 
         return SolrCloud(self.zk, collection, timeout=timeout)
 
