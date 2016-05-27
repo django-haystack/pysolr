@@ -1281,8 +1281,11 @@ class ZooKeeper(object):
                     hosts.append(host)
         return hosts
 
-    def getRandomURL(self, collname):
-        return random.choice(self.getHosts(collname, only_leader=False)) + "/" + collname
+    def getRandomURL(self, collname, only_leader=False):
+        hosts = self.getHosts(collname, only_leader=only_leader)
+        if not hosts:
+            raise SolrError('ZooKeeper returned no active shards!')
+        return '%s/%s' % (random.choice(hosts), collname)
 
     def getLeaderURL(self, collname):
-        return random.choice(self.getHosts(collname, only_leader=True)) + "/" + collname
+        return self.getRandomURL(collname, only_leader=True)
