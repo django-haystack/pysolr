@@ -3,12 +3,21 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import signal
+import traceback
 import unittest
 
 from tests import utils as test_utils
 
 
 def main():
+    try:
+        import faulthandler
+        faulthandler.register(signal.SIGUSR1, all_threads=True)
+        print('Installed SIGUSR1 handler to print stack traces: pkill -USR1 -f run-tests')
+    except ImportError:
+        pass
+
     test_utils.prepare()
     test_utils.start_solr()
 
