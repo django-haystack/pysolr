@@ -1205,7 +1205,7 @@ class ZooKeeper(object):
         self.aliases = {}
         self.state = None
 
-        self.zk = KazooClient(zkServerAddress, read_only=True)
+        self.zk = KazooClient(zkServerAddress, read_only=True, timeout=zkClientTimeout)
 
         self.zk.start()
 
