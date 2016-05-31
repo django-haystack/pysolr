@@ -307,11 +307,16 @@ class Solr(object):
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
-        self.session = requests.Session()
-        self.session.stream = False
+        self.session = None
         self.results_cls = results_cls
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
+
+    def get_session(self):
+        if self.session is None:
+            self.session = requests.Session()
+            self.session.stream = False
+        return self.session
 
     def _get_log(self):
         return LOG
@@ -340,8 +345,10 @@ class Solr(object):
                        url, method, log_body[:10])
         start_time = time.time()
 
+        session = self.get_session()
+
         try:
-            requests_method = getattr(self.session, method, 'get')
+            requests_method = getattr(session, method, 'get')
         except AttributeError as err:
             raise SolrError("Unable to send HTTP method '{0}.".format(method))
 
