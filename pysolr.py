@@ -348,9 +348,9 @@ class Solr(object):
         session = self.get_session()
 
         try:
-            requests_method = getattr(session, method, 'get')
+            requests_method = getattr(session, method)
         except AttributeError as err:
-            raise SolrError("Unable to send HTTP method '{0}.".format(method))
+            raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
 
         # Everything except the body can be Unicode. The body must be
         # encoded to bytes to work properly on Py3.
