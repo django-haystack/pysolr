@@ -385,7 +385,9 @@ class Solr(object):
             solr_message = self._extract_error(resp)
             self.log.error(error_message, resp.status_code, solr_message,
                            extra={'data': {'headers': resp.headers,
-                                           'response': resp.content}})
+                                           'response': resp.content,
+                                           'request_body': bytes_body,
+                                           'request_headers': headers}})
             raise SolrError(error_message % (resp.status_code, solr_message))
 
         return force_unicode(resp.content)
