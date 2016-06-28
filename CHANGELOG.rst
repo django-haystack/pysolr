@@ -4,6 +4,75 @@ Changelog
 %%version%% (unreleased)
 ------------------------
 
+New
+~~~
+
+- Support for nested documents (closes #170) [Chris Adams]
+
+  This adds support for Solr's nested documents in `Solr.add`
+
+  Thanks to @skirsdeda for the patch
+
+- ZooKeeper can receive an existing KazooClient instance. [Chris Adams]
+
+  This simplifies advanced customization by allowing you to pass in an existing instance which is configured in whatever manner necessary.
+
+Changes
+~~~~~~~
+
+- Logging: pass full request body + headers as extra data. [Chris Adams]
+
+  This doesn't affect the normal logging output but is helpful for
+  aggregation systems such as Sentry where the full request information
+  may be displayed for debugging purposes
+
+- Basic max_retries for ZooKeeper. [Chris Adams]
+
+  Kazoo sets the default to hang forever which is frequently not the desired error-handling behavior. This makes it easier to set a limit on the number of retries and we use it in testing to avoid the suite hanging endlessly.
+
+- Better error message for Solr failures. [Chris Adams]
+
+  Previously when ZooKeeper had no active shards pysolr
+  would return an error when `random.shuffle` received
+  an empty list. Now it will raise an exception which
+  will hopefully indicate just how bad the situation is.
+
+- Remove __del__ methods. [Chris Adams]
+
+  The __del__ methods were added in an attempt to avoid Kazoo-related
+  failures as part of the SolrCloud support but can cause other problems
+  on different versions of Python (see #193).
+
+  Since the errors in question were observed during testing this commit
+  removes the __del__ methods and we will have to find an alternative for
+  making tests fail safely.
+
+Fix
+~~~
+
+- Set KazooClient timeout. [Chris Adams]
+
+  `__init__` was not actually passing this to the ZooKeeper client
+
+Other
+~~~~~
+
+- Oops.. Add a missing assert in tests. [Tadas Dailyda]
+
+- Refactor _build_doc to be recursive and allow deeper document nesting,
+  fix tests accordingly. [Tadas Dailyda]
+
+- Add some block join queries to test_search. [Tadas Dailyda]
+
+- Add some nested docs to the tests. [Tadas Dailyda]
+
+- Implement nested documents functionality. [Tadas Dailyda]
+
+- ZooKeeper: by default use the same timeout for commands and
+  connections. [Chris Adams]
+
+- Tox: run SolrCloud tests (parity with Travis CI) [Chris Adams]
+
 - Update project URL. [Chris Adams]
 
 v3.5.0 (2016-05-24)
