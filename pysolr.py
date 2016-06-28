@@ -63,6 +63,8 @@ def get_version():
 
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
+# dict key used to add nested documents to a document
+NESTED_DOC_KEY = '_childDocuments_'
 
 
 class NullHandler(logging.Handler):
@@ -793,6 +795,11 @@ class Solr(object):
         doc_elem = ElementTree.Element('doc')
 
         for key, value in doc.items():
+            if key == NESTED_DOC_KEY:
+                for child in value:
+                    doc_elem.append(self._build_doc(child, boost, fieldUpdates))
+                continue
+
             if key == 'boost':
                 doc_elem.set('boost', force_unicode(value))
                 continue
@@ -867,7 +874,8 @@ class Solr(object):
             message.set('commitWithin', commitWithin)
 
         for doc in docs:
-            message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
+            el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
+            message.append(el)
 
         # This returns a bytestring. Ugh.
         m = ElementTree.tostring(message, encoding='utf-8')

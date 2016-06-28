@@ -6,8 +6,8 @@ import unittest
 from io import StringIO
 from xml.etree import ElementTree
 
-from pysolr import (Results, Solr, SolrError, clean_xml_string, force_bytes,
-                    force_unicode, json, safe_urlencode, sanitize,
+from pysolr import (NESTED_DOC_KEY, Results, Solr, SolrError, clean_xml_string,
+                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
                     unescape_html)
 
 try:
@@ -166,6 +166,50 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            # several with nested docs (not using fields that are used in
+            # normal docs so that they don't interfere with their tests)
+            {
+                'id': 'parentdoc_1',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 1',
+                'pages_i': 5,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_1',
+                        'type_s': 'child',
+                        'name_t': 'Child #1',
+                        'comment_t': 'Hello there',
+                    },
+                    {
+                        'id': 'childdoc_2',
+                        'type_s': 'child',
+                        'name_t': 'Child #2',
+                        'comment_t': 'Ehh..',
+                    },
+                ],
+            },
+            {
+                'id': 'parentdoc_2',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 2',
+                'pages_i': 500,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_3',
+                        'type_s': 'child',
+                        'name_t': 'Child of another parent',
+                        'comment_t': 'Yello',
+                        NESTED_DOC_KEY: [
+                            {
+                                'id': 'grandchilddoc_1',
+                                'type_s': 'grandchild',
+                                'name_t': 'Grand child of parent',
+                                'comment_t': 'Blah',
+                            },
+                        ],
+                    },
+                ],
+            }
         ]
 
         # Clear it.
@@ -411,6 +455,18 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+        # Nested search #1: find parent where child's comment has 'hello'
+        results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
+        self.assertEqual(len(results), 1)
+        # TODO: for some reason Solr 4.10 returns all parents and non-nested
+        # docs together with matched children when running {!child} query
+        # Nested search #2: find children for parent 'id:nestdoc_1'
+        # results = self.solr.search("{!child of=type_s:nested}id:nestdoc_1")
+        # self.assertEqual(len(results), 2)
+        # Nested search #3: find child with a child
+        results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
+        self.assertEqual(len(results), 1)
+
     def test_multiple_search_handlers(self):
         misspelled_words = 'anthr thng'
         # By default, the 'select' search handler should be used
@@ -561,8 +617,17 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue(args[1].startswith('update/?'))
 
         self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 2)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.assertEqual(len(self.solr.search('type_s:grandchild')), 1)
         self.solr.delete(q='price:[0 TO 15]')
+        self.solr.delete(q='type_s:parent')
+        # one simple doc should remain
+        # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search('doc')), 1)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 0)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.solr.delete(q='type_s:child OR type_s:grandchild')
 
         self.assertEqual(len(self.solr.search('*:*')), 1)
         self.solr.delete(q='*:*')
