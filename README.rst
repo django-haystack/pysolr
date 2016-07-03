@@ -1,7 +1,6 @@
 ======
 pysolr
 ======
-Christian 
 
 ``pysolr`` is a lightweight Python wrapper for `Apache Solr`_. It provides an
 interface that queries the server and returns results based on the query.
