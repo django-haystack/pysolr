@@ -590,10 +590,18 @@ class Solr(object):
         we send to solr.
         """
         if hasattr(value, 'strftime'):
-            if hasattr(value, 'hour'):
-                value = "%sZ" % value.isoformat()
+            if not hasattr(value, 'tzinfo') or value.tzinfo is None:
+                # For a naive time, just assume it's in UTC
+                tz_suffix = 'Z'
             else:
-                value = "%sT00:00:00Z" % value.isoformat()
+                # There's a timezone, so .isoformat() will include the offset,
+                # and we don't need to append 'Z'.
+                tz_suffix = ''
+
+            if hasattr(value, 'hour'):
+                value = "%s%s" % (value.isoformat(), tz_suffix)
+            else:
+                value = "%sT00:00:00%s" % (value.isoformat(), tz_suffix)
         elif isinstance(value, bool):
             if value:
                 value = 'true'

@@ -389,8 +389,6 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
 
     def test__from_python(self):
-        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
-        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
         self.assertEqual(self.solr._from_python(True), 'true')
         self.assertEqual(self.solr._from_python(False), 'false')
         self.assertEqual(self.solr._from_python(1), '1')
@@ -398,6 +396,29 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._from_python(b'hello'), 'hello')
         self.assertEqual(self.solr._from_python('hello ☃'), 'hello ☃')
         self.assertEqual(self.solr._from_python('\x01test\x02'), 'test')
+
+    def test__from_python_dates(self):
+        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
+        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
+
+        class FakeTimeZone(datetime.tzinfo):
+            offset = 0
+            def utcoffset(self, dt):
+                return datetime.timedelta(minutes=self.offset)
+
+            def dst(self):
+                return None
+
+        # Check a UTC timestamp
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T00:30:28+00:00')
+
+        # Check a US Eastern Standard Time timestamp
+        FakeTimeZone.offset = -(5*60)
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T00:30:28-05:00')
 
     def test__to_python(self):
         self.assertEqual(self.solr._to_python('2013-01-18T00:00:00Z'), datetime.datetime(2013, 1, 18))
