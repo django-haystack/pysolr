@@ -412,13 +412,13 @@ class SolrTestCase(unittest.TestCase):
         # Check a UTC timestamp
         self.assertEqual(self.solr._from_python(
             datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
-            '2013-01-18T00:30:28+00:00')
+            '2013-01-18T00:30:28Z')
 
         # Check a US Eastern Standard Time timestamp
         FakeTimeZone.offset = -(5*60)
         self.assertEqual(self.solr._from_python(
             datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
-            '2013-01-18T00:30:28-05:00')
+            '2013-01-18T05:30:28Z')
 
     def test__to_python(self):
         self.assertEqual(self.solr._to_python('2013-01-18T00:00:00Z'), datetime.datetime(2013, 1, 18))
