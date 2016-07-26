@@ -54,6 +54,8 @@ Fix
 
   `__init__` was not actually passing this to the ZooKeeper client
 
+- Don't append 'Z' to timezone-aware dates. Closes #197.  [Andrew Kuchling]
+
 Other
 ~~~~~
 
@@ -956,5 +958,3 @@ v2.0.10 (2010-04-28)
 - Initial import of pysolr. [jkocherhans]
 
 - Initial directory structure. [(no author)]
-
-
