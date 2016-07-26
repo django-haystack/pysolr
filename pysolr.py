@@ -591,7 +591,10 @@ class Solr(object):
         """
         if hasattr(value, 'strftime'):
             if hasattr(value, 'hour'):
-                value = "%sZ" % value.isoformat()
+                offset = value.utcoffset()
+                if offset:
+                    value = value - offset
+                value = value.replace(tzinfo=None).isoformat() + 'Z'
             else:
                 value = "%sT00:00:00Z" % value.isoformat()
         elif isinstance(value, bool):
