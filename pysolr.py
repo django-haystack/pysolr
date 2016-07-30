@@ -477,7 +477,7 @@ class Solr(object):
 
 		# Clean the message of ctrl characters.
 		if clean_ctrl_chars:
-			message = sanitize(message)
+			message = sanitize(message)		
 
 		return self._send_request('post', path, message, {'Content-type': 'text/xml; charset=utf-8'})
 
