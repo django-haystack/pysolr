@@ -27,7 +27,7 @@ setup(
     url='https://github.com/django-haystack/pysolr/',
     license='BSD',
     install_requires=[
-        'requests>=2.0'
+        'requests>=2.9.1'
     ],
     extras_require={
         'solrcloud': [
