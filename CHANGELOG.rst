@@ -54,10 +54,39 @@ Fix
 
   `__init__` was not actually passing this to the ZooKeeper client
 
-- Don't append 'Z' to timezone-aware dates. Closes #197.  [Andrew Kuchling]
-
 Other
 ~~~~~
+
+- Better docstring for SolrCoreAdmin. [Chris Adams]
+
+  Thanks to Patricio Del Boca (@pdelboca) for the patch.
+
+  Closes #185
+
+- Require requests >= 2.9.1 (closes #177) [Chris Adams]
+
+  This will avoid compatibility issues on Python 3 which can produce
+  confusing errors.
+
+- Merge pull request #203 from bendemott/documentation. [Chris Adams]
+
+  updated typo in documentation example
+
+- Updated typo in documentation example. [Ben DeMott]
+
+  "Zookeeper" should be "ZooKeeper" on line 104 in README.rst
+
+- Docs: note that add has commit=True by default (see #46) [Chris Adams]
+
+  Thanks to @mlissner
+
+- Adds note about commit=True being the default. [Mike Lissner]
+
+- Correctly handle time-zone aware dates (#201) [Andrew Kuchling]
+
+  Thanks to Andrew Kuchling (@akuchling) for the patch.
+
+  Closes #197, #198
 
 - Oops.. Add a missing assert in tests. [Tadas Dailyda]
 
@@ -958,3 +987,5 @@ v2.0.10 (2010-04-28)
 - Initial import of pysolr. [jkocherhans]
 
 - Initial directory structure. [(no author)]
+
+
