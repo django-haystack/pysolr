@@ -104,7 +104,7 @@ Basic usage looks like:
 
     # For SolrCloud mode, initialize your Solr like this:
 
-    zookeeper = pysolr.Zookeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
     solr = pysolr.SolrCloud(zookeeper, "collection1")
 
 
