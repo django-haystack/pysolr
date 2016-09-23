@@ -66,6 +66,9 @@ Basic usage looks like:
             "title": "The Banana: Tasty or Dangerous?",
         },
     ])
+    
+    # Note that the add method has commit=True by default, so this is 
+    # immediately committed to your index.
 
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
