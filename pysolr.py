@@ -454,9 +454,9 @@ class Solr(object):
 
         path = '%s/' % path_handler
 
-        if commit is not None:
+        if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
-        elif softCommit is not None:
+        elif softCommit:
             query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
         if waitFlush is not None:
@@ -890,7 +890,7 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
@@ -899,6 +899,8 @@ class Solr(object):
         indicating a collection of documents to delete.
 
         Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``waitFlush``. Default is ``None``.
 
@@ -919,7 +921,7 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None, handler='update'):
         """
@@ -943,7 +945,7 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
