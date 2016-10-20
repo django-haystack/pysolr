@@ -426,7 +426,7 @@ class Solr(object):
         path = 'terms/?%s' % safe_urlencode(params, True)
         return self._send_request('get', path)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, overwrite=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, overwrite=None, updateChain=None):
         """
         Posts the given xml message to http://<self.url>/update and
         returns the result.
@@ -456,6 +456,9 @@ class Solr(object):
 
         if waitSearcher is not None:
             query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
+
+        if updateChain is not None:
+            query_vars.append('update.chain=%s' % updateChain)
 
         if query_vars:
             path = '%s?%s' % (path, '&'.join(query_vars))
@@ -813,7 +816,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None, overwrite=None):
+    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None, overwrite=None, updateChain=None):
         """
         Adds or updates documents.
 
@@ -866,7 +869,7 @@ class Solr(object):
 
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
-        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, overwrite=overwrite)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, overwrite=overwrite, updateChain=updateChain)
 
     def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
         """
@@ -1154,7 +1157,11 @@ class SolrCloud(Solr):
         self.collection = collection
         self.retry_timeout = retry_timeout
         self.retry_count = retry_count
-        if collection:
+        if collection in self.zookeeper.aliases:
+            collections = self.zookeeper.aliases[collection].split(",")
+            for aliased_collection in collections:
+                self.zookeeper.watchCollection(aliased_collection)
+        elif collection:
             self.zookeeper.watchCollection(collection)
 
     def _randomized_request(self, method, path, body, headers, files):
@@ -1237,13 +1244,13 @@ class ZooKeeper(object):
         def watchAliases(data, stat):
             if data:
                 json_data = json.loads(data.decode('utf-8'))
-                if ZooKeeper.COLLECTION in json_data:
+                if ZooKeeper.COLLECTION in json_data and json_data[ZooKeeper.COLLECTION]:
                     self.aliases = json_data[ZooKeeper.COLLECTION]
                 else:
                     LOG.warning('Expected to find %s in alias update %s',
                                 ZooKeeper.COLLECTION, json_data.keys())
             else:
-                self.aliases = None
+                self.aliases = {}
             LOG.info("Updated aliases: %s", self.aliases)
 
     def watchCollection(self, collection):
