@@ -454,9 +454,9 @@ class Solr(object):
 
         path = '%s/' % path_handler
 
-        if commit is not None:
+        if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
-        elif softCommit is not None:
+        elif softCommit:
             query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
         if waitFlush is not None:
@@ -943,7 +943,7 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
