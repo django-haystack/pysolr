@@ -890,7 +890,7 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
@@ -899,6 +899,8 @@ class Solr(object):
         indicating a collection of documents to delete.
 
         Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``waitFlush``. Default is ``None``.
 
@@ -919,7 +921,7 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None, handler='update'):
         """
