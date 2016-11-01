@@ -17,6 +17,10 @@ env:
     - SOLRCLOUD=false
     - SOLRCLOUD=true
 
+matrix:
+    allow_failures:
+        - python: 'pypy'
+
 addons:
   apt_packages:
     - default-jdk
