@@ -9,7 +9,7 @@ import random
 import re
 import time
 from xml.etree import ElementTree
-from pkg_resources import get_distribution, DistributionNotFound
+from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 import requests
 
@@ -58,12 +58,15 @@ __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
 
 try:
-    __version__ = get_distribution(__name__).version
+    pkg_distribution = get_distribution(__name__)
+    __version__ = pkg_distribution.version
+    version_info = pkg_distribution.parsed_version
 except DistributionNotFound:
-    __version__ = (0, 0, 'dev0')
+    __version__ = '0.0.dev0'
+    version_info = parse_version(__version__)
 
 def get_version():
-    return "%s.%s.%s" % __version__[:3]
+    return __version__
 
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
