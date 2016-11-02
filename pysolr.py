@@ -9,6 +9,7 @@ import random
 import re
 import time
 from xml.etree import ElementTree
+from pkg_resources import get_distribution, DistributionNotFound
 
 import requests
 
@@ -55,8 +56,11 @@ except NameError:
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (3, 5, 0)
 
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = (0, 0, 'dev0')
 
 def get_version():
     return "%s.%s.%s" % __version__[:3]
