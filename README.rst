@@ -30,7 +30,7 @@ Requirements
 ============
 
 * Python 2.7 - 3.5
-* Requests 2.0+
+* Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
 
