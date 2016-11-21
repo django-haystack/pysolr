@@ -1,10 +1,10 @@
 sudo: false
 language: python
 python:
-    - "2.6"
     - "2.7"
     - "3.3"
     - "3.4"
+    - "3.5"
     - "pypy"
 
 cache:
@@ -13,14 +13,23 @@ cache:
   directories:
       - $HOME/download-cache
 
+env:
+    - SOLRCLOUD=false
+    - SOLRCLOUD=true
+
+matrix:
+    allow_failures:
+        - python: 'pypy'
+
 addons:
   apt_packages:
     - default-jdk
 
 install:
     - "pip install 'requests>2'"
-    - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then travis_retry pip install unittest2; fi
     - "pip install ."
+    - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
+    - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
 script:
     - python run-tests.py

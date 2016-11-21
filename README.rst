@@ -10,9 +10,10 @@ interface that queries the server and returns results based on the query.
 Status
 ======
 
-.. image:: https://secure.travis-ci.org/toastdriven/pysolr.png
-   :target: https://secure.travis-ci.org/toastdriven/pysolr
+.. image:: https://secure.travis-ci.org/django-haystack/pysolr.png
+   :target: https://secure.travis-ci.org/django-haystack/pysolr
 
+`Changelog <https://github.com/django-haystack/pysolr/blob/master/CHANGELOG.rst>`_
 
 Features
 ========
@@ -22,15 +23,15 @@ Features
 * `"More Like This" <http://wiki.apache.org/solr/MoreLikeThis>`_ support (if set up in Solr).
 * `Spelling correction <http://wiki.apache.org/solr/SpellCheckComponent>`_ (if set up in Solr).
 * Timeout support.
-
+* SolrCloud awareness
 
 Requirements
 ============
 
-* Python 2.6 - 3.3
+* Python 2.7 - 3.5
 * Requests 2.0+
 * **Optional** - ``simplejson``
-
+* **Optional** - ``kazoo`` for SolrCloud mode
 
 Installation
 ============
@@ -68,6 +69,9 @@ Basic usage looks like:
             ]
         },
     ])
+    
+    # Note that the add method has commit=True by default, so this is 
+    # immediately committed to your index.
 
     # You can index a parent/child document relationship by
     # associating a list of child documents with the special key '_doc'. This
@@ -104,12 +108,51 @@ Basic usage looks like:
     # ...or all documents.
     solr.delete(q='*:*')
 
+.. code-block:: python
+
+    # For SolrCloud mode, initialize your Solr like this:
+
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection1")
+
+
+Multicore Index
+~~~~~~~~~~~~~~~
+
+Simply point the URL to the index core:
+
+.. code-block:: python
+
+    # Setup a Solr instance. The timeout is optional.
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', timeout=10)
+
+
+Custom Request Handlers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    # Setup a Solr instance. The trailing slash is optional.
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
+
+
+If ``use_qt_param`` is ``True`` it is essential that the name of the handler is exactly what is configured
+in ``solrconfig.xml``, including the leading slash if any (though with the ``qt`` parameter a leading slash is not
+a requirement by SOLR). If ``use_qt_param`` is ``False`` (default), the leading and trailing slashes can be
+omitted.
+
+If ``search_handler`` is not specified, pysolr will default to ``/select``.
+
+The handlers for MoreLikeThis, Update, Terms etc. all default to the values set in the ``solrconfig.xml`` SOLR ships
+with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
+``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
+Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
+
 
 LICENSE
 =======
 
 ``pysolr`` is licensed under the New BSD license.
-
 
 Running Tests
 =============
@@ -122,7 +165,7 @@ Running a test Solr instance
 
 Downloading, configuring and running Solr 4 looks like this::
 
-    ./start-test-solr.sh
+    ./start-solr-test-server.sh
 
 Running the tests
 ~~~~~~~~~~~~~~~~~
@@ -136,3 +179,4 @@ Python 2::
 Python 3::
 
     python3 -m unittest tests
+

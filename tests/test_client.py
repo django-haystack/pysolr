@@ -1,27 +1,24 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
 import datetime
-import sys
+import unittest
+from io import StringIO
+from xml.etree import ElementTree
 
-from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
-                    force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
-                    clean_xml_string)
+from pysolr import (NESTED_DOC_KEY, Results, Solr, SolrError, clean_xml_string,
+                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
+                    unescape_html)
 
 try:
-    import unittest2 as unittest
+    from unittest.mock import Mock
 except ImportError:
-    import unittest
+    from mock import Mock
 
 try:
     from urllib.parse import unquote_plus
 except ImportError:
     from urllib import unquote_plus
-
-if IS_PY3:
-    from io import StringIO
-else:
-    from StringIO import StringIO
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -59,7 +56,13 @@ class UtilsTestCase(unittest.TestCase):
 
 class ResultsTestCase(unittest.TestCase):
     def test_init(self):
-        default_results = Results([{'id': 1}, {'id': 2}], 2)
+        default_results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}],
+                'numFound': 2,
+            },
+        })
+
         self.assertEqual(default_results.docs, [{'id': 1}, {'id': 2}])
         self.assertEqual(default_results.hits, 2)
         self.assertEqual(default_results.highlighting, {})
@@ -70,18 +73,23 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(default_results.debug, {})
         self.assertEqual(default_results.grouped, {})
 
-        full_results = Results(
-            docs=[{'id': 1}, {'id': 2}, {'id': 3}],
-            hits=3,
+        full_results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}, {'id': 3}],
+                'numFound': 3,
+            },
             # Fake data just to check assignments.
-            highlighting='hi',
-            facets='fa',
-            spellcheck='sp',
-            stats='st',
-            qtime='0.001',
-            debug=True,
-            grouped=['a']
-        )
+            'highlighting': 'hi',
+            'facet_counts': 'fa',
+            'spellcheck': 'sp',
+            'stats': 'st',
+            'responseHeader': {
+                'QTime': '0.001',
+            },
+            'debug': True,
+            'grouped': ['a'],
+        })
+
         self.assertEqual(full_results.docs, [{'id': 1}, {'id': 2}, {'id': 3}])
         self.assertEqual(full_results.hits, 3)
         self.assertEqual(full_results.highlighting, 'hi')
@@ -93,14 +101,29 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(full_results.grouped, ['a'])
 
     def test_len(self):
-        small_results = Results([{'id': 1}, {'id': 2}], 2)
+        small_results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}],
+                'numFound': 2,
+            },
+        })
         self.assertEqual(len(small_results), 2)
 
-        wrong_hits_results = Results([{'id': 1}, {'id': 2}, {'id': 3}], 7)
+        wrong_hits_results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}, {'id': 3}],
+                'numFound': 7,
+            },
+        })
         self.assertEqual(len(wrong_hits_results), 3)
 
     def test_iter(self):
-        long_results = Results([{'id': 1}, {'id': 2}, {'id': 3}], 3)
+        long_results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}, {'id': 3}],
+                'numFound': 7,
+            },
+        })
 
         to_iter = list(long_results)
         self.assertEqual(to_iter[0], {'id': 1})
@@ -111,9 +134,7 @@ class ResultsTestCase(unittest.TestCase):
 class SolrTestCase(unittest.TestCase):
     def setUp(self):
         super(SolrTestCase, self).setUp()
-        self.default_solr = Solr('http://localhost:8983/solr/core0')
-        # Short timeouts.
-        self.solr = Solr('http://localhost:8983/solr/core0', timeout=2)
+        self.solr = self.get_solr("core0")
         self.docs = [
             {
                 'id': 'doc_1',
@@ -145,6 +166,50 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            # several with nested docs (not using fields that are used in
+            # normal docs so that they don't interfere with their tests)
+            {
+                'id': 'parentdoc_1',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 1',
+                'pages_i': 5,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_1',
+                        'type_s': 'child',
+                        'name_t': 'Child #1',
+                        'comment_t': 'Hello there',
+                    },
+                    {
+                        'id': 'childdoc_2',
+                        'type_s': 'child',
+                        'name_t': 'Child #2',
+                        'comment_t': 'Ehh..',
+                    },
+                ],
+            },
+            {
+                'id': 'parentdoc_2',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 2',
+                'pages_i': 500,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_3',
+                        'type_s': 'child',
+                        'name_t': 'Child of another parent',
+                        'comment_t': 'Yello',
+                        NESTED_DOC_KEY: [
+                            {
+                                'id': 'grandchilddoc_1',
+                                'type_s': 'grandchild',
+                                'name_t': 'Grand child of parent',
+                                'comment_t': 'Blah',
+                            },
+                        ],
+                    },
+                ],
+            }
         ]
 
         # Clear it.
@@ -155,26 +220,47 @@ class SolrTestCase(unittest.TestCase):
         # Such is life.
         self.solr.add(self.docs)
 
-    def tearDown(self):
-        self.solr.delete(q='*:*')
-        super(SolrTestCase, self).tearDown()
+        # Mock the _send_request method on the solr instance so that we can
+        # test that custom handlers are called correctly.
+        self.solr._send_request = Mock(wraps=self.solr._send_request)
+
+    def assertURLStartsWith(self, URL, path):
+        """Assert that the test URL provided starts with a known base and the provided path"""
+        # Note that we do not use urljoin to ensure that any changes in trailing
+        # slash handling are caught quickly:
+        return self.assertEqual(URL, '%s/%s' % (self.solr.url.replace('/core0', ''), path))
+
+    def get_solr(self, collection, timeout=60):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
 
     def test_init(self):
-        self.assertEqual(self.default_solr.url, 'http://localhost:8983/solr/core0')
-        self.assertTrue(isinstance(self.default_solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.default_solr.timeout, 60)
-
         self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
-        self.assertEqual(self.solr.timeout, 2)
+        self.assertEqual(self.solr.timeout, 60)
 
-    def test__create_full_url(self):
-        # Nada.
-        self.assertEqual(self.solr._create_full_url(path=''), 'http://localhost:8983/solr/core0')
-        # Basic path.
-        self.assertEqual(self.solr._create_full_url(path='pysolr_tests'), 'http://localhost:8983/solr/core0/pysolr_tests')
-        # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertEqual(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), 'http://localhost:8983/solr/core0/pysolr_tests/select/?whatever=/')
+        custom_solr = self.get_solr("core0", timeout=17)
+        self.assertEqual(custom_solr.timeout, 17)
+
+    def test_custom_results_class(self):
+        solr = Solr('http://localhost:8983/solr/core0', results_cls=dict)
+
+        results = solr.search(q='*:*')
+        assert isinstance(results, dict)
+        assert 'responseHeader' in results
+        assert 'response' in results
+
+    def test__create_full_url_base(self):
+        self.assertURLStartsWith(self.solr._create_full_url(path=''),
+                                 'core0')
+
+    def test__create_full_url_with_path(self):
+        self.assertURLStartsWith(self.solr._create_full_url(path='pysolr_tests'),
+                                 'core0/pysolr_tests')
+
+    def test__create_full_url_with_path_and_querystring(self):
+        # Note the use of a querystring parameter including a trailing slash to catch sloppy trimming:
+        self.assertURLStartsWith(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'),
+                                 'core0/pysolr_tests/select/?whatever=/')
 
     def test__send_request(self):
         # Test a valid request.
@@ -188,11 +274,15 @@ class SolrTestCase(unittest.TestCase):
         })
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
-        # Test a non-existent URL.
-        old_url = self.solr.url
+    def test__send_request_to_bad_path(self):
+        # Test a non-existent URL:
         self.solr.url = 'http://127.0.0.1:567898/wahtever'
         self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
-        self.solr.url = old_url
+
+    def test_send_request_to_bad_core(self):
+        # Test a bad core on a valid URL:
+        self.solr.url = 'http://localhost:8983/solr/bad_core'
+        self.assertRaises(SolrError, self.solr._send_request, 'get', 'select/?q=doc&wt=json')
 
     def test__select(self):
         # Short params.
@@ -205,6 +295,12 @@ class SolrTestCase(unittest.TestCase):
         resp_data = json.loads(resp_body)
         self.assertEqual(resp_data['response']['numFound'], 0)
         self.assertEqual(len(resp_data['responseHeader']['params']['q']), 3 * 1024)
+
+        # Test Deep Pagination CursorMark
+        resp_body = self.solr._select({'q': '*', 'cursorMark': '*', 'sort': 'id desc', 'start': 0, 'rows': 2})
+        resp_data = json.loads(resp_body)
+        self.assertEqual(len(resp_data['response']['docs']), 2)
+        self.assertIn('nextCursorMark', resp_data)
 
     def test__mlt(self):
         resp_body = self.solr._mlt({'q': 'id:doc_1', 'mlt.fl': 'title'})
@@ -269,7 +365,6 @@ class SolrTestCase(unittest.TestCase):
         resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
         self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
 
-    @unittest.skipIf(sys.version_info < (2, 7), reason=u'Python 2.6 lacks the ElementTree 1.3 interface required for Solr XML error message parsing')
     def test__scrape_response_coyote_xml(self):
         resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
         self.assertEqual(resp_3, ("Invalid Date String:'2015-03-23 10:43:33'", "Invalid Date String:'2015-03-23 10:43:33'"))
@@ -293,10 +388,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(reason, None)
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
 
-
     def test__from_python(self):
-        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
-        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
         self.assertEqual(self.solr._from_python(True), 'true')
         self.assertEqual(self.solr._from_python(False), 'false')
         self.assertEqual(self.solr._from_python(1), '1')
@@ -304,6 +396,29 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._from_python(b'hello'), 'hello')
         self.assertEqual(self.solr._from_python('hello ☃'), 'hello ☃')
         self.assertEqual(self.solr._from_python('\x01test\x02'), 'test')
+
+    def test__from_python_dates(self):
+        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
+        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
+
+        class FakeTimeZone(datetime.tzinfo):
+            offset = 0
+            def utcoffset(self, dt):
+                return datetime.timedelta(minutes=self.offset)
+
+            def dst(self):
+                return None
+
+        # Check a UTC timestamp
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T00:30:28Z')
+
+        # Check a US Eastern Standard Time timestamp
+        FakeTimeZone.offset = -(5*60)
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T05:30:28Z')
 
     def test__to_python(self):
         self.assertEqual(self.solr._to_python('2013-01-18T00:00:00Z'), datetime.datetime(2013, 1, 18))
@@ -328,6 +443,9 @@ class SolrTestCase(unittest.TestCase):
     def test_search(self):
         results = self.solr.search('doc')
         self.assertEqual(len(results), 3)
+        # search should default to 'select' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select/?'))
 
         results = self.solr.search('example')
         self.assertEqual(len(results), 2)
@@ -358,14 +476,61 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+        # Nested search #1: find parent where child's comment has 'hello'
+        results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
+        self.assertEqual(len(results), 1)
+        # TODO: for some reason Solr 4.10 returns all parents and non-nested
+        # docs together with matched children when running {!child} query
+        # Nested search #2: find children for parent 'id:nestdoc_1'
+        # results = self.solr.search("{!child of=type_s:nested}id:nestdoc_1")
+        # self.assertEqual(len(results), 2)
+        # Nested search #3: find child with a child
+        results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
+        self.assertEqual(len(results), 1)
+
+    def test_multiple_search_handlers(self):
+        misspelled_words = 'anthr thng'
+        # By default, the 'select' search handler should be used
+        results = self.solr.search(q=misspelled_words)
+        self.assertEqual(results.spellcheck, {})
+        # spell search handler should return suggestions
+        # NB: this test relies on the spell search handler in the
+        # solrconfig (see the SOLR_ARCHIVE used by the start-solr-test-server script)
+        results = self.solr.search(q=misspelled_words, search_handler='spell')
+        self.assertNotEqual(results.spellcheck, {})
+
+        # search should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.search('doc', search_handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
         self.assertEqual(len(results), 0)
+        # more_like_this should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('mlt/?'))
+
+        # more_like_this should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.more_like_this('id:doc_1', 'text', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_suggest_terms(self):
         results = self.solr.suggest_terms('title', '')
         self.assertEqual(len(results), 1)
         self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2), ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
+        # suggest_terms should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('terms/?'))
+
+        # suggest_terms should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.suggest_terms('title', '', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test__build_doc(self):
         doc = {
@@ -374,7 +539,7 @@ class SolrTestCase(unittest.TestCase):
             'price': 12.59,
             'popularity': 10,
         }
-        doc_xml = force_unicode(ET.tostring(self.solr._build_doc(doc), encoding='utf-8'))
+        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
         self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
@@ -393,9 +558,18 @@ class SolrTestCase(unittest.TestCase):
                 'title': 'Another example doc',
             },
         ])
+        # add should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
 
         self.assertEqual(len(self.solr.search('doc')), 5)
         self.assertEqual(len(self.solr.search('example')), 3)
+
+        # add should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.add([], handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_add_with_boost(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -415,7 +589,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(originalDocs), 3)
         updateList = []
         for i, doc in enumerate(originalDocs):
-            updateList.append( {'id': doc['id'], 'popularity': 5} )
+            updateList.append({'id': doc['id'], 'popularity': 5})
         self.solr.add(updateList, fieldUpdates={'popularity': 'inc'})
 
         updatedDocs = self.solr.search('doc')
@@ -423,7 +597,9 @@ class SolrTestCase(unittest.TestCase):
         for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc['popularity'], originalDoc['popularity'] + 5)
-            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'popularity']))
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'popularity']))
 
         self.solr.add([
             {
@@ -442,7 +618,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(originalDocs), 2)
         updateList = []
         for i, doc in enumerate(originalDocs):
-            updateList.append( {'id': doc['id'], 'word_ss': ['epsilon', 'gamma']} )
+            updateList.append({'id': doc['id'], 'word_ss': ['epsilon', 'gamma']})
         self.solr.add(updateList, fieldUpdates={'word_ss': 'add'})
 
         updatedDocs = self.solr.search('multivalued')
@@ -450,14 +626,29 @@ class SolrTestCase(unittest.TestCase):
         for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc['word_ss'], originalDoc['word_ss'] + ['epsilon', 'gamma'])
-            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys() if not k in ['_version_', 'word_ss']))
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'word_ss']))
 
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
+        # delete should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
+
         self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 2)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.assertEqual(len(self.solr.search('type_s:grandchild')), 1)
         self.solr.delete(q='price:[0 TO 15]')
+        self.solr.delete(q='type_s:parent')
+        # one simple doc should remain
+        # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search('doc')), 1)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 0)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.solr.delete(q='type_s:child OR type_s:grandchild')
 
         self.assertEqual(len(self.solr.search('*:*')), 1)
         self.solr.delete(q='*:*')
@@ -467,6 +658,12 @@ class SolrTestCase(unittest.TestCase):
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')
+
+        # delete should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.delete(id='doc_1', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_commit(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -478,7 +675,30 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.commit()
+        # commit should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
+
+    def test_overwrite(self):
+        self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 0)
+        self.solr.add([
+            {
+                'id': 'doc_overwrite_1',
+                'title': 'Kim is awesome.',
+            },
+            {
+                'id': 'doc_overwrite_1',
+                'title': 'Kim is more awesome.',
+            }
+        ], overwrite=False)
+        self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 2)
+
+        # commit should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.commit(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
@@ -491,7 +711,16 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.optimize()
+        # optimize should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
+
+        # optimize should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.optimize(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_extract(self):
         fake_f = StringIO("""
@@ -506,6 +735,15 @@ class SolrTestCase(unittest.TestCase):
         """)
         fake_f.name = "test.html"
         extracted = self.solr.extract(fake_f)
+        # extract should default to 'update/extract' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/extract'))
+
+        # extract should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.extract(fake_f, handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
         # Verify documented response structure:
         self.assertIn('contents', extracted)
@@ -531,3 +769,37 @@ class SolrTestCase(unittest.TestCase):
 
         # Make sure trailing and leading slashes do not collide:
         self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+
+    def test_request_handler(self):
+        before_test_use_qt_param = self.solr.use_qt_param
+        before_test_search_handler = self.solr.search_handler
+
+        self.solr.use_qt_param = True
+
+        response = self.solr.search('my query')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+
+        response = self.solr.search('my', search_handler='/autocomplete')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.search_handler = '/autocomplete'
+
+        response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.use_qt_param = False
+        # will change the path, so expect a 404
+        with self.assertRaises(SolrError):
+            response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('/autocomplete'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") < 0)
+
+        # reset the values to what they were before the test
+        self.solr.use_qt_param = before_test_use_qt_param
+        self.solr.search_handler = before_test_search_handler

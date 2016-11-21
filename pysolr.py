@@ -5,20 +5,17 @@ import ast
 import datetime
 import logging
 import os
+import random
 import re
 import time
-# We can remove ExpatError when we drop support for Python 2.6:
-from xml.parsers.expat import ExpatError
+from xml.etree import ElementTree
 
 import requests
 
 try:
-    from xml.etree import ElementTree as ET
+    from kazoo.client import KazooClient, KazooState
 except ImportError:
-    raise ImportError("No suitable ElementTree implementation was found.")
-
-# Remove this when we drop Python 2.6:
-ParseError = getattr(ET, 'ParseError', SyntaxError)
+    KazooClient = KazooState = None
 
 try:
     # Prefer simplejson, if installed.
@@ -58,7 +55,7 @@ except NameError:
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (3, 3, 0)
+__version__ = (3, 5, 0)
 
 
 def get_version():
@@ -66,6 +63,8 @@ def get_version():
 
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
+# dict key used to add nested documents to a document
+NESTED_DOC_KEY = '_childDocuments_'
 
 
 class NullHandler(logging.Handler):
@@ -157,7 +156,7 @@ def unescape_html(text):
                 text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
-        return text # leave as is
+        return text  # leave as is
     return re.sub("&#?\w+;", fixup, text)
 
 
@@ -195,7 +194,8 @@ def is_valid_xml_char_ordinal(i):
 
     Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
     """
-    return ( # conditions ordered by presumed frequency
+    # conditions ordered by presumed frequency
+    return (
         0x20 <= i <= 0xD7FF
         or i in (0x9, 0xA, 0xD)
         or 0xE000 <= i <= 0xFFFD
@@ -219,18 +219,59 @@ class SolrError(Exception):
 
 
 class Results(object):
-    def __init__(self, docs, hits, highlighting=None, facets=None,
-                 spellcheck=None, stats=None, qtime=None, debug=None,
-                 grouped=None):
-        self.docs = docs
-        self.hits = hits
-        self.highlighting = highlighting or {}
-        self.facets = facets or {}
-        self.spellcheck = spellcheck or {}
-        self.stats = stats or {}
-        self.qtime = qtime
-        self.debug = debug or {}
-        self.grouped = grouped or {}
+    """
+    Default results class for wrapping decoded (from JSON) solr responses.
+
+    Required ``decoded`` argument must be a Solr response dictionary.
+    Individual documents can be retrieved either through ``docs`` attribute
+    or by iterating over results instance.
+
+    Example::
+
+        results = Results({
+            'response': {
+                'docs': [{'id': 1}, {'id': 2}, {'id': 3}],
+                'numFound': 3,
+            }
+        })
+
+        # this:
+        for doc in results:
+            print doc
+
+        # ... is equivalent to:
+        for doc in results.docs:
+            print doc
+
+        # also:
+        list(results) == results.docs
+
+    Note that ``Results`` object does not support indexing and slicing. If you
+    need to retrieve documents by index just use ``docs`` attribute.
+
+    Other common response metadata (debug, highlighting, qtime, etc.) are available as attributes.
+
+    The full response from Solr is provided as the `raw_response` dictionary for use with features which
+    change the response format.
+    """
+
+    def __init__(self, decoded):
+        self.raw_response = decoded
+
+        # main response part of decoded Solr response
+        response_part = decoded.get('response') or {}
+        self.docs = response_part.get('docs', ())
+        self.hits = response_part.get('numFound', 0)
+
+        # other response metadata
+        self.debug = decoded.get('debug', {})
+        self.highlighting = decoded.get('highlighting', {})
+        self.facets = decoded.get('facet_counts', {})
+        self.spellcheck = decoded.get('spellcheck', {})
+        self.stats = decoded.get('stats', {})
+        self.qtime = decoded.get('responseHeader', {}).get('QTime', None)
+        self.grouped = decoded.get('grouped', {})
+        self.nextCursorMark = decoded.get('nextCursorMark', None)
 
     def __len__(self):
         return len(self.docs)
@@ -249,20 +290,35 @@ class Solr(object):
     Optionally accepts ``timeout`` for wait seconds until giving up on a
     request. Default is ``60`` seconds.
 
+    Optionally accepts ``results_cls`` that specifies class of results object
+    returned by ``.search()`` and ``.more_like_this()`` methods.
+    Default is ``pysolr.Results``.
+
     Usage::
 
         solr = pysolr.Solr('http://localhost:8983/solr')
         # With a 10 second timeout.
         solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
+        # with a dict as a default results class instead of pysolr.Results
+        solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
+
     """
-    def __init__(self, url, decoder=None, timeout=60):
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
-        self.session = requests.Session()
-        self.session.stream = False
+        self.session = None
+        self.results_cls = results_cls
+        self.search_handler = search_handler
+        self.use_qt_param = use_qt_param
+
+    def get_session(self):
+        if self.session is None:
+            self.session = requests.Session()
+            self.session.stream = False
+        return self.session
 
     def _get_log(self):
         return LOG
@@ -291,10 +347,12 @@ class Solr(object):
                        url, method, log_body[:10])
         start_time = time.time()
 
+        session = self.get_session()
+
         try:
-            requests_method = getattr(self.session, method, 'get')
+            requests_method = getattr(session, method)
         except AttributeError as err:
-            raise SolrError("Unable to send HTTP method '{0}.".format(method))
+            raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
 
         # Everything except the body can be Unicode. The body must be
         # encoded to bytes to work properly on Py3.
@@ -321,70 +379,91 @@ class Solr(object):
             raise SolrError(error_message % (method, url, err))
 
         end_time = time.time()
-        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds.",
-                      url, method, log_body[:10], end_time - start_time)
+        self.log.info("Finished '%s' (%s) with body '%s' in %0.3f seconds, with status %s",
+                      url, method, log_body[:10], end_time - start_time, resp.status_code)
 
         if int(resp.status_code) != 200:
-            error_message = self._extract_error(resp)
-            self.log.error(error_message, extra={'data': {'headers': resp.headers,
-                                                          'response': resp.content}})
-            raise SolrError(error_message)
+            error_message = "Solr responded with an error (HTTP %s): %s"
+            solr_message = self._extract_error(resp)
+            self.log.error(error_message, resp.status_code, solr_message,
+                           extra={'data': {'headers': resp.headers,
+                                           'response': resp.content,
+                                           'request_body': bytes_body,
+                                           'request_headers': headers}})
+            raise SolrError(error_message % (resp.status_code, solr_message))
 
         return force_unicode(resp.content)
 
-    def _select(self, params):
+    def _select(self, params, handler=None):
+        """
+        :param params:
+        :param handler: defaults to self.search_handler (fallback to 'select')
+        :return:
+        """
         # specify json encoding of results
         params['wt'] = 'json'
+        custom_handler = handler or self.search_handler
+        handler = 'select'
+        if custom_handler:
+            if self.use_qt_param:
+                params['qt'] = custom_handler
+            else:
+                handler = custom_handler
+
         params_encoded = safe_urlencode(params, True)
 
         if len(params_encoded) < 1024:
             # Typical case.
-            path = 'select/?%s' % params_encoded
+            path = '%s/?%s' % (handler, params_encoded)
             return self._send_request('get', path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = 'select/'
+            path = '%s/' % handler
             headers = {
                 'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
             }
             return self._send_request('post', path, body=params_encoded, headers=headers)
 
-    def _mlt(self, params):
-        # specify json encoding of results
-        params['wt'] = 'json'
-        path = 'mlt/?%s' % safe_urlencode(params, True)
-        return self._send_request('get', path)
+    def _mlt(self, params, handler='mlt'):
+        return self._select(params, handler)
 
-    def _suggest_terms(self, params):
-        # specify json encoding of results
-        params['wt'] = 'json'
-        path = 'terms/?%s' % safe_urlencode(params, True)
-        return self._send_request('get', path)
+    def _suggest_terms(self, params, handler='terms'):
+        return self._select(params, handler)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None):
+    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None,
+                overwrite=None, handler='update'):
         """
         Posts the given xml message to http://<self.url>/update and
         returns the result.
 
-        Passing `sanitize` as False will prevent the message from being cleaned
+        Passing `clean_ctrl_chars` as False will prevent the message from being cleaned
         of control characters (default True). This is done by default because
         these characters would cause Solr to fail to parse the XML. Only pass
         False if you're positive your data is clean.
         """
-        path = 'update/'
 
         # Per http://wiki.apache.org/solr/UpdateXmlMessages, we can append a
         # ``commit=true`` to the URL and have the commit happen without a
         # second request.
         query_vars = []
 
-        if commit is not None:
+        path_handler = handler
+        if self.use_qt_param:
+            path_handler = 'select'
+            query_vars.append('qt=%s' % safe_urlencode(handler, True))
+
+        path = '%s/' % path_handler
+
+        if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
-        elif softCommit is not None:
+        elif softCommit:
             query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
         if waitFlush is not None:
             query_vars.append('waitFlush=%s' % str(bool(waitFlush)).lower())
+
+        if overwrite is not None:
+            query_vars.append('overwrite=%s' % str(bool(overwrite)).lower())
 
         if waitSearcher is not None:
             query_vars.append('waitSearcher=%s' % str(bool(waitSearcher)).lower())
@@ -442,10 +521,13 @@ class Solr(object):
         full_html = ''
         dom_tree = None
 
+        # In Python3, response can be made of bytes
+        if IS_PY3 and hasattr(response, 'decode'):
+            response = response.decode()
         if response.startswith('<?xml'):
             # Try a strict XML parse
             try:
-                soup = ET.fromstring(response)
+                soup = ElementTree.fromstring(response)
 
                 reason_node = soup.find('lst[@name="error"]/str[@name="msg"]')
                 tb_node = soup.find('lst[@name="error"]/str[@name="trace"]')
@@ -459,7 +541,7 @@ class Solr(object):
                 # Since we had a precise match, we'll return the results now:
                 if reason and full_html:
                     return reason, full_html
-            except (ParseError, ExpatError):
+            except ElementTree.ParseError:
                 # XML parsing error, so we'll let the more liberal code handle it.
                 pass
 
@@ -473,7 +555,7 @@ class Solr(object):
         else:
             # Let's assume others do produce a valid XML response
             try:
-                dom_tree = ET.fromstring(response)
+                dom_tree = ElementTree.fromstring(response)
                 reason_node = None
 
                 # html page might be different for every server
@@ -486,8 +568,10 @@ class Solr(object):
                     reason = reason_node.text
 
                 if reason is None:
-                    full_html = ET.tostring(dom_tree)
-            except (SyntaxError, ExpatError) as err:
+                    full_html = ElementTree.tostring(dom_tree)
+            except SyntaxError as err:
+                LOG.warning('Unable to extract error message from invalid XML: %s', err,
+                            extra={'data': {'response': response}})
                 full_html = "%s" % response
 
         full_html = force_unicode(full_html)
@@ -507,7 +591,10 @@ class Solr(object):
         """
         if hasattr(value, 'strftime'):
             if hasattr(value, 'hour'):
-                value = "%sZ" % value.isoformat()
+                offset = value.utcoffset()
+                if offset:
+                    value = value - offset
+                value = value.replace(tzinfo=None).isoformat() + 'Z'
             else:
                 value = "%sT00:00:00Z" % value.isoformat()
         elif isinstance(value, bool):
@@ -559,7 +646,7 @@ class Solr(object):
             if isinstance(value, basestring):
                 is_string = True
 
-        if is_string == True:
+        if is_string:
             possible_datetime = DATETIME_REGEX.search(value)
 
             if possible_datetime:
@@ -604,7 +691,7 @@ class Solr(object):
 
     # API Methods ############################################################
 
-    def search(self, q, **kwargs):
+    def search(self, q, search_handler=None, **kwargs):
         """
         Performs a search and returns the results.
 
@@ -612,6 +699,9 @@ class Solr(object):
 
         Optionally accepts ``**kwargs`` for additional options to be passed
         through the Solr URL.
+
+        Returns ``self.results_cls`` class object (defaults to
+        ``pysolr.Results``)
 
         Usage::
 
@@ -627,41 +717,22 @@ class Solr(object):
         """
         params = {'q': q}
         params.update(kwargs)
-        response = self._select(params)
+        response = self._select(params, handler=search_handler)
+        decoded = self.decoder.decode(response)
 
-        # TODO: make result retrieval lazy and allow custom result objects
-        result = self.decoder.decode(response)
-        result_kwargs = {}
+        self.log.debug(
+            "Found '%s' search results.",
+            # cover both cases: there is no response key or value is None
+            (decoded.get('response', {}) or {}).get('numFound', 0)
+        )
+        return self.results_cls(decoded)
 
-        if result.get('debug'):
-            result_kwargs['debug'] = result['debug']
-
-        if result.get('highlighting'):
-            result_kwargs['highlighting'] = result['highlighting']
-
-        if result.get('facet_counts'):
-            result_kwargs['facets'] = result['facet_counts']
-
-        if result.get('spellcheck'):
-            result_kwargs['spellcheck'] = result['spellcheck']
-
-        if result.get('stats'):
-            result_kwargs['stats'] = result['stats']
-
-        if 'QTime' in result.get('responseHeader', {}):
-            result_kwargs['qtime'] = result['responseHeader']['QTime']
-
-        if result.get('grouped'):
-            result_kwargs['grouped'] = result['grouped']
-
-        response = result.get('response') or {}
-        numFound = response.get('numFound', 0)
-        self.log.debug("Found '%s' search results.", numFound)
-        return Results(response.get('docs', ()), numFound, **result_kwargs)
-
-    def more_like_this(self, q, mltfl, **kwargs):
+    def more_like_this(self, q, mltfl, handler='mlt', **kwargs):
         """
         Finds and returns results similar to the provided query.
+
+        Returns ``self.results_cls`` class object (defaults to
+        ``pysolr.Results``)
 
         Requires Solr 1.3+.
 
@@ -675,20 +746,17 @@ class Solr(object):
             'mlt.fl': mltfl,
         }
         params.update(kwargs)
-        response = self._mlt(params)
+        response = self._mlt(params, handler=handler)
+        decoded = self.decoder.decode(response)
 
-        result = self.decoder.decode(response)
+        self.log.debug(
+            "Found '%s' MLT results.",
+            # cover both cases: there is no response key or value is None
+            (decoded.get('response', {}) or {}).get('numFound', 0)
+        )
+        return self.results_cls(decoded)
 
-        if result['response'] is None:
-            result['response'] = {
-                'docs': [],
-                'numFound': 0,
-            }
-
-        self.log.debug("Found '%s' MLT results.", result['response']['numFound'])
-        return Results(result['response']['docs'], result['response']['numFound'])
-
-    def suggest_terms(self, fields, prefix, **kwargs):
+    def suggest_terms(self, fields, prefix, handler='terms', **kwargs):
         """
         Accepts a list of field names and a prefix
 
@@ -702,7 +770,7 @@ class Solr(object):
             'terms.prefix': prefix,
         }
         params.update(kwargs)
-        response = self._suggest_terms(params)
+        response = self._suggest_terms(params, handler=handler)
         result = self.decoder.decode(response)
         terms = result.get("terms", {})
         res = {}
@@ -727,9 +795,14 @@ class Solr(object):
         return res
 
     def _build_doc(self, doc, boost=None, fieldUpdates=None):
-        doc_elem = ET.Element('doc')
+        doc_elem = ElementTree.Element('doc')
 
         for key, value in doc.items():
+            if key == NESTED_DOC_KEY:
+                for child in value:
+                    doc_elem.append(self._build_doc(child, boost, fieldUpdates))
+                continue
+
             if key == 'boost':
                 doc_elem.set('boost', force_unicode(value))
                 continue
@@ -757,14 +830,15 @@ class Solr(object):
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
 
-                field = ET.Element('field', **attrs)
+                field = ElementTree.Element('field', **attrs)
                 field.text = self._from_python(bit)
 
                 doc_elem.append(field)
 
         return doc_elem
 
-    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None, waitSearcher=None):
+    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None,
+            waitSearcher=None, overwrite=None, handler='update'):
         """
         Adds or updates documents.
 
@@ -785,6 +859,8 @@ class Solr(object):
 
         Optionally accepts ``waitSearcher``. Default is ``None``.
 
+        Optionally accepts ``overwrite``. Default is ``None``.
+
         Usage::
 
             solr.add([
@@ -800,24 +876,26 @@ class Solr(object):
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
-        message = ET.Element('add')
+        message = ElementTree.Element('add')
 
         if commitWithin:
             message.set('commitWithin', commitWithin)
 
         for doc in docs:
-            message.append(self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates))
+            el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
+            message.append(el)
 
         # This returns a bytestring. Ugh.
-        m = ET.tostring(message, encoding='utf-8')
+        m = ElementTree.tostring(message, encoding='utf-8')
         # Convert back to Unicode please.
         m = force_unicode(m)
 
         end_time = time.time()
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
-        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
+                            overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None):
+    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
@@ -826,6 +904,8 @@ class Solr(object):
         indicating a collection of documents to delete.
 
         Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``waitFlush``. Default is ``None``.
 
@@ -846,9 +926,9 @@ class Solr(object):
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None):
+    def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None, handler='update'):
         """
         Forces Solr to write the index data to disk.
 
@@ -870,9 +950,9 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def optimize(self, waitFlush=None, waitSearcher=None, maxSegments=None):
+    def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
         Tells Solr to streamline the number of segments used, essentially a
         defragmentation operation.
@@ -893,9 +973,9 @@ class Solr(object):
         else:
             msg = '<optimize />'
 
-        return self._update(msg, waitFlush=waitFlush, waitSearcher=waitSearcher)
+        return self._update(msg, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
-    def extract(self, file_obj, extractOnly=True, **kwargs):
+    def extract(self, file_obj, extractOnly=True, handler='update/extract', **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -932,7 +1012,7 @@ class Solr(object):
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
-            resp = self._send_request('post', 'update/extract',
+            resp = self._send_request('post', handler,
                                       body=params,
                                       files={'file': (file_obj.name, file_obj)})
         except (IOError, SolrError) as err:
@@ -964,6 +1044,11 @@ class Solr(object):
 class SolrCoreAdmin(object):
     """
     Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
+
+    This must be initialized with the full admin cores URL::
+
+        solr_admin = SolrCoreAdmin('http://localhost:8983/solr/admin/cores')
+        status = solr_admin.status()
 
     Operations offered by Solr are:
        1. STATUS
@@ -1051,36 +1136,37 @@ class SolrCoreAdmin(object):
 # Using two-tuples to preserve order.
 REPLACEMENTS = (
     # Nuke nasty control characters.
-    (b'\x00', b''), # Start of heading
-    (b'\x01', b''), # Start of heading
-    (b'\x02', b''), # Start of text
-    (b'\x03', b''), # End of text
-    (b'\x04', b''), # End of transmission
-    (b'\x05', b''), # Enquiry
-    (b'\x06', b''), # Acknowledge
-    (b'\x07', b''), # Ring terminal bell
-    (b'\x08', b''), # Backspace
-    (b'\x0b', b''), # Vertical tab
-    (b'\x0c', b''), # Form feed
-    (b'\x0e', b''), # Shift out
-    (b'\x0f', b''), # Shift in
-    (b'\x10', b''), # Data link escape
-    (b'\x11', b''), # Device control 1
-    (b'\x12', b''), # Device control 2
-    (b'\x13', b''), # Device control 3
-    (b'\x14', b''), # Device control 4
-    (b'\x15', b''), # Negative acknowledge
-    (b'\x16', b''), # Synchronous idle
-    (b'\x17', b''), # End of transmission block
-    (b'\x18', b''), # Cancel
-    (b'\x19', b''), # End of medium
-    (b'\x1a', b''), # Substitute character
-    (b'\x1b', b''), # Escape
-    (b'\x1c', b''), # File separator
-    (b'\x1d', b''), # Group separator
-    (b'\x1e', b''), # Record separator
-    (b'\x1f', b''), # Unit separator
+    (b'\x00', b''),  # Start of heading
+    (b'\x01', b''),  # Start of heading
+    (b'\x02', b''),  # Start of text
+    (b'\x03', b''),  # End of text
+    (b'\x04', b''),  # End of transmission
+    (b'\x05', b''),  # Enquiry
+    (b'\x06', b''),  # Acknowledge
+    (b'\x07', b''),  # Ring terminal bell
+    (b'\x08', b''),  # Backspace
+    (b'\x0b', b''),  # Vertical tab
+    (b'\x0c', b''),  # Form feed
+    (b'\x0e', b''),  # Shift out
+    (b'\x0f', b''),  # Shift in
+    (b'\x10', b''),  # Data link escape
+    (b'\x11', b''),  # Device control 1
+    (b'\x12', b''),  # Device control 2
+    (b'\x13', b''),  # Device control 3
+    (b'\x14', b''),  # Device control 4
+    (b'\x15', b''),  # Negative acknowledge
+    (b'\x16', b''),  # Synchronous idle
+    (b'\x17', b''),  # End of transmission block
+    (b'\x18', b''),  # Cancel
+    (b'\x19', b''),  # End of medium
+    (b'\x1a', b''),  # Substitute character
+    (b'\x1b', b''),  # Escape
+    (b'\x1c', b''),  # File separator
+    (b'\x1d', b''),  # Group separator
+    (b'\x1e', b''),  # Record separator
+    (b'\x1f', b''),  # Unit separator
 )
+
 
 def sanitize(data):
     fixed_string = force_bytes(data)
@@ -1089,3 +1175,154 @@ def sanitize(data):
         fixed_string = fixed_string.replace(bad, good)
 
     return force_unicode(fixed_string)
+
+
+class SolrCloud(Solr):
+
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
+        url = zookeeper.getRandomURL(collection)
+
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
+
+        self.zookeeper = zookeeper
+        self.collection = collection
+        self.retry_timeout = retry_timeout
+
+    def _randomized_request(self, method, path, body, headers, files):
+        self.url = self.zookeeper.getRandomURL(self.collection)
+        LOG.debug('Using random URL: %s', self.url)
+        return Solr._send_request(self, method, path, body, headers, files)
+
+    def _send_request(self, method, path='', body=None, headers=None, files=None):
+        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
+        try:
+            return self._randomized_request(method, path, body, headers, files)
+        except requests.exceptions.RequestException:
+            LOG.warning('RequestException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+        except SolrError:
+            LOG.warning('SolrException, retrying after %fs', self.retry_timeout, exc_info=True)
+            time.sleep(self.retry_timeout)  # give zookeeper time to notice
+            return self._randomized_request(method, path, body, headers, files)
+
+    def _update(self, *args, **kwargs):
+        self.url = self.zookeeper.getLeaderURL(self.collection)
+        LOG.debug('Using random leader URL: %s', self.url)
+        return Solr._update(self, *args, **kwargs)
+
+
+class ZooKeeper(object):
+    # Constants used by the REST API:
+    LIVE_NODES_ZKNODE = '/live_nodes'
+    ALIASES = '/aliases.json'
+    CLUSTER_STATE = '/clusterstate.json'
+    SHARDS = 'shards'
+    REPLICAS = 'replicas'
+    STATE = 'state'
+    ACTIVE = 'active'
+    LEADER = 'leader'
+    BASE_URL = 'base_url'
+    TRUE = 'true'
+    FALSE = 'false'
+    COLLECTION = 'collection'
+
+    def __init__(self, zkServerAddress, timeout=15, max_retries=-1, kazoo_client=None):
+        if KazooClient is None:
+            logging.error('ZooKeeper requires the `kazoo` library to be installed')
+            raise RuntimeError
+
+        self.collections = {}
+        self.liveNodes = {}
+        self.aliases = {}
+        self.state = None
+
+        if kazoo_client is None:
+            self.zk = KazooClient(zkServerAddress, read_only=True, timeout=timeout,
+                                  command_retry={'max_tries': max_retries},
+                                  connection_retry={'max_tries': max_retries})
+        else:
+            self.zk = kazoo_client
+
+        self.zk.start()
+
+        def connectionListener(state):
+            if state == KazooState.LOST:
+                self.state = state
+            elif state == KazooState.SUSPENDED:
+                self.state = state
+        self.zk.add_listener(connectionListener)
+
+        @self.zk.DataWatch(ZooKeeper.CLUSTER_STATE)
+        def watchClusterState(data, *args, **kwargs):
+            if not data:
+                LOG.warning("No cluster state available: no collections defined?")
+            else:
+                self.collections = json.loads(data.decode('utf-8'))
+                LOG.info('Updated collections: %s', self.collections)
+
+        @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
+        def watchLiveNodes(children):
+            self.liveNodes = children
+            LOG.info("Updated live nodes: %s", children)
+
+        @self.zk.DataWatch(ZooKeeper.ALIASES)
+        def watchAliases(data, stat):
+            if data:
+                json_data = json.loads(data.decode('utf-8'))
+                if ZooKeeper.COLLECTION in json_data:
+                    self.aliases = json_data[ZooKeeper.COLLECTION]
+                else:
+                    LOG.warning('Expected to find %s in alias update %s',
+                                ZooKeeper.COLLECTION, json_data.keys())
+            else:
+                self.aliases = None
+            LOG.info("Updated aliases: %s", self.aliases)
+
+    def getHosts(self, collname, only_leader=False, seen_aliases=None):
+        if self.aliases and collname in self.aliases:
+            return self.getAliasHosts(collname, only_leader, seen_aliases)
+
+        hosts = []
+        if collname not in self.collections:
+            raise SolrError("Unknown collection: %s", collname)
+        collection = self.collections[collname]
+        shards = collection[ZooKeeper.SHARDS]
+        for shardname in shards.keys():
+            shard = shards[shardname]
+            if shard[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                replicas = shard[ZooKeeper.REPLICAS]
+                for replicaname in replicas.keys():
+                    replica = replicas[replicaname]
+
+                    if replica[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
+                        if not only_leader or (replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
+                            base_url = replica[ZooKeeper.BASE_URL]
+                            if base_url not in hosts:
+                                hosts.append(base_url)
+        return hosts
+
+    def getAliasHosts(self, collname, only_leader, seen_aliases):
+        if seen_aliases:
+            if collname in seen_aliases:
+                LOG.warn("%s in circular alias definition - ignored", collname)
+                return []
+        else:
+            seen_aliases = []
+        seen_aliases.append(collname)
+        collections = self.aliases[collname].split(",")
+        hosts = []
+        for collection in collections:
+            for host in self.getHosts(collection, only_leader, seen_aliases):
+                if host not in hosts:
+                    hosts.append(host)
+        return hosts
+
+    def getRandomURL(self, collname, only_leader=False):
+        hosts = self.getHosts(collname, only_leader=only_leader)
+        if not hosts:
+            raise SolrError('ZooKeeper returned no active shards!')
+        return '%s/%s' % (random.choice(hosts), collname)
+
+    def getLeaderURL(self, collname):
+        return self.getRandomURL(collname, only_leader=True)

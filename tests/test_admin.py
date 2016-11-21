@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+from __future__ import absolute_import, unicode_literals
 
-from pysolr import SolrCoreAdmin, json
+import unittest
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+from pysolr import SolrCoreAdmin
 
 
 class SolrCoreAdminTestCase(unittest.TestCase):
