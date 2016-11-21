@@ -544,6 +544,37 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
+    def test__build_doc_with_sub_docs(self):
+        sub_docs = [
+            {
+                'id': 'sub_doc_1',
+                'title': 'Example sub doc ☃ 1',
+                'price': 1.59,
+                'popularity': 4
+            },
+            {
+                'id': 'sub_doc_2',
+                'title': 'Example sub doc ☃ 2',
+                'price': 21.13,
+                'popularity': 1
+            },
+        ]
+        doc = {
+            'id': 'doc_1',
+            'title': 'Example doc ☃ 1',
+            'price': 12.59,
+            'popularity': 10,
+            '_doc': sub_docs
+        }
+        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
+        self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
+        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
+        self.assertTrue('<field name="title">Example sub doc ☃ 1</field>' in doc_xml)
+        self.assertTrue('<field name="id">sub_doc_1</field>' in doc_xml)
+        self.assertTrue('<field name="title">Example sub doc ☃ 2</field>' in doc_xml)
+        self.assertTrue('<field name="id">sub_doc_2</field>' in doc_xml)
+        self.assertEqual(len(doc_xml), 469)
+
     def test_add(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.assertEqual(len(self.solr.search('example')), 2)

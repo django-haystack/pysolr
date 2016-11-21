@@ -819,7 +819,7 @@ class Solr(object):
 
                 if key == '_doc':
                     child = self._build_doc(bit, boost)
-                    doc_elem.append (child)
+                    doc_elem.append(child)
                     continue
 
                 attrs = {'name': key}
