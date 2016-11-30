@@ -661,7 +661,7 @@ class SolrTestCase(unittest.TestCase):
         def leaf_doc(doc):
             return 'price' in doc and NESTED_DOC_KEY not in doc
 
-        to_delete_docs = filter(leaf_doc, self.docs)
+        to_delete_docs = list(filter(leaf_doc, self.docs))
         to_delete_ids = [doc['id'] for doc in to_delete_docs]
 
         self.solr.add(to_delete_docs)

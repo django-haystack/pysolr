@@ -926,7 +926,7 @@ class Solr(object):
             if not isinstance(id, (list, set, tuple)):
                 id = [id]
             else:
-                id = filter(None, id)
+                id = list(filter(None, id))
             if id:
                 m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
             else:
