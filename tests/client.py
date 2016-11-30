@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import datetime
+import random
 
 from pysolr import (Solr, Results, SolrError, unescape_html, safe_urlencode,
                     force_unicode, force_bytes, sanitize, json, ET, IS_PY3,
@@ -460,7 +461,14 @@ class SolrTestCase(unittest.TestCase):
         self.solr.commit()
         self.assertEqual(len(self.solr.search('*:*')), len(self.docs))
         to_delete = [doc['id'] for doc in self.docs]
+        # Extract a random document from the list, to later check it wasn't deleted
+        graced_doc_id = to_delete.pop(random.randint(0, len(to_delete) - 1))
         self.solr.delete(id=to_delete)
+        # There should be only one left, our graced id
+        self.assertEqual(len(self.solr.search('*:*')), 1)
+        self.assertEqual(len(self.solr.search('id:%s' % graced_doc_id)), 1)
+        # Now we can wipe the graced document too. None should be left.
+        self.solr.delete(id=graced_doc_id)
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
         # Can't delete when the list of documents is empty

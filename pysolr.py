@@ -825,15 +825,12 @@ class Solr(object):
         elif id is not None and q is not None:
             raise ValueError('You many only specify "id" OR "q", not both.')
         elif id is not None:
-            if type(id) not in (list, set):
-                id = [ id ]
+            if not isinstance(id, (list, set, tuple)):
+                id = [id]
             else:
-                id = filter(lambda x: x is not None, id)
-            if len(id) > 0:
-                m = '<delete>'
-                for i in id:
-                    m += '<id>%s</id>' % i
-                m += '</delete>'
+                id = filter(None, id)
+            if id:
+                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
             else:
                 raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
