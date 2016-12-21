@@ -566,14 +566,14 @@ class SolrTestCase(unittest.TestCase):
             'popularity': 10,
             '_doc': sub_docs
         }
-        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
-        self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
-        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
-        self.assertTrue('<field name="title">Example sub doc ☃ 1</field>' in doc_xml)
-        self.assertTrue('<field name="id">sub_doc_1</field>' in doc_xml)
-        self.assertTrue('<field name="title">Example sub doc ☃ 2</field>' in doc_xml)
-        self.assertTrue('<field name="id">sub_doc_2</field>' in doc_xml)
-        self.assertEqual(len(doc_xml), 469)
+        doc_xml = self.solr._build_doc(doc)
+        self.assertEqual(doc_xml.find("*[@name='id']").text, doc['id'])
+
+        children_docs = doc_xml.findall('doc')
+        self.assertEqual(len(children_docs), len(sub_docs))
+
+        self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]['id'])
+        self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]['id'])
 
     def test_add(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
