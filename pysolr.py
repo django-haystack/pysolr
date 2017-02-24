@@ -1064,7 +1064,7 @@ class SolrCoreAdmin(object):
         self.url = url
 
     def _get_url(self, url, params={}, headers={}):
-        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
+        resp = requests.get(url, params=safe_urlencode(params), headers=headers)
         return force_unicode(resp.content)
 
     def status(self, core=None):
