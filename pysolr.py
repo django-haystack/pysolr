@@ -798,6 +798,28 @@ class Solr(object):
         self.log.debug("Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items()))
         return res
 
+    def _build_field(self, value, key, _atomic_update_set, boost=None, fieldUpdates=None):
+        attrs = {'name': key}
+
+        if fieldUpdates and key in fieldUpdates:
+            attrs['update'] = fieldUpdates[key]
+            if self._is_null_value(value) and _atomic_update_set:
+                attrs['null'] = u'true'
+
+        if boost and key in boost:
+            attrs['boost'] = force_unicode(boost[key])
+
+        field = ElementTree.Element('field', **attrs)
+        field.text = self._from_python(value)
+
+        return field
+
+    def _is_atomic_update_set(self, field_update_text):
+        _atomic_update_set = False
+        if field_update_text.lower() == "set":
+            _atomic_update_set = True
+        return _atomic_update_set
+
     def _build_doc(self, doc, boost=None, fieldUpdates=None):
         doc_elem = ElementTree.Element('doc')
 
@@ -811,26 +833,26 @@ class Solr(object):
                 doc_elem.set('boost', force_unicode(value))
                 continue
 
+            if fieldUpdates is not None:
+                _atomic_update_set = self._is_atomic_update_set(fieldUpdates.get(key, u''))
+            else:
+                _atomic_update_set = False
+
             # To avoid multiple code-paths we'd like to treat all of our values as iterables:
             if isinstance(value, (list, tuple)):
                 values = value
+                #we want to be able to do the for loop if we have an empty list
+                if _atomic_update_set and not values:
+                    values = (u'',)
             else:
                 values = (value, )
 
             for bit in values:
-                if self._is_null_value(bit):
+                #allow empty strings if this is a set update but create null attribute
+                if self._is_null_value(bit) and not _atomic_update_set:
                     continue
 
-                attrs = {'name': key}
-
-                if fieldUpdates and key in fieldUpdates:
-                    attrs['update'] = fieldUpdates[key]
-
-                if boost and key in boost:
-                    attrs['boost'] = force_unicode(boost[key])
-
-                field = ElementTree.Element('field', **attrs)
-                field.text = self._from_python(bit)
+                field = self._build_field(bit, key, _atomic_update_set, boost, fieldUpdates)
 
                 doc_elem.append(field)
 
