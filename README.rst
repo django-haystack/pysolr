@@ -53,7 +53,7 @@ Basic usage looks like:
     import pysolr
 
     # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10)
+    solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
 
     # How you'd index data.
     solr.add([
