@@ -7,7 +7,6 @@ interface that queries the server and returns results based on the query.
 
 .. _`Apache Solr`: http://lucene.apache.org/solr/
 
-
 Status
 ======
 
@@ -64,11 +63,20 @@ Basic usage looks like:
         {
             "id": "doc_2",
             "title": "The Banana: Tasty or Dangerous?",
+            "_doc": [
+                { "id": "child_doc_1", "title": "peel" },
+                { "id": "child_doc_2", "title": "seed" },
+            ]
         },
     ])
     
     # Note that the add method has commit=True by default, so this is 
     # immediately committed to your index.
+
+    # You can index a parent/child document relationship by
+    # associating a list of child documents with the special key '_doc'. This
+    # is helpful for queries that join together conditions on children and parent
+    # documents.
 
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
