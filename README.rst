@@ -28,7 +28,7 @@ Features
 Requirements
 ============
 
-* Python 2.7 - 3.5
+* Python 2.7 - 3.6
 * Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
@@ -36,9 +36,14 @@ Requirements
 Installation
 ============
 
-``sudo python setup.py install`` or drop the ``pysolr.py`` file anywhere on your
-PYTHONPATH.
+pysolr is on PyPI:
 
+.. code-block:: console
+
+   $ pip install pysolr
+
+Or if you want to install directly from the repository: ``sudo python setup.py install``, or drop the ``pysolr.py`` file anywhere on your
+PYTHONPATH.
 
 Usage
 =====
