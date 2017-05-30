@@ -42,8 +42,7 @@ pysolr is on PyPI:
 
    $ pip install pysolr
 
-Or if you want to install directly from the repository: ``sudo python setup.py install``, or drop the ``pysolr.py`` file anywhere on your
-PYTHONPATH.
+Or if you want to install directly from the repository: ``python setup.py install``, or drop the ``pysolr.py`` file anywhere on your ``PYTHONPATH``.
 
 Usage
 =====
