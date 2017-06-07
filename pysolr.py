@@ -830,6 +830,8 @@ class Solr(object):
                     continue
 
                 attrs = {'name': key}
+                if key != 'id':
+                    attrs['update'] = 'set'
 
                 if fieldUpdates and key in fieldUpdates:
                     attrs['update'] = fieldUpdates[key]
