@@ -907,7 +907,8 @@ class Solr(object):
         Deletes documents.
 
         Requires *either* ``id`` or ``query``. ``id`` is if you know the
-        specific document id to remove. ``query`` is a Lucene-style query
+        specific document id to remove. Note that ``id`` can also be a list of
+        document ids to be deleted. ``query`` is a Lucene-style query
         indicating a collection of documents to delete.
 
         Optionally accepts ``commit``. Default is ``True``.
@@ -921,6 +922,7 @@ class Solr(object):
         Usage::
 
             solr.delete(id='doc_12')
+            solr.delete(id=['doc_1', 'doc_3'])
             solr.delete(q='*:*')
 
         """
@@ -929,7 +931,14 @@ class Solr(object):
         elif id is not None and q is not None:
             raise ValueError('You many only specify "id" OR "q", not both.')
         elif id is not None:
-            m = '<delete><id>%s</id></delete>' % id
+            if not isinstance(id, (list, set, tuple)):
+                id = [id]
+            else:
+                id = list(filter(None, id))
+            if id:
+                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
+            else:
+                raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import datetime
+import random
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
@@ -704,7 +705,35 @@ class SolrTestCase(unittest.TestCase):
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
-        # Need at least one.
+        # Test delete() with `id' being a list.
+        # Solr's ability to delete parent/children docs by id is simply assumed
+        # and not what's under test here.
+        def leaf_doc(doc):
+            return 'price' in doc and NESTED_DOC_KEY not in doc
+
+        to_delete_docs = list(filter(leaf_doc, self.docs))
+        to_delete_ids = [doc['id'] for doc in to_delete_docs]
+
+        self.solr.add(to_delete_docs)
+        self.solr.commit()
+
+        leaf_q = 'price:[* TO *]'
+        self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
+        # Extract a random doc from the list, to later check it wasn't deleted.
+        graced_doc_id = to_delete_ids.pop(random.randint(0, len(to_delete_ids) - 1))
+        self.solr.delete(id=to_delete_ids)
+        # There should be only one left, our graced id
+        self.assertEqual(len(self.solr.search(leaf_q)), 1)
+        self.assertEqual(len(self.solr.search('id:%s' % graced_doc_id)), 1)
+        # Now we can wipe the graced document too. None should be left.
+        self.solr.delete(id=graced_doc_id)
+        self.assertEqual(len(self.solr.search(leaf_q)), 0)
+
+        # Can't delete when the list of documents is empty
+        self.assertRaises(ValueError, self.solr.delete, id=[None, None, None])
+        self.assertRaises(ValueError, self.solr.delete, id=[None])
+
+        # Need at least one of either `id' or `q'
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')

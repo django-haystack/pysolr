@@ -106,8 +106,11 @@ Basic usage looks like:
     # correctly.
     similar = solr.more_like_this(q='id:doc_2', mltfl='text')
 
-    # Finally, you can delete either individual documents...
+    # Finally, you can delete either individual documents,
     solr.delete(id='doc_1')
+
+    # also in batches...
+    solr.delete(id=['doc_1', 'doc_2'])
 
     # ...or all documents.
     solr.delete(q='*:*')
