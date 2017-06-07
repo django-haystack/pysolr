@@ -73,8 +73,8 @@ Basic usage looks like:
             ]
         },
     ])
-    
-    # Note that the add method has commit=True by default, so this is 
+
+    # Note that the add method has commit=True by default, so this is
     # immediately committed to your index.
 
     # You can index a parent/child document relationship by
