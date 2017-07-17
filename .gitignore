@@ -2,3 +2,5 @@
 solr*.tgz
 solr-app
 solr
+*.pyc
+logs
