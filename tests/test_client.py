@@ -133,7 +133,12 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(to_iter[2], {'id': 3})
 
 
-class SolrTestCase(unittest.TestCase):
+class SolrTestCaseMixin(object):
+    def get_solr(self, collection, timeout=60, commit_by_default=False):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, commit_by_default=commit_by_default)
+
+
+class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def setUp(self):
         super(SolrTestCase, self).setUp()
         self.solr = self.get_solr("core0")
@@ -215,12 +220,12 @@ class SolrTestCase(unittest.TestCase):
         ]
 
         # Clear it.
-        self.solr.delete(q='*:*')
+        self.solr.delete(q='*:*', commit=True)
 
         # Index our docs. Yes, this leans on functionality we're going to test
         # later & if it's broken, everything will catastrophically fail.
         # Such is life.
-        self.solr.add(self.docs)
+        self.solr.add(self.docs, commit=True)
 
         # Mock the _send_request method on the solr instance so that we can
         # test that custom handlers are called correctly.
@@ -232,16 +237,17 @@ class SolrTestCase(unittest.TestCase):
         # slash handling are caught quickly:
         return self.assertEqual(URL, '%s/%s' % (self.solr.url.replace('/core0', ''), path))
 
-    def get_solr(self, collection, timeout=60):
-        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout)
+    def get_solr(self, collection, timeout=60, commit_by_default=False):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, commit_by_default=commit_by_default)
 
     def test_init(self):
         self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 60)
 
-        custom_solr = self.get_solr("core0", timeout=17)
+        custom_solr = self.get_solr("core0", timeout=17, commit_by_default=True)
         self.assertEqual(custom_solr.timeout, 17)
+        self.assertEqual(custom_solr.commit_by_default, True)
 
     def test_custom_results_class(self):
         solr = Solr('http://localhost:8983/solr/core0', results_cls=dict)
@@ -435,6 +441,13 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._to_python(('foo', 'bar')), 'foo')
         self.assertEqual(self.solr._to_python('tuple("foo", "bar")'), 'tuple("foo", "bar")')
 
+    def test__get_commit(self):
+
+        # Should return false unless given True
+        self.assertTrue(self.solr._get_commit(True))
+        self.assertFalse(self.solr._get_commit(False))
+        self.assertFalse(self.solr._get_commit(None))
+
     def test__is_null_value(self):
         self.assertTrue(self.solr._is_null_value(None))
         self.assertTrue(self.solr._is_null_value(''))
@@ -603,7 +616,7 @@ class SolrTestCase(unittest.TestCase):
                 'id': 'doc_7',
                 'title': 'Another example doc',
             },
-        ])
+        ], commit=True)
         # add should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('update/?'))
@@ -613,7 +626,7 @@ class SolrTestCase(unittest.TestCase):
 
         # add should support custom handlers
         with self.assertRaises(SolrError):
-            self.solr.add([], handler='fakehandler')
+            self.solr.add([], handler='fakehandler', commit=True)
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('fakehandler'))
 
@@ -624,7 +637,7 @@ class SolrTestCase(unittest.TestCase):
                       boost={'title': 10.0})
 
         self.solr.add([{'id': 'doc_7', 'title': 'Spam doc doc'}],
-                      boost={'title': 0})
+                      boost={'title': 0}, commit=True)
 
         res = self.solr.search('doc')
         self.assertEqual(len(res), 5)
@@ -636,7 +649,7 @@ class SolrTestCase(unittest.TestCase):
         updateList = []
         for i, doc in enumerate(originalDocs):
             updateList.append({'id': doc['id'], 'popularity': 5})
-        self.solr.add(updateList, fieldUpdates={'popularity': 'inc'})
+        self.solr.add(updateList, fieldUpdates={'popularity': 'inc'}, commit=True)
 
         updatedDocs = self.solr.search('doc')
         self.assertEqual(len(updatedDocs), 3)
@@ -654,7 +667,7 @@ class SolrTestCase(unittest.TestCase):
         updateList = []
         for i, doc in enumerate(originalDocs):
             updateList.append({'id': doc['id'], 'popularity': updated_popularity})
-        self.solr.add(updateList, fieldUpdates={'popularity': 'set'})
+        self.solr.add(updateList, fieldUpdates={'popularity': 'set'}, commit=True)
 
         updatedDocs = self.solr.search('doc')
         self.assertEqual(len(updatedDocs), 3)
@@ -677,14 +690,14 @@ class SolrTestCase(unittest.TestCase):
                 'title': 'Multivalued doc 2',
                 'word_ss': ['charlie', 'delta'],
             },
-        ])
+        ], commit=True)
 
         originalDocs = self.solr.search('multivalued')
         self.assertEqual(len(originalDocs), 2)
         updateList = []
         for i, doc in enumerate(originalDocs):
             updateList.append({'id': doc['id'], 'word_ss': ['epsilon', 'gamma']})
-        self.solr.add(updateList, fieldUpdates={'word_ss': 'add'})
+        self.solr.add(updateList, fieldUpdates={'word_ss': 'add'}, commit=True)
 
         updatedDocs = self.solr.search('multivalued')
         self.assertEqual(len(updatedDocs), 2)
@@ -697,7 +710,7 @@ class SolrTestCase(unittest.TestCase):
 
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
-        self.solr.delete(id='doc_1')
+        self.solr.delete(id='doc_1', commit=True)
         # delete should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('update/?'))
@@ -707,16 +720,16 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(self.solr.search('type_s:child')), 3)
         self.assertEqual(len(self.solr.search('type_s:grandchild')), 1)
         self.solr.delete(q='price:[0 TO 15]')
-        self.solr.delete(q='type_s:parent')
+        self.solr.delete(q='type_s:parent', commit=True)
         # one simple doc should remain
         # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search('doc')), 1)
         self.assertEqual(len(self.solr.search('type_s:parent')), 0)
         self.assertEqual(len(self.solr.search('type_s:child')), 3)
-        self.solr.delete(q='type_s:child OR type_s:grandchild')
+        self.solr.delete(q='type_s:child OR type_s:grandchild', commit=True)
 
         self.assertEqual(len(self.solr.search('*:*')), 1)
-        self.solr.delete(q='*:*')
+        self.solr.delete(q='*:*', commit=True)
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
         # Test delete() with `id' being a list.
@@ -735,12 +748,12 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
         # Extract a random doc from the list, to later check it wasn't deleted.
         graced_doc_id = to_delete_ids.pop(random.randint(0, len(to_delete_ids) - 1))
-        self.solr.delete(id=to_delete_ids)
+        self.solr.delete(id=to_delete_ids, commit=True)
         # There should be only one left, our graced id
         self.assertEqual(len(self.solr.search(leaf_q)), 1)
         self.assertEqual(len(self.solr.search('id:%s' % graced_doc_id)), 1)
         # Now we can wipe the graced document too. None should be left.
-        self.solr.delete(id=graced_doc_id)
+        self.solr.delete(id=graced_doc_id, commit=True)
         self.assertEqual(len(self.solr.search(leaf_q)), 0)
 
         # Can't delete when the list of documents is empty
@@ -754,7 +767,7 @@ class SolrTestCase(unittest.TestCase):
 
         # delete should support custom handlers
         with self.assertRaises(SolrError):
-            self.solr.delete(id='doc_1', handler='fakehandler')
+            self.solr.delete(id='doc_1', handler='fakehandler', commit=True)
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('fakehandler'))
 
@@ -765,7 +778,7 @@ class SolrTestCase(unittest.TestCase):
                 'id': 'doc_6',
                 'title': 'Newly added doc',
             }
-        ], commit=False)
+        ])
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.commit()
         # commit should default to 'update' handler
@@ -784,7 +797,7 @@ class SolrTestCase(unittest.TestCase):
                 'id': 'doc_overwrite_1',
                 'title': 'Kim is more awesome.',
             }
-        ], overwrite=False)
+        ], overwrite=False, commit=True)
         self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 2)
 
         # commit should support custom handlers
@@ -896,3 +909,44 @@ class SolrTestCase(unittest.TestCase):
         # reset the values to what they were before the test
         self.solr.use_qt_param = before_test_use_qt_param
         self.solr.search_handler = before_test_search_handler
+
+
+class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
+
+    def setUp(self):
+        super(SolrCommitByDefaultTestCase, self).setUp()
+        self.solr = self.get_solr("core0", commit_by_default=True)
+
+    def test__get_commit(self):
+        # Should return True unless given False
+        self.assertTrue(self.solr._get_commit(True))
+        self.assertFalse(self.solr._get_commit(False))
+        self.assertTrue(self.solr._get_commit(None))
+
+    def test_does_not_require_commit(self):
+        docs = [
+            {
+                'id': 'doc_1',
+                'title': 'Newly added doc',
+            },
+            {
+                'id': 'doc_2',
+                'title': 'Another example doc',
+            },
+        ]
+        # add should not require commit arg
+        self.solr.add(docs)
+
+        self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search('example')), 1)
+
+        # update should not require commit arg
+        docs[0]['title'] = "Updated Doc"
+        docs[1]['title'] = "Another example updated doc"
+        self.solr.add(docs, fieldUpdates={'title': 'set'})
+        self.assertEqual(len(self.solr.search('updated')), 2)
+        self.assertEqual(len(self.solr.search('example')), 1)
+
+        # delete should not require commit arg
+        self.solr.delete(q='*:*')
+        self.assertEqual(len(self.solr.search('*')), 0)

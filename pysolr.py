@@ -311,7 +311,8 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False,
+
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False, commit_by_default=False,
                  auth=None, verify=True):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
@@ -323,6 +324,7 @@ class Solr(object):
         self.use_qt_param = use_qt_param
         self.auth = auth
         self.verify = verify
+        self.commit_by_default = commit_by_default
 
     def get_session(self):
         if self.session is None:
@@ -440,7 +442,12 @@ class Solr(object):
     def _suggest_terms(self, params, handler='terms'):
         return self._select(params, handler)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None,
+    def _get_commit(self, commit):
+        if commit is None:
+            commit = self.commit_by_default
+        return commit
+
+    def _update(self, message, clean_ctrl_chars=True, commit=None, softCommit=False, waitFlush=None, waitSearcher=None,
                 overwrite=None, handler='update'):
         """
         Posts the given xml message to http://<self.url>/update and
@@ -464,6 +471,7 @@ class Solr(object):
 
         path = '%s/' % path_handler
 
+        commit = self._get_commit(commit)
         if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
         elif softCommit:
@@ -847,7 +855,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None,
+    def add(self, docs, boost=None, fieldUpdates=None, commit=None, softCommit=False, commitWithin=None, waitFlush=None,
             waitSearcher=None, overwrite=None, handler='update'):
         """
         Adds or updates documents.
@@ -855,7 +863,7 @@ class Solr(object):
         Requires ``docs``, which is a list of dictionaries. Each key is the
         field name and each value is the value to index.
 
-        Optionally accepts ``commit``. Default is ``True``.
+        Optionally accepts ``commit``. Default is ``None``. None signals to use default
 
         Optionally accepts ``softCommit``. Default is ``False``.
 
@@ -901,11 +909,12 @@ class Solr(object):
         m = force_unicode(m)
 
         end_time = time.time()
+        commit = self._get_commit(commit)
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
@@ -944,6 +953,8 @@ class Solr(object):
                 raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
+
+        commit = self._get_commit(commit)
 
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
