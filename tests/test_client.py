@@ -441,13 +441,6 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(self.solr._to_python(('foo', 'bar')), 'foo')
         self.assertEqual(self.solr._to_python('tuple("foo", "bar")'), 'tuple("foo", "bar")')
 
-    def test__get_commit(self):
-
-        # Should return false unless given True
-        self.assertTrue(self.solr._get_commit(True))
-        self.assertFalse(self.solr._get_commit(False))
-        self.assertFalse(self.solr._get_commit(None))
-
     def test__is_null_value(self):
         self.assertTrue(self.solr._is_null_value(None))
         self.assertTrue(self.solr._is_null_value(''))
@@ -786,6 +779,21 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
 
+    def test_can_handles_default_commit_policy(self):
+        expected_commits = [False, True, False]
+        commit_arg = [False, True, None]
+
+        for expected_commit, arg in zip(expected_commits, commit_arg):
+            self.solr.add([
+                {
+                    'id': 'doc_6',
+                    'title': 'Newly added doc',
+                }
+            ], commit=arg)
+            args, _ = self.solr._send_request.call_args
+            committing_in_url = 'commit' in args[1]
+            self.assertEqual(expected_commit, committing_in_url)
+
     def test_overwrite(self):
         self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 0)
         self.solr.add([
@@ -916,15 +924,7 @@ class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
     def setUp(self):
         super(SolrCommitByDefaultTestCase, self).setUp()
         self.solr = self.get_solr("core0", commit_by_default=True)
-
-    def test__get_commit(self):
-        # Should return True unless given False
-        self.assertTrue(self.solr._get_commit(True))
-        self.assertFalse(self.solr._get_commit(False))
-        self.assertTrue(self.solr._get_commit(None))
-
-    def test_does_not_require_commit(self):
-        docs = [
+        self.docs = [
             {
                 'id': 'doc_1',
                 'title': 'Newly added doc',
@@ -934,19 +934,32 @@ class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
                 'title': 'Another example doc',
             },
         ]
+
+    def test_does_not_require_commit(self):
         # add should not require commit arg
-        self.solr.add(docs)
+        self.solr.add(self.docs)
 
         self.assertEqual(len(self.solr.search('doc')), 2)
         self.assertEqual(len(self.solr.search('example')), 1)
 
         # update should not require commit arg
-        docs[0]['title'] = "Updated Doc"
-        docs[1]['title'] = "Another example updated doc"
-        self.solr.add(docs, fieldUpdates={'title': 'set'})
+        self.docs[0]['title'] = "Updated Doc"
+        self.docs[1]['title'] = "Another example updated doc"
+        self.solr.add(self.docs, fieldUpdates={'title': 'set'})
         self.assertEqual(len(self.solr.search('updated')), 2)
         self.assertEqual(len(self.solr.search('example')), 1)
 
         # delete should not require commit arg
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*')), 0)
+
+    def test_can_handles_default_commit_policy(self):
+        self.solr._send_request = Mock(wraps=self.solr._send_request)
+        expected_commits = [False, True, True]
+        commit_arg = [False, True, None]
+
+        for expected_commit, arg in zip(expected_commits, commit_arg):
+            self.solr.add(self.docs, commit=arg)
+            args, _ = self.solr._send_request.call_args
+            committing_in_url = 'commit' in args[1]
+            self.assertEqual(expected_commit, committing_in_url)

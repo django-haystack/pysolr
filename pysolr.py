@@ -442,11 +442,6 @@ class Solr(object):
     def _suggest_terms(self, params, handler='terms'):
         return self._select(params, handler)
 
-    def _get_commit(self, commit):
-        if commit is None:
-            commit = self.commit_by_default
-        return commit
-
     def _update(self, message, clean_ctrl_chars=True, commit=None, softCommit=False, waitFlush=None, waitSearcher=None,
                 overwrite=None, handler='update'):
         """
@@ -471,7 +466,9 @@ class Solr(object):
 
         path = '%s/' % path_handler
 
-        commit = self._get_commit(commit)
+        if commit is None:
+            commit = self.commit_by_default
+
         if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
         elif softCommit:
@@ -909,7 +906,6 @@ class Solr(object):
         m = force_unicode(m)
 
         end_time = time.time()
-        commit = self._get_commit(commit)
         self.log.debug("Built add request of %s docs in %0.2f seconds.", len(message), end_time - start_time)
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
@@ -953,8 +949,6 @@ class Solr(object):
                 raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
-
-        commit = self._get_commit(commit)
 
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
