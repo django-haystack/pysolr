@@ -1301,7 +1301,7 @@ class ZooKeeper(object):
 
         hosts = []
         if collname not in self.collections:
-            raise SolrError("Unknown collection: %s", collname)
+            raise SolrError("Unknown collection: %s" % collname)
         collection = self.collections[collname]
         shards = collection[ZooKeeper.SHARDS]
         for shardname in shards.keys():
