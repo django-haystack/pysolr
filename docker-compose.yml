@@ -1,0 +1,33 @@
+version: '2'
+
+services:
+  solr-base:
+    restart: "no"
+    build:
+      context: ./docker
+    ports:
+      - "8983:8983"
+
+  solr-5.5:
+    extends: solr-base
+    build:
+      args:
+        PY_SOLR_VERSION: 5.5
+
+  solr-6.6:
+    extends: solr-base
+    build:
+      args:
+        PY_SOLR_VERSION: 6.6
+
+  solr-7.0:
+    extends: solr-base
+    build:
+      args:
+        PY_SOLR_VERSION: 7.0
+
+  solr-7.1:
+    extends: solr-base
+    build:
+      args:
+        PY_SOLR_VERSION: 7.1

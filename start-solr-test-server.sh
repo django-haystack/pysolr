@@ -7,7 +7,9 @@ if [ ! -t 0 ]; then
     exec 1>test-solr.stdout.log 2>test-solr.stderr.log
 fi
 
-SOLR_VERSION=4.10.4
+# SOLR_VERSION=4.10.4
+DEFAULT_SOLR_VERSION=4.10.4
+SOLR_VERSION=${SOLR_VERSION:-4.10.4}
 
 ROOT=$(cd `dirname $0`; pwd)
 APP=$ROOT/solr-app
@@ -167,40 +169,69 @@ function prepare() {
     prepare_core $ROOT/solr/cloud-configs cloud
 }
 
+function prepare_docker() {
+    docker-compose build solr-${SOLR_VERSION}
+}
+
+function stop_docker_solr() {
+    docker-compose stop
+}
+
+function start_docker_solr() {
+    docker-compose up -d solr-${SOLR_VERSION}
+}
+
 if [ $# -eq 0 ]; then
     echo "$0 [prepare] [start] [stop]"
     exit
 fi
 
 while [ $# -gt 0 ]; do
-    if [ "$1" = "prepare" ]; then
-        prepare
-    elif [ "$1" = "stop" ]; then
-        stop_solr
-    elif [ "$1" = "start" ]; then
-        echo 'Starting Solr'
-        confirm_down non-cloud 8983
-        confirm_down cloud-zk 8992
-        confirm_down cloud-node0 8993
-        confirm_down cloud-node1 8994
+    if [ "$SOLR_VERSION" = "$DEFAULT_SOLR_VERSION" ]; then
+        if [ "$1" = "prepare" ]; then
+            echo "Starting Solr ${SOLR_VERSION} locally"
+            prepare
+        elif [ "$1" = "stop" ]; then
+            echo 'Stopping Solr'
+            stop_solr
+        elif [ "$1" = "start" ]; then
+            echo 'Starting Solr'
+            confirm_down non-cloud 8983
+            confirm_down cloud-zk 8992
+            confirm_down cloud-node0 8993
+            confirm_down cloud-node1 8994
 
-        start_solr $ROOT/solr/cloud-zk-node 8992 zk -DzkRun
-        wait_for ZooKeeper 8992
-        upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
+            start_solr $ROOT/solr/cloud-zk-node 8992 zk -DzkRun
+            wait_for ZooKeeper 8992
+            upload_configs localhost:9992 $ROOT/solr/cloud-configs/cloud/conf
 
-        start_solr $ROOT/solr/non-cloud 8983 non-cloud
-        start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992
-        start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992
-        wait_for simple-solr 8983
-        wait_for cloud-node0 8993
-        wait_for cloud-node1 8994
-        create_collection 8993 core0 localhost:8993_solr,localhost:8994_solr
-        create_collection 8993 core1 localhost:8993_solr,localhost:8994_solr
-        echo 'Solr started'
+            start_solr $ROOT/solr/non-cloud 8983 non-cloud
+            start_solr $ROOT/solr/cloud-node0 8993 cloud-node0 -DzkHost=localhost:9992
+            start_solr $ROOT/solr/cloud-node1 8994 cloud-node1 -DzkHost=localhost:9992
+            wait_for simple-solr 8983
+            wait_for cloud-node0 8993
+            wait_for cloud-node1 8994
+            create_collection 8993 core0 localhost:8993_solr,localhost:8994_solr
+            create_collection 8993 core1 localhost:8993_solr,localhost:8994_solr
+            echo 'Solr started'
+        else
+            echo "Unknown command: $1"
+            exit 1
+        fi
     else
-        echo "Unknown command: $1"
-        exit 1
+        if [ "$1" = "prepare" ]; then
+            echo "Starting Solr ${SOLR_VERSION} via Docker"
+            prepare_docker
+        elif [ "$1" = "stop" ]; then
+            echo 'Stopping Solr'
+            stop_docker_solr
+        elif [ "$1" = "start" ]; then
+            echo 'Starting Solr'
+            start_docker_solr
+            wait_for "Solr ${SOLR_VERSION}" 8983 10
+            # Solr doesn't seem to be completely ready until ~1s after it lights up its port
+            sleep 2
+        fi
     fi
-
     shift
 done
