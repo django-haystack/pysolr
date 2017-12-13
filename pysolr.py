@@ -311,7 +311,8 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False):
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False,
+                 auth=None, verify=True):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
@@ -320,11 +321,14 @@ class Solr(object):
         self.results_cls = results_cls
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
+        self.auth = auth
+        self.verify = verify
 
     def get_session(self):
         if self.session is None:
             self.session = requests.Session()
             self.session.stream = False
+            self.session.verify = self.verify
         return self.session
 
     def _get_log(self):
@@ -367,10 +371,9 @@ class Solr(object):
 
         if bytes_body is not None:
             bytes_body = force_bytes(body)
-
         try:
             resp = requests_method(url, data=bytes_body, headers=headers, files=files,
-                                   timeout=self.timeout)
+                                   timeout=self.timeout, auth=self.auth)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
@@ -1195,10 +1198,14 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, auth=None, verify=True,
+                 *args, **kwargs):
         url = zookeeper.getRandomURL(collection)
+        self.auth = auth
+        self.verify = verify
 
-        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify = self.verify,
+                                        *args, **kwargs)
 
         self.zookeeper = zookeeper
         self.collection = collection
