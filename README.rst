@@ -56,7 +56,7 @@ Basic usage looks like:
     import pysolr
 
     # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10)
+    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10, auth=<type of authentication>)
 
     # How you'd index data.
     solr.add([
@@ -120,7 +120,7 @@ Basic usage looks like:
     # For SolrCloud mode, initialize your Solr like this:
 
     zookeeper = pysolr.ZooKeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
-    solr = pysolr.SolrCloud(zookeeper, "collection1")
+    solr = pysolr.SolrCloud(zookeeper, "collection1", auth=<type of authentication>)
 
 
 Multicore Index
@@ -154,6 +154,44 @@ The handlers for MoreLikeThis, Update, Terms etc. all default to the values set 
 with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
 ``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
 Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
+
+
+Custom Authentication
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+	
+	# Setup a Solr instance in a kerborized enviornment
+	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+	
+	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
+	
+.. code-block:: python
+	
+	# Setup a CloudSolr instance in a kerborized environment
+	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+	
+	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
+
+
+If your Solr servers run off https
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+	# Setup a Solr instance in an https environment
+	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
+
+.. code-block:: python
+	
+	# Setup a CloudSolr instance in a kerborized environment
+	
+	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
+
 
 
 LICENSE
