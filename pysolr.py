@@ -818,7 +818,7 @@ class Solr(object):
                 continue
 
             # To avoid multiple code-paths we'd like to treat all of our values as iterables:
-            if isinstance(value, (list, tuple)):
+            if isinstance(value, (list, tuple, set)):
                 values = value
             else:
                 values = (value, )
