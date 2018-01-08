@@ -5,6 +5,7 @@ python:
     - "3.3"
     - "3.4"
     - "3.5"
+    - "3.6"
     - "pypy"
 
 cache:
@@ -16,6 +17,10 @@ cache:
 env:
     - SOLRCLOUD=false
     - SOLRCLOUD=true
+
+matrix:
+    allow_failures:
+        - python: 'pypy'
 
 addons:
   apt_packages:

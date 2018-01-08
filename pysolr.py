@@ -9,6 +9,7 @@ import random
 import re
 import time
 from xml.etree import ElementTree
+from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 import requests
 
@@ -55,11 +56,17 @@ except NameError:
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
 __all__ = ['Solr']
-__version__ = (3, 5, 0)
 
+try:
+    pkg_distribution = get_distribution(__name__)
+    __version__ = pkg_distribution.version
+    version_info = pkg_distribution.parsed_version
+except DistributionNotFound:
+    __version__ = '0.0.dev0'
+    version_info = parse_version(__version__)
 
 def get_version():
-    return "%s.%s.%s" % __version__[:3]
+    return __version__
 
 
 DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
@@ -304,7 +311,8 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False):
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False,
+                 auth=None, verify=True):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
@@ -313,11 +321,14 @@ class Solr(object):
         self.results_cls = results_cls
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
+        self.auth = auth
+        self.verify = verify
 
     def get_session(self):
         if self.session is None:
             self.session = requests.Session()
             self.session.stream = False
+            self.session.verify = self.verify
         return self.session
 
     def _get_log(self):
@@ -360,10 +371,9 @@ class Solr(object):
 
         if bytes_body is not None:
             bytes_body = force_bytes(body)
-
         try:
             resp = requests_method(url, data=bytes_body, headers=headers, files=files,
-                                   timeout=self.timeout)
+                                   timeout=self.timeout, auth=self.auth)
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.error(error_message, url, err, exc_info=True)
@@ -454,9 +464,9 @@ class Solr(object):
 
         path = '%s/' % path_handler
 
-        if commit is not None:
+        if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
-        elif softCommit is not None:
+        elif softCommit:
             query_vars.append('softCommit=%s' % str(bool(softCommit)).lower())
 
         if waitFlush is not None:
@@ -817,6 +827,11 @@ class Solr(object):
                 if self._is_null_value(bit):
                     continue
 
+                if key == '_doc':
+                    child = self._build_doc(bit, boost)
+                    doc_elem.append(child)
+                    continue
+
                 attrs = {'name': key}
 
                 if fieldUpdates and key in fieldUpdates:
@@ -890,15 +905,18 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
         Requires *either* ``id`` or ``query``. ``id`` is if you know the
-        specific document id to remove. ``query`` is a Lucene-style query
+        specific document id to remove. Note that ``id`` can also be a list of
+        document ids to be deleted. ``query`` is a Lucene-style query
         indicating a collection of documents to delete.
 
         Optionally accepts ``commit``. Default is ``True``.
+
+        Optionally accepts ``softCommit``. Default is ``False``.
 
         Optionally accepts ``waitFlush``. Default is ``None``.
 
@@ -907,6 +925,7 @@ class Solr(object):
         Usage::
 
             solr.delete(id='doc_12')
+            solr.delete(id=['doc_1', 'doc_3'])
             solr.delete(q='*:*')
 
         """
@@ -915,11 +934,18 @@ class Solr(object):
         elif id is not None and q is not None:
             raise ValueError('You many only specify "id" OR "q", not both.')
         elif id is not None:
-            m = '<delete><id>%s</id></delete>' % id
+            if not isinstance(id, (list, set, tuple)):
+                id = [id]
+            else:
+                id = list(filter(None, id))
+            if id:
+                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
+            else:
+                raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
             m = '<delete><query>%s</query></delete>' % q
 
-        return self._update(m, commit=commit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def commit(self, softCommit=False, waitFlush=None, waitSearcher=None, expungeDeletes=None, handler='update'):
         """
@@ -943,7 +969,7 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
 
     def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
@@ -1037,6 +1063,11 @@ class Solr(object):
 class SolrCoreAdmin(object):
     """
     Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
+
+    This must be initialized with the full admin cores URL::
+
+        solr_admin = SolrCoreAdmin('http://localhost:8983/solr/admin/cores')
+        status = solr_admin.status()
 
     Operations offered by Solr are:
        1. STATUS
@@ -1167,10 +1198,14 @@ def sanitize(data):
 
 class SolrCloud(Solr):
 
-    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, *args, **kwargs):
+    def __init__(self, zookeeper, collection, decoder=None, timeout=60, retry_timeout=0.2, auth=None, verify=True,
+                 *args, **kwargs):
         url = zookeeper.getRandomURL(collection)
+        self.auth = auth
+        self.verify = verify
 
-        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, *args, **kwargs)
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify = self.verify,
+                                        *args, **kwargs)
 
         self.zookeeper = zookeeper
         self.collection = collection
@@ -1273,7 +1308,7 @@ class ZooKeeper(object):
 
         hosts = []
         if collname not in self.collections:
-            raise SolrError("Unknown collection: %s", collname)
+            raise SolrError("Unknown collection: %s" % collname)
         collection = self.collections[collname]
         shards = collection[ZooKeeper.SHARDS]
         for shardname in shards.keys():

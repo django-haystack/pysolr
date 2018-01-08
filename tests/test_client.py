@@ -2,6 +2,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import datetime
+import random
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
@@ -544,6 +545,37 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
+    def test__build_doc_with_sub_docs(self):
+        sub_docs = [
+            {
+                'id': 'sub_doc_1',
+                'title': 'Example sub doc ☃ 1',
+                'price': 1.59,
+                'popularity': 4
+            },
+            {
+                'id': 'sub_doc_2',
+                'title': 'Example sub doc ☃ 2',
+                'price': 21.13,
+                'popularity': 1
+            },
+        ]
+        doc = {
+            'id': 'doc_1',
+            'title': 'Example doc ☃ 1',
+            'price': 12.59,
+            'popularity': 10,
+            '_doc': sub_docs
+        }
+        doc_xml = self.solr._build_doc(doc)
+        self.assertEqual(doc_xml.find("*[@name='id']").text, doc['id'])
+
+        children_docs = doc_xml.findall('doc')
+        self.assertEqual(len(children_docs), len(sub_docs))
+
+        self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]['id'])
+        self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]['id'])
+
     def test_add(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.assertEqual(len(self.solr.search('example')), 2)
@@ -584,7 +616,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
 
-    def test_field_update(self):
+    def test_field_update_inc(self):
         originalDocs = self.solr.search('doc')
         self.assertEqual(len(originalDocs), 3)
         updateList = []
@@ -601,6 +633,25 @@ class SolrTestCase(unittest.TestCase):
             self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
                                        if k not in ['_version_', 'popularity']))
 
+    def test_field_update_set(self):
+        originalDocs = self.solr.search('doc')
+        updated_popularity = 10
+        self.assertEqual(len(originalDocs), 3)
+        updateList = []
+        for i, doc in enumerate(originalDocs):
+            updateList.append({'id': doc['id'], 'popularity': updated_popularity})
+        self.solr.add(updateList, fieldUpdates={'popularity': 'set'})
+
+        updatedDocs = self.solr.search('doc')
+        self.assertEqual(len(updatedDocs), 3)
+        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+            self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
+            self.assertEqual(updatedDoc['popularity'], updated_popularity)
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'popularity']))
+
+    def test_field_update_add(self):
         self.solr.add([
             {
                 'id': 'multivalued_1',
@@ -654,7 +705,35 @@ class SolrTestCase(unittest.TestCase):
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
-        # Need at least one.
+        # Test delete() with `id' being a list.
+        # Solr's ability to delete parent/children docs by id is simply assumed
+        # and not what's under test here.
+        def leaf_doc(doc):
+            return 'price' in doc and NESTED_DOC_KEY not in doc
+
+        to_delete_docs = list(filter(leaf_doc, self.docs))
+        to_delete_ids = [doc['id'] for doc in to_delete_docs]
+
+        self.solr.add(to_delete_docs)
+        self.solr.commit()
+
+        leaf_q = 'price:[* TO *]'
+        self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
+        # Extract a random doc from the list, to later check it wasn't deleted.
+        graced_doc_id = to_delete_ids.pop(random.randint(0, len(to_delete_ids) - 1))
+        self.solr.delete(id=to_delete_ids)
+        # There should be only one left, our graced id
+        self.assertEqual(len(self.solr.search(leaf_q)), 1)
+        self.assertEqual(len(self.solr.search('id:%s' % graced_doc_id)), 1)
+        # Now we can wipe the graced document too. None should be left.
+        self.solr.delete(id=graced_doc_id)
+        self.assertEqual(len(self.solr.search(leaf_q)), 0)
+
+        # Can't delete when the list of documents is empty
+        self.assertRaises(ValueError, self.solr.delete, id=[None, None, None])
+        self.assertRaises(ValueError, self.solr.delete, id=[None])
+
+        # Need at least one of either `id' or `q'
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')

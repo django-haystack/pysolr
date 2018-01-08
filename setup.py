@@ -6,7 +6,7 @@ except ImportError:
 
 setup(
     name="pysolr",
-    version="3.5.0",
+    use_scm_version=True,
     description="Lightweight python wrapper for Apache Solr.",
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
@@ -27,11 +27,12 @@ setup(
     url='https://github.com/django-haystack/pysolr/',
     license='BSD',
     install_requires=[
-        'requests>=2.0'
+        'requests>=2.9.1'
     ],
     extras_require={
         'solrcloud': [
     	    'kazoo==2.2'
         ]
-    }
+    },
+    setup_requires=['setuptools_scm'],
 )
