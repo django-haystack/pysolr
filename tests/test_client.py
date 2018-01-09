@@ -545,6 +545,19 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
+    def test__build_doc_with_sets(self):
+        doc = {
+            'id': 'doc_1',
+            'title': 'Set test doc',
+            'tags': set(['alpha', 'beta']),
+        }
+        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
+        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
+        self.assertTrue('<field name="title">Set test doc</field>' in doc_xml)
+        self.assertTrue('<field name="tags">alpha</field>' in doc_xml)
+        self.assertTrue('<field name="tags">beta</field>' in doc_xml)
+        self.assertEqual(len(doc_xml), 144)
+
     def test__build_doc_with_sub_docs(self):
         sub_docs = [
             {
