@@ -242,3 +242,4 @@ Python 2::
 Python 3::
 
     python3 -m unittest tests
+
