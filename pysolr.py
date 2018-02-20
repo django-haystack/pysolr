@@ -312,7 +312,7 @@ class Solr(object):
 
     """
 
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False, commit_by_default=False,
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False, always_commit=False,
                  auth=None, verify=True):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
@@ -324,7 +324,7 @@ class Solr(object):
         self.use_qt_param = use_qt_param
         self.auth = auth
         self.verify = verify
-        self.commit_by_default = commit_by_default
+        self.always_commit = always_commit
 
     def get_session(self):
         if self.session is None:
@@ -467,7 +467,7 @@ class Solr(object):
         path = '%s/' % path_handler
 
         if commit is None:
-            commit = self.commit_by_default
+            commit = self.always_commit
 
         if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())

@@ -200,9 +200,9 @@ Custom Commit Policy
 
     # Setup a Solr instance. The trailing slash is optional.
     # All request to solr will result in a commit
-    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', commit_by_default=True)
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', always_commit=True)
 
-``commit_by_default`` signals to the Solr object to either commit or not commit by default for any solr request.
+``always_commit`` signals to the Solr object to either commit or not commit by default for any solr request.
 Be sure to change this to True if you are upgrading from a version where the default policy was alway commit by default.
 
 Functions like ``add`` and ``delete`` also still provide a way to override the default by passing the ``commit`` kwarg.

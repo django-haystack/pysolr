@@ -134,8 +134,8 @@ class ResultsTestCase(unittest.TestCase):
 
 
 class SolrTestCaseMixin(object):
-    def get_solr(self, collection, timeout=60, commit_by_default=False):
-        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, commit_by_default=commit_by_default)
+    def get_solr(self, collection, timeout=60, always_commit=False):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, always_commit=always_commit)
 
 
 class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
@@ -237,17 +237,17 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         # slash handling are caught quickly:
         return self.assertEqual(URL, '%s/%s' % (self.solr.url.replace('/core0', ''), path))
 
-    def get_solr(self, collection, timeout=60, commit_by_default=False):
-        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, commit_by_default=commit_by_default)
+    def get_solr(self, collection, timeout=60, always_commit=False):
+        return Solr('http://localhost:8983/solr/%s' % collection, timeout=timeout, always_commit=always_commit)
 
     def test_init(self):
         self.assertEqual(self.solr.url, 'http://localhost:8983/solr/core0')
         self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
         self.assertEqual(self.solr.timeout, 60)
 
-        custom_solr = self.get_solr("core0", timeout=17, commit_by_default=True)
+        custom_solr = self.get_solr("core0", timeout=17, always_commit=True)
         self.assertEqual(custom_solr.timeout, 17)
-        self.assertEqual(custom_solr.commit_by_default, True)
+        self.assertEqual(custom_solr.always_commit, True)
 
     def test_custom_results_class(self):
         solr = Solr('http://localhost:8983/solr/core0', results_cls=dict)
@@ -923,7 +923,7 @@ class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
 
     def setUp(self):
         super(SolrCommitByDefaultTestCase, self).setUp()
-        self.solr = self.get_solr("core0", commit_by_default=True)
+        self.solr = self.get_solr("core0", always_commit=True)
         self.docs = [
             {
                 'id': 'doc_1',
