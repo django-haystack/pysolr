@@ -21,6 +21,11 @@ try:
 except ImportError:
     from urllib import unquote_plus
 
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
+
 
 class UtilsTestCase(unittest.TestCase):
     def test_unescape_html(self):
@@ -846,6 +851,47 @@ class SolrTestCase(unittest.TestCase):
         m = extracted['metadata']
 
         self.assertEqual([fake_f.name], m['stream_name'])
+
+        self.assertIn('haystack-test', m, "HTML metadata should have been extracted!")
+        self.assertEqual(['test 1234'], m['haystack-test'])
+
+        # Note the underhanded use of a double snowman to verify both that Tika
+        # correctly decoded entities and that our UTF-8 characters survived the
+        # round-trip:
+        self.assertEqual(['Test Title ☃☃'], m['title'])
+
+    def test_extract_special_char_in_filename(self):
+        fake_f = StringIO("""
+            <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="haystack-test" content="test 1234">
+                    <title>Test Title ☃&#x2603;</title>
+                </head>
+                    <body>foobar</body>
+            </html>
+        """)
+        fake_f.name = "test☃.html"
+        extracted = self.solr.extract(fake_f)
+        # extract should default to 'update/extract' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/extract'))
+
+        # extract should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.extract(fake_f, handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
+        # Verify documented response structure:
+        self.assertIn('contents', extracted)
+        self.assertIn('metadata', extracted)
+
+        self.assertIn('foobar', extracted['contents'])
+
+        m = extracted['metadata']
+
+        self.assertEqual([quote(fake_f.name)], m['stream_name'])
 
         self.assertIn('haystack-test', m, "HTML metadata should have been extracted!")
         self.assertEqual(['test 1234'], m['haystack-test'])

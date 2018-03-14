@@ -33,6 +33,13 @@ except ImportError:
 
 try:
     # Python 3.X
+    from urllib.parse import quote
+except ImportError:
+    # Python 2.X
+    from urllib import quote
+
+try:
+    # Python 3.X
     import html.entities as htmlentities
 except ImportError:
     # Python 2.X
@@ -1027,13 +1034,13 @@ class Solr(object):
             "wt": "json",
         }
         params.update(kwargs)
-
+        filename = quote(file_obj.name)
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
             resp = self._send_request('post', handler,
                                       body=params,
-                                      files={'file': (file_obj.name, file_obj)})
+                                      files={'file': (filename, file_obj)})
         except (IOError, SolrError) as err:
             self.log.error("Failed to extract document metadata: %s", err,
                            exc_info=True)
@@ -1046,10 +1053,10 @@ class Solr(object):
                            exc_info=True)
             raise
 
-        data['contents'] = data.pop(file_obj.name, None)
+        data['contents'] = data.pop(filename, None)
         data['metadata'] = metadata = {}
 
-        raw_metadata = data.pop("%s_metadata" % file_obj.name, None)
+        raw_metadata = data.pop("%s_metadata" % filename, None)
 
         if raw_metadata:
             # The raw format is somewhat annoying: it's a flat list of
