@@ -1034,7 +1034,7 @@ class Solr(object):
             "wt": "json",
         }
         params.update(kwargs)
-        filename = quote(file_obj.name)
+        filename = quote(file_obj.name.encode('utf-8'))
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:

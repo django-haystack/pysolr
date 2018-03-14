@@ -871,7 +871,7 @@ class SolrTestCase(unittest.TestCase):
                     <body>foobar</body>
             </html>
         """)
-        fake_f.name = "test☃.html"
+        fake_f.name = u"test☃.html"
         extracted = self.solr.extract(fake_f)
         # extract should default to 'update/extract' handler
         args, kwargs = self.solr._send_request.call_args
@@ -891,7 +891,7 @@ class SolrTestCase(unittest.TestCase):
 
         m = extracted['metadata']
 
-        self.assertEqual([quote(fake_f.name)], m['stream_name'])
+        self.assertEqual([quote(fake_f.name.encode('utf-8'))], m['stream_name'])
 
         self.assertIn('haystack-test', m, "HTML metadata should have been extracted!")
         self.assertEqual(['test 1234'], m['haystack-test'])
