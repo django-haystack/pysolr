@@ -193,7 +193,7 @@ def safe_urlencode(params, doseq=0):
     return urlencode(new_params, doseq)
 
 
-def is_valid_xml_char_ordinal(i):
+def is_valid_xm_char_ordinal(i):
     """
     Defines whether char is valid to use in xml document
 
