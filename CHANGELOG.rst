@@ -7,6 +7,125 @@ Changelog
 New
 ~~~
 
+- Support for nested documents (closes #170) [Chris Adams]
+
+  This adds support for Solr's nested documents in `Solr.add`
+
+  Thanks to @skirsdeda for the patch
+
+- ZooKeeper can receive an existing KazooClient instance. [Chris Adams]
+
+  This simplifies advanced customization by allowing you to pass in an existing instance which is configured in whatever manner necessary.
+
+Changes
+~~~~~~~
+
+- Logging: pass full request body + headers as extra data. [Chris Adams]
+
+  This doesn't affect the normal logging output but is helpful for
+  aggregation systems such as Sentry where the full request information
+  may be displayed for debugging purposes
+
+- Basic max_retries for ZooKeeper. [Chris Adams]
+
+  Kazoo sets the default to hang forever which is frequently not the desired error-handling behavior. This makes it easier to set a limit on the number of retries and we use it in testing to avoid the suite hanging endlessly.
+
+- Better error message for Solr failures. [Chris Adams]
+
+  Previously when ZooKeeper had no active shards pysolr
+  would return an error when `random.shuffle` received
+  an empty list. Now it will raise an exception which
+  will hopefully indicate just how bad the situation is.
+
+- Remove __del__ methods. [Chris Adams]
+
+  The __del__ methods were added in an attempt to avoid Kazoo-related
+  failures as part of the SolrCloud support but can cause other problems
+  on different versions of Python (see #193).
+
+  Since the errors in question were observed during testing this commit
+  removes the __del__ methods and we will have to find an alternative for
+  making tests fail safely.
+
+Fix
+~~~
+
+- Set KazooClient timeout. [Chris Adams]
+
+  `__init__` was not actually passing this to the ZooKeeper client
+
+Other
+~~~~~
+
+- Better docstring for SolrCoreAdmin. [Chris Adams]
+
+  Thanks to Patricio Del Boca (@pdelboca) for the patch.
+
+  Closes #185
+
+- Require requests >= 2.9.1 (closes #177) [Chris Adams]
+
+  This will avoid compatibility issues on Python 3 which can produce
+  confusing errors.
+
+- Merge pull request #203 from bendemott/documentation. [Chris Adams]
+
+  updated typo in documentation example
+
+- Updated typo in documentation example. [Ben DeMott]
+
+  "Zookeeper" should be "ZooKeeper" on line 104 in README.rst
+
+- Docs: note that add has commit=True by default (see #46) [Chris Adams]
+
+  Thanks to @mlissner
+
+- Adds note about commit=True being the default. [Mike Lissner]
+
+- Correctly handle time-zone aware dates (#201) [Andrew Kuchling]
+
+  Thanks to Andrew Kuchling (@akuchling) for the patch.
+
+  Closes #197, #198
+
+- Oops.. Add a missing assert in tests. [Tadas Dailyda]
+
+- Refactor _build_doc to be recursive and allow deeper document nesting,
+  fix tests accordingly. [Tadas Dailyda]
+
+- Add some block join queries to test_search. [Tadas Dailyda]
+
+- Add some nested docs to the tests. [Tadas Dailyda]
+
+- Implement nested documents functionality. [Tadas Dailyda]
+
+- ZooKeeper: by default use the same timeout for commands and
+  connections. [Chris Adams]
+
+- Tox: run SolrCloud tests (parity with Travis CI) [Chris Adams]
+
+- Update project URL. [Chris Adams]
+
+v3.5.0 (2016-05-24)
+-------------------
+
+New
+~~~
+
+- Expose the full Solr response in `Results` [Chris Adams]
+
+  This makes life easier for anyone using custom extensions by
+  removing the need to create a `Results` subclass just to get
+  access to an extra dictionary key.
+
+- More flexible control of request handlers. [nuarhu]
+
+  This allows configuring the default search handler and overriding it for every query method
+
+  Thanks to @nuarhu for the patch
+
+- Start maintaining a changelog from gitchangelog. [Chris Adams]
+
 - Overwrite flag for Solr.add (closes #182) [Chris Adams]
 
   Thanks to @robinsonkwame for the patch
@@ -20,6 +139,45 @@ New
 
 Other
 ~~~~~
+
+- V3.5.0. [Chris Adams]
+
+- Merge pull request #192 from dhruvpathak/optimize_commit_flag. [Chris
+  Adams]
+
+  chg: `optimize()` also accepts `commit` flag
+
+- Included commit flag in optimize() to let optimize call run with or
+  without commit. [dhruv.pathak]
+
+- Merge pull request #188 from TigorC/master. [Chris Adams]
+
+  Removed py26 from tox.ini
+
+- Removed py26 from tox.ini. [Igor Tokarev]
+
+- Tests: avoid timeout-based CI failures. [Chris Adams]
+
+  These caused sporadic CI build failures and weren’t
+  otherwise testing actual functionality since we don’t have a
+  test which does something like SIGSTOP the test Solr server
+  long enough to confirm a timeout.
+
+  We’ll confirm that the timeout is passed through but
+  otherwise use the defaults.
+
+- Update Travis CI badge in the README. [Chris Adams]
+
+- Merge pull request #184 from atuljangra/master. [Chris Adams]
+
+  Correct documentation for `_update`
+
+  Thanks to @atuljangra for the patch!
+
+- Merge branch 'master' of https://github.com/atuljangra/pysolr.
+  [atuljangra]
+
+- Misleading comments. [atuljangra]
 
 - Travis: use build matrix for regular and SolrCloud tests. [Chris
   Adams]

@@ -5,6 +5,7 @@ python:
     - "3.3"
     - "3.4"
     - "3.5"
+    - "3.6"
     - "pypy"
 
 cache:
@@ -17,6 +18,10 @@ env:
     - SOLRCLOUD=false
     - SOLRCLOUD=true
 
+matrix:
+    allow_failures:
+        - python: 'pypy'
+
 addons:
   apt_packages:
     - default-jdk
@@ -24,6 +29,7 @@ addons:
 install:
     - "pip install 'requests>2'"
     - "pip install ."
+    - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
     - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
 script:

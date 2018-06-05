@@ -2,13 +2,19 @@
 from __future__ import absolute_import, unicode_literals
 
 import datetime
+import random
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
 
-from pysolr import (Results, Solr, SolrError, clean_xml_string, force_bytes,
-                    force_unicode, json, safe_urlencode, sanitize,
+from pysolr import (NESTED_DOC_KEY, Results, Solr, SolrError, clean_xml_string,
+                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
                     unescape_html)
+
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 
 try:
     from urllib.parse import unquote_plus
@@ -161,6 +167,50 @@ class SolrTestCase(unittest.TestCase):
                 'price': 1.12,
                 'popularity': 2,
             },
+            # several with nested docs (not using fields that are used in
+            # normal docs so that they don't interfere with their tests)
+            {
+                'id': 'parentdoc_1',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 1',
+                'pages_i': 5,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_1',
+                        'type_s': 'child',
+                        'name_t': 'Child #1',
+                        'comment_t': 'Hello there',
+                    },
+                    {
+                        'id': 'childdoc_2',
+                        'type_s': 'child',
+                        'name_t': 'Child #2',
+                        'comment_t': 'Ehh..',
+                    },
+                ],
+            },
+            {
+                'id': 'parentdoc_2',
+                'type_s': 'parent',
+                'name_t': 'Parent no. 2',
+                'pages_i': 500,
+                NESTED_DOC_KEY: [
+                    {
+                        'id': 'childdoc_3',
+                        'type_s': 'child',
+                        'name_t': 'Child of another parent',
+                        'comment_t': 'Yello',
+                        NESTED_DOC_KEY: [
+                            {
+                                'id': 'grandchilddoc_1',
+                                'type_s': 'grandchild',
+                                'name_t': 'Grand child of parent',
+                                'comment_t': 'Blah',
+                            },
+                        ],
+                    },
+                ],
+            }
         ]
 
         # Clear it.
@@ -170,6 +220,10 @@ class SolrTestCase(unittest.TestCase):
         # later & if it's broken, everything will catastrophically fail.
         # Such is life.
         self.solr.add(self.docs)
+
+        # Mock the _send_request method on the solr instance so that we can
+        # test that custom handlers are called correctly.
+        self.solr._send_request = Mock(wraps=self.solr._send_request)
 
     def assertURLStartsWith(self, URL, path):
         """Assert that the test URL provided starts with a known base and the provided path"""
@@ -336,8 +390,6 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
 
     def test__from_python(self):
-        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
-        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
         self.assertEqual(self.solr._from_python(True), 'true')
         self.assertEqual(self.solr._from_python(False), 'false')
         self.assertEqual(self.solr._from_python(1), '1')
@@ -345,6 +397,29 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(self.solr._from_python(b'hello'), 'hello')
         self.assertEqual(self.solr._from_python('hello ☃'), 'hello ☃')
         self.assertEqual(self.solr._from_python('\x01test\x02'), 'test')
+
+    def test__from_python_dates(self):
+        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)), '2013-01-18T00:00:00Z')
+        self.assertEqual(self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)), '2013-01-18T00:30:28Z')
+
+        class FakeTimeZone(datetime.tzinfo):
+            offset = 0
+            def utcoffset(self, dt):
+                return datetime.timedelta(minutes=self.offset)
+
+            def dst(self):
+                return None
+
+        # Check a UTC timestamp
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T00:30:28Z')
+
+        # Check a US Eastern Standard Time timestamp
+        FakeTimeZone.offset = -(5*60)
+        self.assertEqual(self.solr._from_python(
+            datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())),
+            '2013-01-18T05:30:28Z')
 
     def test__to_python(self):
         self.assertEqual(self.solr._to_python('2013-01-18T00:00:00Z'), datetime.datetime(2013, 1, 18))
@@ -369,6 +444,9 @@ class SolrTestCase(unittest.TestCase):
     def test_search(self):
         results = self.solr.search('doc')
         self.assertEqual(len(results), 3)
+        # search should default to 'select' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select/?'))
 
         results = self.solr.search('example')
         self.assertEqual(len(results), 2)
@@ -399,6 +477,18 @@ class SolrTestCase(unittest.TestCase):
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
 
+        # Nested search #1: find parent where child's comment has 'hello'
+        results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
+        self.assertEqual(len(results), 1)
+        # TODO: for some reason Solr 4.10 returns all parents and non-nested
+        # docs together with matched children when running {!child} query
+        # Nested search #2: find children for parent 'id:nestdoc_1'
+        # results = self.solr.search("{!child of=type_s:nested}id:nestdoc_1")
+        # self.assertEqual(len(results), 2)
+        # Nested search #3: find child with a child
+        results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
+        self.assertEqual(len(results), 1)
+
     def test_multiple_search_handlers(self):
         misspelled_words = 'anthr thng'
         # By default, the 'select' search handler should be used
@@ -410,14 +500,38 @@ class SolrTestCase(unittest.TestCase):
         results = self.solr.search(q=misspelled_words, search_handler='spell')
         self.assertNotEqual(results.spellcheck, {})
 
+        # search should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.search('doc', search_handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
     def test_more_like_this(self):
         results = self.solr.more_like_this('id:doc_1', 'text')
         self.assertEqual(len(results), 0)
+        # more_like_this should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('mlt/?'))
+
+        # more_like_this should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.more_like_this('id:doc_1', 'text', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_suggest_terms(self):
         results = self.solr.suggest_terms('title', '')
         self.assertEqual(len(results), 1)
         self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2), ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
+        # suggest_terms should default to 'mlt' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('terms/?'))
+
+        # suggest_terms should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.suggest_terms('title', '', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test__build_doc(self):
         doc = {
@@ -430,6 +544,50 @@ class SolrTestCase(unittest.TestCase):
         self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
         self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
         self.assertEqual(len(doc_xml), 152)
+
+    def test__build_doc_with_sets(self):
+        doc = {
+            'id': 'doc_1',
+            'title': 'Set test doc',
+            'tags': set(['alpha', 'beta']),
+        }
+        doc_xml = force_unicode(ElementTree.tostring(self.solr._build_doc(doc), encoding='utf-8'))
+        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
+        self.assertTrue('<field name="title">Set test doc</field>' in doc_xml)
+        self.assertTrue('<field name="tags">alpha</field>' in doc_xml)
+        self.assertTrue('<field name="tags">beta</field>' in doc_xml)
+        self.assertEqual(len(doc_xml), 144)
+
+    def test__build_doc_with_sub_docs(self):
+        sub_docs = [
+            {
+                'id': 'sub_doc_1',
+                'title': 'Example sub doc ☃ 1',
+                'price': 1.59,
+                'popularity': 4
+            },
+            {
+                'id': 'sub_doc_2',
+                'title': 'Example sub doc ☃ 2',
+                'price': 21.13,
+                'popularity': 1
+            },
+        ]
+        doc = {
+            'id': 'doc_1',
+            'title': 'Example doc ☃ 1',
+            'price': 12.59,
+            'popularity': 10,
+            '_doc': sub_docs
+        }
+        doc_xml = self.solr._build_doc(doc)
+        self.assertEqual(doc_xml.find("*[@name='id']").text, doc['id'])
+
+        children_docs = doc_xml.findall('doc')
+        self.assertEqual(len(children_docs), len(sub_docs))
+
+        self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]['id'])
+        self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]['id'])
 
     def test_add(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -445,9 +603,18 @@ class SolrTestCase(unittest.TestCase):
                 'title': 'Another example doc',
             },
         ])
+        # add should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
 
         self.assertEqual(len(self.solr.search('doc')), 5)
         self.assertEqual(len(self.solr.search('example')), 3)
+
+        # add should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.add([], handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_add_with_boost(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -462,7 +629,7 @@ class SolrTestCase(unittest.TestCase):
         self.assertEqual(len(res), 5)
         self.assertEqual('doc_6', res.docs[0]['id'])
 
-    def test_field_update(self):
+    def test_field_update_inc(self):
         originalDocs = self.solr.search('doc')
         self.assertEqual(len(originalDocs), 3)
         updateList = []
@@ -479,6 +646,25 @@ class SolrTestCase(unittest.TestCase):
             self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
                                        if k not in ['_version_', 'popularity']))
 
+    def test_field_update_set(self):
+        originalDocs = self.solr.search('doc')
+        updated_popularity = 10
+        self.assertEqual(len(originalDocs), 3)
+        updateList = []
+        for i, doc in enumerate(originalDocs):
+            updateList.append({'id': doc['id'], 'popularity': updated_popularity})
+        self.solr.add(updateList, fieldUpdates={'popularity': 'set'})
+
+        updatedDocs = self.solr.search('doc')
+        self.assertEqual(len(updatedDocs), 3)
+        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+            self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
+            self.assertEqual(updatedDoc['popularity'], updated_popularity)
+            # TODO: change this to use assertSetEqual:
+            self.assertEqual(True, all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                                       if k not in ['_version_', 'popularity']))
+
+    def test_field_update_add(self):
         self.solr.add([
             {
                 'id': 'multivalued_1',
@@ -511,18 +697,65 @@ class SolrTestCase(unittest.TestCase):
     def test_delete(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.delete(id='doc_1')
+        # delete should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
+
         self.assertEqual(len(self.solr.search('doc')), 2)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 2)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.assertEqual(len(self.solr.search('type_s:grandchild')), 1)
         self.solr.delete(q='price:[0 TO 15]')
+        self.solr.delete(q='type_s:parent')
+        # one simple doc should remain
+        # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search('doc')), 1)
+        self.assertEqual(len(self.solr.search('type_s:parent')), 0)
+        self.assertEqual(len(self.solr.search('type_s:child')), 3)
+        self.solr.delete(q='type_s:child OR type_s:grandchild')
 
         self.assertEqual(len(self.solr.search('*:*')), 1)
         self.solr.delete(q='*:*')
         self.assertEqual(len(self.solr.search('*:*')), 0)
 
-        # Need at least one.
+        # Test delete() with `id' being a list.
+        # Solr's ability to delete parent/children docs by id is simply assumed
+        # and not what's under test here.
+        def leaf_doc(doc):
+            return 'price' in doc and NESTED_DOC_KEY not in doc
+
+        to_delete_docs = list(filter(leaf_doc, self.docs))
+        to_delete_ids = [doc['id'] for doc in to_delete_docs]
+
+        self.solr.add(to_delete_docs)
+        self.solr.commit()
+
+        leaf_q = 'price:[* TO *]'
+        self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
+        # Extract a random doc from the list, to later check it wasn't deleted.
+        graced_doc_id = to_delete_ids.pop(random.randint(0, len(to_delete_ids) - 1))
+        self.solr.delete(id=to_delete_ids)
+        # There should be only one left, our graced id
+        self.assertEqual(len(self.solr.search(leaf_q)), 1)
+        self.assertEqual(len(self.solr.search('id:%s' % graced_doc_id)), 1)
+        # Now we can wipe the graced document too. None should be left.
+        self.solr.delete(id=graced_doc_id)
+        self.assertEqual(len(self.solr.search(leaf_q)), 0)
+
+        # Can't delete when the list of documents is empty
+        self.assertRaises(ValueError, self.solr.delete, id=[None, None, None])
+        self.assertRaises(ValueError, self.solr.delete, id=[None])
+
+        # Need at least one of either `id' or `q'
         self.assertRaises(ValueError, self.solr.delete)
         # Can't have both.
         self.assertRaises(ValueError, self.solr.delete, id='foo', q='bar')
+
+        # delete should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.delete(id='doc_1', handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_commit(self):
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -534,6 +767,9 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.commit()
+        # commit should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
 
     def test_overwrite(self):
@@ -550,6 +786,12 @@ class SolrTestCase(unittest.TestCase):
         ], overwrite=False)
         self.assertEqual(len(self.solr.search('id:doc_overwrite_1')), 2)
 
+        # commit should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.commit(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
+
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
         self.assertEqual(len(self.solr.search('doc')), 3)
@@ -561,7 +803,16 @@ class SolrTestCase(unittest.TestCase):
         ], commit=False)
         self.assertEqual(len(self.solr.search('doc')), 3)
         self.solr.optimize()
+        # optimize should default to 'update' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/?'))
         self.assertEqual(len(self.solr.search('doc')), 4)
+
+        # optimize should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.optimize(handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
     def test_extract(self):
         fake_f = StringIO("""
@@ -576,6 +827,15 @@ class SolrTestCase(unittest.TestCase):
         """)
         fake_f.name = "test.html"
         extracted = self.solr.extract(fake_f)
+        # extract should default to 'update/extract' handler
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('update/extract'))
+
+        # extract should support custom handlers
+        with self.assertRaises(SolrError):
+            self.solr.extract(fake_f, handler='fakehandler')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('fakehandler'))
 
         # Verify documented response structure:
         self.assertIn('contents', extracted)
@@ -601,3 +861,37 @@ class SolrTestCase(unittest.TestCase):
 
         # Make sure trailing and leading slashes do not collide:
         self.assertEqual(full_url, 'http://localhost:8983/solr/core0/update')
+
+    def test_request_handler(self):
+        before_test_use_qt_param = self.solr.use_qt_param
+        before_test_search_handler = self.solr.search_handler
+
+        self.solr.use_qt_param = True
+
+        response = self.solr.search('my query')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+
+        response = self.solr.search('my', search_handler='/autocomplete')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.search_handler = '/autocomplete'
+
+        response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('select'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+
+        self.solr.use_qt_param = False
+        # will change the path, so expect a 404
+        with self.assertRaises(SolrError):
+            response = self.solr.search('my')
+        args, kwargs = self.solr._send_request.call_args
+        self.assertTrue(args[1].startswith('/autocomplete'))
+        self.assertTrue(args[1].find("qt=%2Fautocomplete") < 0)
+
+        # reset the values to what they were before the test
+        self.solr.use_qt_param = before_test_use_qt_param
+        self.solr.search_handler = before_test_search_handler

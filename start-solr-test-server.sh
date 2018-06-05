@@ -12,7 +12,7 @@ SOLR_VERSION=4.10.4
 ROOT=$(cd `dirname $0`; pwd)
 APP=$ROOT/solr-app
 PIDS=$ROOT/solr.pids
-export SOLR_ARCHIVE="${SOLR_VERSION}.tgz"
+export SOLR_ARCHIVE="solr-${SOLR_VERSION}.tgz"
 LOGS=$ROOT/logs
 
 cd $ROOT
@@ -127,7 +127,7 @@ function stop_solr() {
     echo
     if [ -f $PIDS ]; then
         echo -n "Stopping Solr.."
-        xargs kill < $PIDS
+        xargs kill < $PIDS || true
         rm ${PIDS}
         echo " stopped"
     fi
@@ -149,6 +149,7 @@ function prepare() {
         stop_solr
     fi
 
+    echo "Removing stale working files"
     rm -rf $APP
     rm -rf $ROOT/solr
     rm -rf $LOGS
@@ -167,7 +168,7 @@ function prepare() {
 }
 
 if [ $# -eq 0 ]; then
-    echo "$0 [prepare] [start-simple] [start-cloud] [stop]"
+    echo "$0 [prepare] [start] [stop]"
     exit
 fi
 

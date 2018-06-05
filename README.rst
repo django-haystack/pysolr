@@ -7,14 +7,13 @@ interface that queries the server and returns results based on the query.
 
 .. _`Apache Solr`: http://lucene.apache.org/solr/
 
-
 Status
 ======
 
 .. image:: https://secure.travis-ci.org/django-haystack/pysolr.png
    :target: https://secure.travis-ci.org/django-haystack/pysolr
 
-`Changelog <CHANGELOG.rst>`_
+`Changelog <https://github.com/django-haystack/pysolr/blob/master/CHANGELOG.rst>`_
 
 Features
 ========
@@ -29,17 +28,21 @@ Features
 Requirements
 ============
 
-* Python 2.7 - 3.5
-* Requests 2.0+
+* Python 2.7 - 3.6
+* Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
 
 Installation
 ============
 
-``sudo python setup.py install`` or drop the ``pysolr.py`` file anywhere on your
-PYTHONPATH.
+pysolr is on PyPI:
 
+.. code-block:: console
+
+   $ pip install pysolr
+
+Or if you want to install directly from the repository: ``python setup.py install``, or drop the ``pysolr.py`` file anywhere on your ``PYTHONPATH``.
 
 Usage
 =====
@@ -53,7 +56,7 @@ Basic usage looks like:
     import pysolr
 
     # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10)
+    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10, auth=<type of authentication>)
 
     # How you'd index data.
     solr.add([
@@ -64,8 +67,20 @@ Basic usage looks like:
         {
             "id": "doc_2",
             "title": "The Banana: Tasty or Dangerous?",
+            "_doc": [
+                { "id": "child_doc_1", "title": "peel" },
+                { "id": "child_doc_2", "title": "seed" },
+            ]
         },
     ])
+
+    # Note that the add method has commit=True by default, so this is
+    # immediately committed to your index.
+
+    # You can index a parent/child document relationship by
+    # associating a list of child documents with the special key '_doc'. This
+    # is helpful for queries that join together conditions on children and parent
+    # documents.
 
     # Later, searching is easy. In the simple case, just a plain Lucene-style
     # query is fine.
@@ -91,17 +106,92 @@ Basic usage looks like:
     # correctly.
     similar = solr.more_like_this(q='id:doc_2', mltfl='text')
 
-    # Finally, you can delete either individual documents...
+    # Finally, you can delete either individual documents,
     solr.delete(id='doc_1')
+
+    # also in batches...
+    solr.delete(id=['doc_1', 'doc_2'])
 
     # ...or all documents.
     solr.delete(q='*:*')
 
 .. code-block:: python
+
     # For SolrCloud mode, initialize your Solr like this:
 
-    zookeeper = pysolr.Zookeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
-    solr = pysolr.SolrCloud(zookeeper, "collection1")
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection1", auth=<type of authentication>)
+
+
+Multicore Index
+~~~~~~~~~~~~~~~
+
+Simply point the URL to the index core:
+
+.. code-block:: python
+
+    # Setup a Solr instance. The timeout is optional.
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', timeout=10)
+
+
+Custom Request Handlers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    # Setup a Solr instance. The trailing slash is optional.
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
+
+
+If ``use_qt_param`` is ``True`` it is essential that the name of the handler is exactly what is configured
+in ``solrconfig.xml``, including the leading slash if any (though with the ``qt`` parameter a leading slash is not
+a requirement by SOLR). If ``use_qt_param`` is ``False`` (default), the leading and trailing slashes can be
+omitted.
+
+If ``search_handler`` is not specified, pysolr will default to ``/select``.
+
+The handlers for MoreLikeThis, Update, Terms etc. all default to the values set in the ``solrconfig.xml`` SOLR ships
+with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
+``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
+Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
+
+
+Custom Authentication
+~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+	
+	# Setup a Solr instance in a kerborized enviornment
+	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+	
+	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
+	
+.. code-block:: python
+	
+	# Setup a CloudSolr instance in a kerborized environment
+	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+	
+	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
+
+
+If your Solr servers run off https
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+	# Setup a Solr instance in an https environment
+	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
+
+.. code-block:: python
+	
+	# Setup a CloudSolr instance in a kerborized environment
+	
+	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
+
 
 
 LICENSE
@@ -134,3 +224,4 @@ Python 2::
 Python 3::
 
     python3 -m unittest tests
+

@@ -1,13 +1,4 @@
-*.pyc
-build
-dist/
-MANIFEST
-solr/
-solr-app/
-logs/
-env
-env3
-pysolr.egg-info/
 .tox
 solr*.tgz
-.idea
+solr-app
+solr
