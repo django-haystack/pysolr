@@ -684,8 +684,6 @@ class Solr(object):
         Criteria for this is based on values that shouldn't be included
         in the Solr ``add`` request at all.
         """
-        if value is None:
-            return True
 
         if IS_PY3:
             # Python 3.X
@@ -836,6 +834,9 @@ class Solr(object):
 
                 if fieldUpdates and key in fieldUpdates:
                     attrs['update'] = fieldUpdates[key]
+
+                if bit is None:
+                    attrs['null'] = 'true'
 
                 if boost and key in boost:
                     attrs['boost'] = force_unicode(boost[key])
