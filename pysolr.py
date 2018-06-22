@@ -889,7 +889,7 @@ class Solr(object):
         message = ElementTree.Element('add')
 
         if commitWithin:
-            message.set('commitWithin', commitWithin)
+            message.set('commitWithin', str(commitWithin))
 
         for doc in docs:
             el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
