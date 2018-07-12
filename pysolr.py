@@ -281,6 +281,7 @@ class Results(object):
         self.debug = decoded.get('debug', {})
         self.highlighting = decoded.get('highlighting', {})
         self.facets = decoded.get('facet_counts', {})
+        self.json_facets = decoded.get('facets', {}) # we map this solr field to 'json_facets' as facets already taken
         self.spellcheck = decoded.get('spellcheck', {})
         self.stats = decoded.get('stats', {})
         self.qtime = decoded.get('responseHeader', {}).get('QTime', None)
