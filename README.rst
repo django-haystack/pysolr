@@ -193,6 +193,24 @@ If your Solr servers run off https
 	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
 
 
+Custom Commit Policy
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+    # Setup a Solr instance. The trailing slash is optional.
+    # All request to solr will result in a commit
+    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', always_commit=True)
+
+``always_commit`` signals to the Solr object to either commit or not commit by default for any solr request.
+Be sure to change this to True if you are upgrading from a version where the default policy was alway commit by default.
+
+Functions like ``add`` and ``delete`` also still provide a way to override the default by passing the ``commit`` kwarg.
+
+It is generally good practice to limit the amount of commits to solr.
+Excessive commits risk opening too many searcher or using too many system resources.
+
+
 
 LICENSE
 =======
