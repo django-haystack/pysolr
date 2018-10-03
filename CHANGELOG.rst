@@ -47,6 +47,20 @@ Changes
   removes the __del__ methods and we will have to find an alternative for
   making tests fail safely.
 
+- Custom Commit Policy .  [Evan Fagerberg]
+
+  Previously a ``Solr`` object assumed that an operation should commit by default.
+  It is generally good practice to limit the amount of commits to solr.
+  Excessive commits risk opening too many searcher or using too many system resources.
+  Therefore the commit policy is configurable via the ``always_commit`` attribute of
+  the ``Solr`` object.
+
+  Most solr configurations should already have an interval that defines how long to wait
+  before doing a commit to solr anyway. (Measured either in time or number of documents)
+
+  IMPORTANT: If you are upgrading to this version and need to keep committing by default,
+  change the Solr objects to have ``always_commit=True``.
+
 Fix
 ~~~
 
