@@ -1071,6 +1071,30 @@ class Solr(object):
 
         return data
 
+    def ping(self, handler='admin/ping', **kwargs):
+        """
+        Sends a ping request.
+
+        Usage::
+
+            solr.ping()
+
+        """
+        params = kwargs
+        params_encoded = safe_urlencode(params, True)
+
+        if len(params_encoded) < 1024:
+            # Typical case.
+            path = '%s/?%s' % (handler, params_encoded)
+            return self._send_request('get', path)
+        else:
+            # Handles very long queries by submitting as a POST.
+            path = '%s/' % handler
+            headers = {
+                'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+            }
+            return self._send_request('post', path, body=params_encoded, headers=headers)
+
 
 class SolrCoreAdmin(object):
     """

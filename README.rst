@@ -58,6 +58,9 @@ Basic usage looks like:
     # Setup a Solr instance. The timeout is optional.
     solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10, auth=<type of authentication>)
 
+    # Do a health check.
+    solr.ping()
+
     # How you'd index data.
     solr.add([
         {

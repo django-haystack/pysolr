@@ -964,6 +964,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr.use_qt_param = before_test_use_qt_param
         self.solr.search_handler = before_test_search_handler
 
+    def test_ping(self):
+        self.solr.ping()
+        with self.assertRaises(SolrError):
+            self.solr.ping(handler='fakehandler')
+
 
 class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
 
