@@ -7,7 +7,7 @@ except ImportError:
 setup(
     name="pysolr",
     use_scm_version=True,
-    description="Lightweight python wrapper for Apache Solr.",
+    description="Lightweight Python client for Apache Solr",
     author='Daniel Lindsley',
     author_email='daniel@toastdriven.com',
     long_description=open('README.rst', 'r').read(),

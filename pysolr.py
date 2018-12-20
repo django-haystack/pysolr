@@ -318,7 +318,8 @@ class Solr(object):
         solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
 
     """
-    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False,
+
+    def __init__(self, url, decoder=None, timeout=60, results_cls=Results, search_handler='select', use_qt_param=False, always_commit=False,
                  auth=None, verify=True):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
@@ -330,6 +331,7 @@ class Solr(object):
         self.use_qt_param = use_qt_param
         self.auth = auth
         self.verify = verify
+        self.always_commit = always_commit
 
     def get_session(self):
         if self.session is None:
@@ -447,7 +449,7 @@ class Solr(object):
     def _suggest_terms(self, params, handler='terms'):
         return self._select(params, handler)
 
-    def _update(self, message, clean_ctrl_chars=True, commit=True, softCommit=False, waitFlush=None, waitSearcher=None,
+    def _update(self, message, clean_ctrl_chars=True, commit=None, softCommit=False, waitFlush=None, waitSearcher=None,
                 overwrite=None, handler='update'):
         """
         Posts the given xml message to http://<self.url>/update and
@@ -470,6 +472,9 @@ class Solr(object):
             query_vars.append('qt=%s' % safe_urlencode(handler, True))
 
         path = '%s/' % path_handler
+
+        if commit is None:
+            commit = self.always_commit
 
         if commit:
             query_vars.append('commit=%s' % str(bool(commit)).lower())
@@ -857,7 +862,7 @@ class Solr(object):
 
         return doc_elem
 
-    def add(self, docs, boost=None, fieldUpdates=None, commit=True, softCommit=False, commitWithin=None, waitFlush=None,
+    def add(self, docs, boost=None, fieldUpdates=None, commit=None, softCommit=False, commitWithin=None, waitFlush=None,
             waitSearcher=None, overwrite=None, handler='update'):
         """
         Adds or updates documents.
@@ -865,7 +870,7 @@ class Solr(object):
         Requires ``docs``, which is a list of dictionaries. Each key is the
         field name and each value is the value to index.
 
-        Optionally accepts ``commit``. Default is ``True``.
+        Optionally accepts ``commit``. Default is ``None``. None signals to use default
 
         Optionally accepts ``softCommit``. Default is ``False``.
 
@@ -915,7 +920,7 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=True, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
         """
         Deletes documents.
 
@@ -1068,6 +1073,30 @@ class Solr(object):
                 metadata[raw_metadata.pop()] = raw_metadata.pop()
 
         return data
+
+    def ping(self, handler='admin/ping', **kwargs):
+        """
+        Sends a ping request.
+
+        Usage::
+
+            solr.ping()
+
+        """
+        params = kwargs
+        params_encoded = safe_urlencode(params, True)
+
+        if len(params_encoded) < 1024:
+            # Typical case.
+            path = '%s/?%s' % (handler, params_encoded)
+            return self._send_request('get', path)
+        else:
+            # Handles very long queries by submitting as a POST.
+            path = '%s/' % handler
+            headers = {
+                'Content-type': 'application/x-www-form-urlencoded; charset=utf-8',
+            }
+            return self._send_request('post', path, body=params_encoded, headers=headers)
 
 
 class SolrCoreAdmin(object):

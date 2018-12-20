@@ -1,18 +1,18 @@
 sudo: false
 language: python
 python:
-    - "2.7"
-    - "3.3"
-    - "3.4"
-    - "3.5"
-    - "3.6"
-    - "pypy"
+    - '2.7'
+    - '3.3'
+    - '3.4'
+    - '3.5'
+    - '3.6'
+    - 'pypy'
 
 cache:
-  apt: true
-  pip: true
-  directories:
-      - $HOME/download-cache
+    apt: true
+    pip: true
+    directories:
+        - $HOME/download-cache
 
 env:
     - SOLRCLOUD=false
@@ -23,17 +23,20 @@ matrix:
         - python: 'pypy'
 
 addons:
-  apt_packages:
-    - default-jdk
+    apt_packages:
+        - default-jdk
 
 install:
-    - "pip install 'requests>2'"
-    - "pip install ."
+    - "pip install 'requests>2' coverage codecov"
+    - 'pip install .'
     - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
     - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
 script:
-    - python run-tests.py
+    - coverage run run-tests.py
+
+after_success:
+    - codecov
 
 notifications:
     # irc: "irc.freenode.org#pysolr"
