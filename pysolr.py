@@ -293,6 +293,9 @@ class Results(object):
         self.nextCursorMark = decoded.get('nextCursorMark', None)
         self._next_page_query = self.nextCursorMark is not None and next_page_query or None
 
+    def __len__(self):
+        return len(self.docs)
+
     def __iter__(self):
         result = self
         while result:
