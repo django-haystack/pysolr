@@ -262,6 +262,15 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         assert 'responseHeader' in results
         assert 'response' in results
 
+    def test_cursor_traversal(self):
+        solr = Solr('http://localhost:8983/solr/core0')
+
+        expected = solr.search(q="*:*", rows=len(self.docs)*3, sort="id asc").docs
+        results = solr.search(q='*:*',cursorMark="*",rows=2,sort="id asc")
+        all_docs = [doc for doc in results]
+        self.assertEqual(len(expected), len(all_docs))
+        self.assertEqual(expected, all_docs)
+
     def test__create_full_url_base(self):
         self.assertURLStartsWith(self.solr._create_full_url(path=''),
                                  'core0')
