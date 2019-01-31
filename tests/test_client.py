@@ -269,6 +269,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         results = solr.search(q='*:*',cursorMark="*",rows=2,sort="id asc")
         all_docs = [doc for doc in results]
         self.assertEqual(len(expected), len(all_docs))
+        self.assertEqual(len(results), len(all_docs))
         self.assertEqual(expected, all_docs)
 
     def test__create_full_url_base(self):
