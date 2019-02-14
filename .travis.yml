@@ -36,7 +36,7 @@ install:
 
 script:
     - coverage run run-tests.py
-    - sonar-scanner
+    - sonar-scanner -Dsonar.projectKey=django-haystack_pysolr -Dsonar.organization=django-haystack -Dsonar.sources=pysolr.py -Dsonar.host.url=https://sonarcloud.io
 
 after_success:
     - codecov
