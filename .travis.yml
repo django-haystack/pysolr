@@ -25,6 +25,8 @@ matrix:
 addons:
     apt_packages:
         - default-jdk
+    sonarcloud:
+        organization: "django-haystack" # the key of the org you chose at step #3
 
 install:
     - "pip install 'requests>2' coverage codecov"
@@ -34,6 +36,7 @@ install:
 
 script:
     - coverage run run-tests.py
+    - sonar-scanner
 
 after_success:
     - codecov
