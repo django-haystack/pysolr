@@ -791,25 +791,32 @@ class Solr(object):
             'terms.fl': fields,
             'terms.prefix': prefix,
         }
+
         params.update(kwargs)
         response = self._suggest_terms(params, handler=handler)
         result = self.decoder.decode(response)
         terms = result.get("terms", {})
         res = {}
-
+        
         # in Solr 1.x the value of terms is a flat list:
         #   ["field_name", ["dance",23,"dancers",10,"dancing",8,"dancer",6]]
         #
         # in Solr 3.x the value of terms is a dict:
         #   {"field_name": ["dance",23,"dancers",10,"dancing",8,"dancer",6]}
+        #
+        # in Solr 7.x the terms and frequencies are within a dict:
+        #   {"field_name": {"dance": 23, "dancers": 10, "dancing": 8, "dancer": 6}}
+        
         if isinstance(terms, (list, tuple)):
             terms = dict(zip(terms[0::2], terms[1::2]))
 
         for field, values in terms.items():
             tmp = list()
-
-            while values:
-                tmp.append((values.pop(0), values.pop(0)))
+            
+            if isinstance(values, (list)):
+                tmp = [(values[i], values[i+1]) for i in range(0, len(values), 2)]
+            else:
+                tmp = [(term, values[term]) for term in values.keys()]
 
             res[field] = tmp
 
