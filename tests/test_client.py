@@ -299,6 +299,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         })
         self.assertTrue('<int name="status">0</int>' in resp_body)
 
+        # Test JSON Array
+        json_body = '[{"id":"doc_13","title":"Whee hoo! ☃"}]'
+        resp_body = self.solr._send_request('POST', 'update/?commit=true', body=json_body, headers={
+            'Content-type': 'application/json; charset=utf-8',
+        })
+        self.assertTrue('"status":0' in resp_body)
+
     def test__send_request_to_bad_path(self):
         # Test a non-existent URL:
         self.solr.url = 'http://127.0.0.1:56789/wahtever'
