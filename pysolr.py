@@ -917,7 +917,7 @@ class Solr(object):
                 # json array of docs 
             if isinstance(message, list):
                 # convert to string
-                m = json.dumps(message).decode('utf-8') 
+                m = json.dumps(message).encode('utf-8') 
             else:
                 raise ValueError("wrong message type")
         else:
