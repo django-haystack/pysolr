@@ -190,7 +190,7 @@ def safe_urlencode(params, doseq=0):
     if hasattr(params, "items"):
         params = params.items()
 
-    new_params = list()
+    new_params = []
 
     for k, v in params:
         k = k.encode("utf-8")
@@ -814,7 +814,7 @@ class Solr(object):
             terms = dict(zip(terms[0::2], terms[1::2]))
 
         for field, values in terms.items():
-            tmp = list()
+            tmp = []
 
             while values:
                 tmp.append((values.pop(0), values.pop(0)))
