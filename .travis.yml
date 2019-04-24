@@ -34,11 +34,11 @@ install:
 
 script:
     - coverage run run-tests.py
+    - git fetch --unshallow
+    - git diff --name-only $TRAVIS_COMMIT_RANGE | xargs pre-commit run --files
 
 after_success:
     - codecov
-    - git fetch --unshallow
-    - git diff --name-only $TRAVIS_COMMIT_RANGE | xargs pre-commit run --files
 
 notifications:
     email: false
