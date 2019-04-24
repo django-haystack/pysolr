@@ -77,7 +77,9 @@ def get_version():
     return __version__
 
 
-DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
+DATETIME_REGEX = re.compile(
+    r'^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$'  # NOQA: E501
+)
 # dict key used to add nested documents to a document
 NESTED_DOC_KEY = '_childDocuments_'
 
@@ -172,7 +174,7 @@ def unescape_html(text):
             except KeyError:
                 pass
         return text  # leave as is
-    return re.sub("&#?\w+;", fixup, text)
+    return re.sub(r"&#?\w+;", fixup, text)
 
 
 def safe_urlencode(params, doseq=0):
