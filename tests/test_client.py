@@ -6,11 +6,20 @@ import random
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
-import random
 
-from pysolr import (NESTED_DOC_KEY, Results, Solr, SolrError, clean_xml_string,
-                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
-                    unescape_html)
+from pysolr import (
+    NESTED_DOC_KEY,
+    Results,
+    Solr,
+    SolrError,
+    clean_xml_string,
+    force_bytes,
+    force_unicode,
+    json,
+    safe_urlencode,
+    sanitize,
+    unescape_html,
+)
 
 try:
     from unittest.mock import Mock

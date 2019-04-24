@@ -9,9 +9,9 @@ import random
 import re
 import time
 from xml.etree import ElementTree
-from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 import requests
+from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 try:
     from kazoo.client import KazooClient, KazooState
