@@ -1001,5 +1001,3 @@ v2.0.10 (2010-04-28)
 - Initial import of pysolr. [jkocherhans]
 
 - Initial directory structure. [(no author)]
-
-

@@ -163,19 +163,19 @@ Custom Authentication
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
-	
+
 	# Setup a Solr instance in a kerborized enviornment
 	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
+
 	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
-	
+
 .. code-block:: python
-	
+
 	# Setup a CloudSolr instance in a kerborized environment
 	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
+
 	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
 
@@ -189,9 +189,9 @@ If your Solr servers run off https
 	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
 
 .. code-block:: python
-	
+
 	# Setup a CloudSolr instance in a kerborized environment
-	
+
 	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
 
@@ -245,4 +245,3 @@ Python 2::
 Python 3::
 
     python3 -m unittest tests
-
