@@ -7,6 +7,9 @@ python:
     - "3.6"
     - "pypy"
 
+
+dist: xenial
+
 cache:
     apt: true
     pip: true
