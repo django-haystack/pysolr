@@ -925,7 +925,7 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):  # NOQA: A002
         """
         Deletes documents.
 
@@ -955,11 +955,11 @@ class Solr(object):
             raise ValueError('You many only specify "id" OR "q", not both.')
         elif id is not None:
             if not isinstance(id, (list, set, tuple)):
-                id = [id]
+                doc_id = [id]
             else:
-                id = list(filter(None, id))
-            if id:
-                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
+                doc_id = list(filter(None, id))
+            if doc_id:
+                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in doc_id)
             else:
                 raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
