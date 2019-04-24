@@ -12,6 +12,7 @@ cache:
     pip: true
     directories:
         - $HOME/download-cache
+        - $HOME/.cache/pre-commit
 
 env:
     - SOLRCLOUD=false
