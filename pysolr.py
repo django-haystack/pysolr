@@ -72,6 +72,7 @@ except DistributionNotFound:
     __version__ = '0.0.dev0'
     version_info = parse_version(__version__)
 
+
 def get_version():
     return __version__
 
@@ -677,7 +678,12 @@ class Solr(object):
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)
 
-                return datetime.datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
+                return datetime.datetime(date_values['year'],
+                                         date_values['month'],
+                                         date_values['day'],
+                                         date_values['hour'],
+                                         date_values['minute'],
+                                         date_values['second'])
 
         try:
             # This is slightly gross but it's hard to tell otherwise what the
@@ -981,7 +987,8 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
+                            handler=handler)
 
     def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
@@ -1115,6 +1122,7 @@ class SolrCoreAdmin(object):
        7. UNLOAD
        8. LOAD (not currently implemented)
     """
+
     def __init__(self, url, *args, **kwargs):
         super(SolrCoreAdmin, self).__init__(*args, **kwargs)
         self.url = url
@@ -1240,7 +1248,7 @@ class SolrCloud(Solr):
         self.auth = auth
         self.verify = verify
 
-        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify = self.verify,
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify=self.verify,
                                         *args, **kwargs)
 
         self.zookeeper = zookeeper

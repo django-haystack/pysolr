@@ -31,7 +31,7 @@ setup(
     ],
     extras_require={
         'solrcloud': [
-    	    'kazoo==2.2'
+            'kazoo==2.2'
         ]
     },
     setup_requires=['setuptools_scm'],
