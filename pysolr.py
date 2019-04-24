@@ -225,7 +225,7 @@ def clean_xml_string(s):
 
     http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
     """
-    return re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+', '', text)  #''.join(c for c in s if is_valid_xml_char_ordinal(ord(c)))
+    return re.sub(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+', '', s)  #''.join(c for c in s if is_valid_xml_char_ordinal(ord(c)))
 
 
 class SolrError(Exception):
