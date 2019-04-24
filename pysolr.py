@@ -1055,16 +1055,14 @@ class Solr(object):
             resp = self._send_request('post', handler,
                                       body=params,
                                       files={'file': (filename, file_obj)})
-        except (IOError, SolrError) as err:
-            self.log.error("Failed to extract document metadata: %s", err,
-                           exc_info=True)
+        except (IOError, SolrError):
+            self.log.exception("Failed to extract document metadata")
             raise
 
         try:
             data = json.loads(resp)
-        except ValueError as err:
-            self.log.error("Failed to load JSON response: %s", err,
-                           exc_info=True)
+        except ValueError:
+            self.log.exception("Failed to load JSON response")
             raise
 
         data['contents'] = data.pop(filename, None)
