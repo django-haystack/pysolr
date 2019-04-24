@@ -127,8 +127,8 @@ def force_unicode(value):
         # Python 2.X
         if isinstance(value, str):
             value = value.decode('utf-8', 'replace')
-        elif not isinstance(value, basestring):
-            value = unicode(value)
+        elif not isinstance(value, basestring):  # NOQA: F821
+            value = unicode(value)  # NOQA: F821
 
     return value
 
@@ -141,7 +141,7 @@ def force_bytes(value):
         if isinstance(value, str):
             value = value.encode('utf-8', 'backslashreplace')
     else:
-        if isinstance(value, unicode):
+        if isinstance(value, unicode):  # NOQA: F821
             value = value.encode('utf-8')
 
     return value
@@ -631,11 +631,11 @@ class Solr(object):
             if IS_PY3:
                 # Python 3.X
                 if isinstance(value, bytes):
-                    value = str(value, errors='replace')
+                    value = str(value, errors='replace')  # NOQA: F821
             else:
                 # Python 2.X
                 if isinstance(value, str):
-                    value = unicode(value, errors='replace')
+                    value = unicode(value, errors='replace')   # NOQA: F821
 
             value = "{0}".format(value)
 
@@ -668,7 +668,7 @@ class Solr(object):
             if isinstance(value, str):
                 value = force_unicode(value)
 
-            if isinstance(value, basestring):
+            if isinstance(value, basestring):  # NOQA: F821
                 is_string = True
 
         if is_string:
@@ -713,7 +713,7 @@ class Solr(object):
                 return True
         else:
             # Python 2.X
-            if isinstance(value, basestring) and len(value) == 0:
+            if isinstance(value, basestring) and len(value) == 0:  # NOQA: F821
                 return True
 
         # TODO: This should probably be removed when solved in core Solr level?
