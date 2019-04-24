@@ -1,4 +1,5 @@
 sudo: false
+
 language: python
 python:
     - "2.7"
@@ -7,6 +8,11 @@ python:
     - "3.6"
     - "pypy"
 
+addons:
+    sonarcloud:
+        organization: "django-haystack"
+    apt_packages:
+        - default-jdk
 
 dist: xenial
 
@@ -25,10 +31,6 @@ matrix:
     allow_failures:
         - python: "pypy"
 
-addons:
-    apt_packages:
-        - default-jdk
-
 install:
     - "pip install 'requests>2' coverage codecov pre-commit"
     - "pip install ."
@@ -41,7 +43,10 @@ script:
     - git diff --name-only $TRAVIS_COMMIT_RANGE | xargs pre-commit run --files
 
 after_success:
+    - git fetch --unshallow --tags
     - codecov
+    - coverage xml
+    - sonar-scanner -Dsonar.projectVersion="$(python setup.py --version)"
 
 notifications:
     email: false
