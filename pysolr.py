@@ -58,7 +58,7 @@ except NameError:
     # Python 3.X
     unicode_char = chr
     # Ugh.
-    long = int
+    long = int  # NOQA: A001
 
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
@@ -1158,7 +1158,7 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def reload(self, core):
+    def reload(self, core):  # NOQA: A003
         """http://wiki.apache.org/solr/CoreAdmin#head-3f125034c6a64611779442539812067b8b430930"""
         params = {
             'action': 'RELOAD',
