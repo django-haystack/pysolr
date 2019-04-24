@@ -1,12 +1,11 @@
 sudo: false
 language: python
 python:
-    - '2.7'
-    - '3.3'
-    - '3.4'
-    - '3.5'
-    - '3.6'
-    - 'pypy'
+    - "2.7"
+    - "3.4"
+    - "3.5"
+    - "3.6"
+    - "pypy"
 
 cache:
     apt: true
@@ -20,15 +19,15 @@ env:
 
 matrix:
     allow_failures:
-        - python: 'pypy'
+        - python: "pypy"
 
 addons:
     apt_packages:
         - default-jdk
 
 install:
-    - "pip install 'requests>2' coverage codecov"
-    - 'pip install .'
+    - "pip install 'requests>2' coverage codecov pre-commit"
+    - "pip install ."
     - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
     - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
@@ -37,7 +36,8 @@ script:
 
 after_success:
     - codecov
+    - git fetch --unshallow
+    - git diff --name-only $TRAVIS_COMMIT_RANGE | xargs pre-commit run --files
 
 notifications:
-    # irc: "irc.freenode.org#pysolr"
     email: false
