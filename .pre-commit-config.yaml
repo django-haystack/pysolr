@@ -36,5 +36,4 @@ repos:
                 - flake8-assertive
                 - flake8-builtins
                 - flake8-comprehensions
-                - flake8-eradicate
                 - flake8-logging-format
