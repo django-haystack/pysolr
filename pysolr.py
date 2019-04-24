@@ -374,7 +374,7 @@ class Solr(object):
 
         try:
             requests_method = getattr(session, method)
-        except AttributeError as err:
+        except AttributeError:
             raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
 
         # Everything except the body can be Unicode. The body must be
