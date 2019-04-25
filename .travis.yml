@@ -1,18 +1,28 @@
 sudo: false
+
 language: python
 python:
-    - '2.7'
-    - '3.3'
-    - '3.4'
-    - '3.5'
-    - '3.6'
-    - 'pypy'
+    - "2.7"
+    - "3.4"
+    - "3.5"
+    - "3.6"
+    - "3.7"
+    - "pypy"
+
+addons:
+    sonarcloud:
+        organization: "django-haystack"
+    apt_packages:
+        - default-jdk
+
+dist: xenial
 
 cache:
     apt: true
     pip: true
     directories:
         - $HOME/download-cache
+        - $HOME/.cache/pre-commit
 
 env:
     - SOLRCLOUD=false
@@ -20,24 +30,24 @@ env:
 
 matrix:
     allow_failures:
-        - python: 'pypy'
-
-addons:
-    apt_packages:
-        - default-jdk
+        - python: "pypy"
 
 install:
-    - "pip install 'requests>2' coverage codecov"
-    - 'pip install .'
+    - "pip install 'requests>2' coverage codecov pre-commit"
+    - "pip install ."
     - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
     - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
 
 script:
     - coverage run run-tests.py
+    - git fetch --unshallow
+    - git diff --name-only $TRAVIS_COMMIT_RANGE | xargs pre-commit run --files
 
 after_success:
+    - git fetch --unshallow --tags
     - codecov
+    - coverage xml
+    - sonar-scanner -Dsonar.projectVersion="$(python setup.py --version)"
 
 notifications:
-    # irc: "irc.freenode.org#pysolr"
     email: false

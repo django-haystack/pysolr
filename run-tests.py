@@ -27,5 +27,6 @@ def main():
         print('Tests complete; halting Solr servers…')
         test_utils.stop_solr()
 
+
 if __name__ == "__main__":
     main()

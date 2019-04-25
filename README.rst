@@ -163,19 +163,19 @@ Custom Authentication
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
-	
+
 	# Setup a Solr instance in a kerborized enviornment
 	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
+
 	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
-	
+
 .. code-block:: python
-	
+
 	# Setup a CloudSolr instance in a kerborized environment
 	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
+
 	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
 
@@ -189,9 +189,9 @@ If your Solr servers run off https
 	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
 
 .. code-block:: python
-	
+
 	# Setup a CloudSolr instance in a kerborized environment
-	
+
 	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
 
@@ -213,12 +213,24 @@ Functions like ``add`` and ``delete`` also still provide a way to override the d
 It is generally good practice to limit the amount of commits to solr.
 Excessive commits risk opening too many searcher or using too many system resources.
 
-
-
 LICENSE
 =======
 
 ``pysolr`` is licensed under the New BSD license.
+
+Contributing to pysolr
+======================
+
+For consistency, this project uses `pre-commit <https://pre-commit.com/>`_ to manage Git commit hooks:
+
+#. Install the `pre-commit` package: e.g. `brew install pre-commit`,
+   `pip install pre-commit`, etc.
+#. Run `pre-commit install` each time you check out a new copy of this Git
+   repository to ensure that every subsequent commit will be processed by
+   running `pre-commit run`, which you may also do as desired. To test the
+   entire repository or in a CI scenario, you can check every file rather than
+   just the staged ones using `pre-commit run --all`.
+
 
 Running Tests
 =============
@@ -245,4 +257,3 @@ Python 2::
 Python 3::
 
     python3 -m unittest tests
-
