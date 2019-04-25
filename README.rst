@@ -153,17 +153,19 @@ Custom Request Handlers
     solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
 
 
-If ``use_qt_param`` is ``True`` it is essential that the name of the handler is exactly what is configured
-in ``solrconfig.xml``, including the leading slash if any (though with the ``qt`` parameter a leading slash is not
-a requirement by SOLR). If ``use_qt_param`` is ``False`` (default), the leading and trailing slashes can be
-omitted.
+If ``use_qt_param`` is ``True`` it is essential that the name of the handler is
+exactly what is configured in ``solrconfig.xml``, including the leading slash
+if any. If ``use_qt_param`` is ``False`` (default), the leading and trailing
+slashes can be omitted.
 
 If ``search_handler`` is not specified, pysolr will default to ``/select``.
 
-The handlers for MoreLikeThis, Update, Terms etc. all default to the values set in the ``solrconfig.xml`` SOLR ships
-with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
-``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
-Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
+The handlers for MoreLikeThis, Update, Terms etc. all default to the values set
+in the ``solrconfig.xml`` SOLR ships with: ``mlt``, ``update``, ``terms`` etc.
+The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
+``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value.
+This includes the ``search`` method. Setting a handler in ``search`` explicitly
+overrides the ``search_handler`` setting (if any).
 
 
 Custom Authentication
@@ -171,20 +173,20 @@ Custom Authentication
 
 .. code-block:: python
 
-	# Setup a Solr instance in a kerborized enviornment
-	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+    # Setup a Solr instance in a kerborized enviornment
+    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+    kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
 
-	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
+    solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
 
 .. code-block:: python
 
-	# Setup a CloudSolr instance in a kerborized environment
-	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+    # Setup a CloudSolr instance in a kerborized environment
+    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+    kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
 
-	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
-	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
 
 
 If your Solr servers run off https
@@ -192,15 +194,15 @@ If your Solr servers run off https
 
 .. code-block:: python
 
-	# Setup a Solr instance in an https environment
-	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
+    # Setup a Solr instance in an https environment
+    solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
 
 .. code-block:: python
 
-	# Setup a CloudSolr instance in a kerborized environment
+    # Setup a CloudSolr instance in a kerborized environment
 
-	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
-	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
 
 
 Custom Commit Policy
@@ -249,8 +251,8 @@ For consistency, this project uses `pre-commit <https://pre-commit.com/>`_ to ma
 Running Tests
 =============
 
-The ``run-tests.py`` script will automatically perform the steps below and is recommended for testing by
-default unless you need more control.
+The ``run-tests.py`` script will automatically perform the steps below and is
+recommended for testing by default unless you need more control.
 
 Running a test Solr instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
