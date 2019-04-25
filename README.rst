@@ -28,7 +28,7 @@ Features
 Requirements
 ============
 
-* Python 2.7 - 3.6
+* Python 2.7 - 3.7
 * Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
@@ -42,7 +42,11 @@ pysolr is on PyPI:
 
    $ pip install pysolr
 
-Or if you want to install directly from the repository: ``python setup.py install``, or drop the ``pysolr.py`` file anywhere on your ``PYTHONPATH``.
+Or if you want to install directly from the repository:
+
+.. code-block:: console
+
+    $ python setup.py install
 
 Usage
 =====
@@ -258,12 +262,6 @@ Downloading, configuring and running Solr 4 looks like this::
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
-The test suite requires the unittest2 library:
+.. code-block:: console
 
-Python 2::
-
-    python -m unittest2 tests
-
-Python 3::
-
-    python3 -m unittest tests
+    $ python -m unittest tests
