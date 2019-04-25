@@ -53,10 +53,16 @@ Basic usage looks like:
 
     # If on Python 2.X
     from __future__ import print_function
+
     import pysolr
 
-    # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10, auth=<type of authentication>)
+    # Create a client instance. The timeout and authentication options are not required.
+    solr = pysolr.Solr('http://localhost:8983/solr/', always_commit=True, [timeout=10], [auth=<type of authentication>])
+
+    # Note that auto_commit defaults to False for performance. You can set
+    # `auto_commit=True` to have commands always update the index immediately, make
+    # an update call with `commit=True`, or use Solr's `autoCommit` / `commitWithin`
+    # to have your data be committed following a particular policy.
 
     # Do a health check.
     solr.ping()
@@ -76,9 +82,6 @@ Basic usage looks like:
             ]
         },
     ])
-
-    # Note that the add method has commit=True by default, so this is
-    # immediately committed to your index.
 
     # You can index a parent/child document relationship by
     # associating a list of child documents with the special key '_doc'. This
@@ -202,16 +205,23 @@ Custom Commit Policy
 .. code-block:: python
 
     # Setup a Solr instance. The trailing slash is optional.
-    # All request to solr will result in a commit
+    # All requests to Solr will be immediately committed because `always_commit=True`:
     solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', always_commit=True)
 
-``always_commit`` signals to the Solr object to either commit or not commit by default for any solr request.
-Be sure to change this to True if you are upgrading from a version where the default policy was alway commit by default.
+``always_commit`` signals to the Solr object to either commit or not commit by
+default for any solr request. Be sure to change this to ``True`` if you are
+upgrading from a version where the default policy was alway commit by default.
 
-Functions like ``add`` and ``delete`` also still provide a way to override the default by passing the ``commit`` kwarg.
+Functions like ``add`` and ``delete`` also still provide a way to override the
+default by passing the ``commit`` kwarg.
 
-It is generally good practice to limit the amount of commits to solr.
-Excessive commits risk opening too many searcher or using too many system resources.
+It is generally good practice to limit the amount of commits to Solr as
+excessive commits risk opening too many searchers or excessive system
+resource consumption. See the Solr documentation for more information and
+details about the ``autoCommit`` and ``commitWithin`` options:
+
+https://lucene.apache.org/solr/guide/7_7/updatehandlers-in-solrconfig.html#UpdateHandlersinSolrConfig-autoCommit
+
 
 LICENSE
 =======
