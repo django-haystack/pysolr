@@ -59,4 +59,5 @@ class SolrCloudTestCase(SolrTestCase):
         # Basic path.
         self.assertRegexpMatches(self.solr._create_full_url(path='pysolr_tests'), r"http://localhost:89../solr/core0/pysolr_tests$")
         # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'), r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")
+        self.assertRegexpMatches(self.solr._create_full_url(path='/pysolr_tests/select/?whatever=/'),
+                                 r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/")

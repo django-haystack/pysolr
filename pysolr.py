@@ -9,9 +9,9 @@ import random
 import re
 import time
 from xml.etree import ElementTree
-from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 import requests
+from pkg_resources import DistributionNotFound, get_distribution, parse_version
 
 try:
     from kazoo.client import KazooClient, KazooState
@@ -58,7 +58,7 @@ except NameError:
     # Python 3.X
     unicode_char = chr
     # Ugh.
-    long = int
+    long = int  # NOQA: A001
 
 
 __author__ = 'Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss'
@@ -72,14 +72,19 @@ except DistributionNotFound:
     __version__ = '0.0.dev0'
     version_info = parse_version(__version__)
 
+
 def get_version():
     return __version__
 
 
-DATETIME_REGEX = re.compile('^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$')
+DATETIME_REGEX = re.compile(
+    r'^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$'  # NOQA: E501
+)
 # dict key used to add nested documents to a document
 NESTED_DOC_KEY = '_childDocuments_'
-VALID_XML_CHARS_REGEX = re.compile(u'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+')
+VALID_XML_CHARS_REGEX = re.compile(
+    r'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+'
+)
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -124,8 +129,8 @@ def force_unicode(value):
         # Python 2.X
         if isinstance(value, str):
             value = value.decode('utf-8', 'replace')
-        elif not isinstance(value, basestring):
-            value = unicode(value)
+        elif not isinstance(value, basestring):  # NOQA: F821
+            value = unicode(value)  # NOQA: F821
 
     return value
 
@@ -138,7 +143,7 @@ def force_bytes(value):
         if isinstance(value, str):
             value = value.encode('utf-8', 'backslashreplace')
     else:
-        if isinstance(value, unicode):
+        if isinstance(value, unicode):  # NOQA: F821
             value = value.encode('utf-8')
 
     return value
@@ -171,7 +176,7 @@ def unescape_html(text):
             except KeyError:
                 pass
         return text  # leave as is
-    return re.sub("&#?\w+;", fixup, text)
+    return re.sub(r"&#?\w+;", fixup, text)
 
 
 def safe_urlencode(params, doseq=0):
@@ -187,7 +192,7 @@ def safe_urlencode(params, doseq=0):
     if hasattr(params, "items"):
         params = params.items()
 
-    new_params = list()
+    new_params = []
 
     for k, v in params:
         k = k.encode("utf-8")
@@ -354,7 +359,7 @@ class Solr(object):
 
         try:
             requests_method = getattr(session, method)
-        except AttributeError as err:
+        except AttributeError:
             raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
 
         # Everything except the body can be Unicode. The body must be
@@ -611,11 +616,11 @@ class Solr(object):
             if IS_PY3:
                 # Python 3.X
                 if isinstance(value, bytes):
-                    value = str(value, errors='replace')
+                    value = str(value, errors='replace')  # NOQA: F821
             else:
                 # Python 2.X
                 if isinstance(value, str):
-                    value = unicode(value, errors='replace')
+                    value = unicode(value, errors='replace')   # NOQA: F821
 
             value = "{0}".format(value)
 
@@ -648,7 +653,7 @@ class Solr(object):
             if isinstance(value, str):
                 value = force_unicode(value)
 
-            if isinstance(value, basestring):
+            if isinstance(value, basestring):  # NOQA: F821
                 is_string = True
 
         if is_string:
@@ -660,7 +665,12 @@ class Solr(object):
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)
 
-                return datetime.datetime(date_values['year'], date_values['month'], date_values['day'], date_values['hour'], date_values['minute'], date_values['second'])
+                return datetime.datetime(date_values['year'],
+                                         date_values['month'],
+                                         date_values['day'],
+                                         date_values['hour'],
+                                         date_values['minute'],
+                                         date_values['second'])
 
         try:
             # This is slightly gross but it's hard to tell otherwise what the
@@ -688,7 +698,7 @@ class Solr(object):
                 return True
         else:
             # Python 2.X
-            if isinstance(value, basestring) and len(value) == 0:
+            if isinstance(value, basestring) and len(value) == 0:  # NOQA: F821
                 return True
 
         # TODO: This should probably be removed when solved in core Solr level?
@@ -789,7 +799,7 @@ class Solr(object):
             terms = dict(zip(terms[0::2], terms[1::2]))
 
         for field, values in terms.items():
-            tmp = list()
+            tmp = []
 
             while values:
                 tmp.append((values.pop(0), values.pop(0)))
@@ -900,7 +910,7 @@ class Solr(object):
         return self._update(m, commit=commit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
                             overwrite=overwrite, handler=handler)
 
-    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):
+    def delete(self, id=None, q=None, commit=None, softCommit=False, waitFlush=None, waitSearcher=None, handler='update'):  # NOQA: A002
         """
         Deletes documents.
 
@@ -930,11 +940,11 @@ class Solr(object):
             raise ValueError('You many only specify "id" OR "q", not both.')
         elif id is not None:
             if not isinstance(id, (list, set, tuple)):
-                id = [id]
+                doc_id = [id]
             else:
-                id = list(filter(None, id))
-            if id:
-                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in id)
+                doc_id = list(filter(None, id))
+            if doc_id:
+                m = '<delete>%s</delete>' % ''.join('<id>%s</id>' % i for i in doc_id)
             else:
                 raise ValueError('The list of documents to delete was empty.')
         elif q is not None:
@@ -964,7 +974,8 @@ class Solr(object):
         else:
             msg = '<commit />'
 
-        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher, handler=handler)
+        return self._update(msg, commit=not softCommit, softCommit=softCommit, waitFlush=waitFlush, waitSearcher=waitSearcher,
+                            handler=handler)
 
     def optimize(self, commit=True, waitFlush=None, waitSearcher=None, maxSegments=None, handler='update'):
         """
@@ -1029,16 +1040,14 @@ class Solr(object):
             resp = self._send_request('post', handler,
                                       body=params,
                                       files={'file': (filename, file_obj)})
-        except (IOError, SolrError) as err:
-            self.log.error("Failed to extract document metadata: %s", err,
-                           exc_info=True)
+        except (IOError, SolrError):
+            self.log.exception("Failed to extract document metadata")
             raise
 
         try:
             data = json.loads(resp)
-        except ValueError as err:
-            self.log.error("Failed to load JSON response: %s", err,
-                           exc_info=True)
+        except ValueError:
+            self.log.exception("Failed to load JSON response")
             raise
 
         data['contents'] = data.pop(filename, None)
@@ -1098,6 +1107,7 @@ class SolrCoreAdmin(object):
        7. UNLOAD
        8. LOAD (not currently implemented)
     """
+
     def __init__(self, url, *args, **kwargs):
         super(SolrCoreAdmin, self).__init__(*args, **kwargs)
         self.url = url
@@ -1133,7 +1143,7 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def reload(self, core):
+    def reload(self, core):  # NOQA: A003
         """http://wiki.apache.org/solr/CoreAdmin#head-3f125034c6a64611779442539812067b8b430930"""
         params = {
             'action': 'RELOAD',
@@ -1223,7 +1233,7 @@ class SolrCloud(Solr):
         self.auth = auth
         self.verify = verify
 
-        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify = self.verify,
+        super(SolrCloud, self).__init__(url, decoder=decoder, timeout=timeout, auth=self.auth, verify=self.verify,
                                         *args, **kwargs)
 
         self.zookeeper = zookeeper

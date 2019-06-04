@@ -6,11 +6,20 @@ import random
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
-import random
 
-from pysolr import (NESTED_DOC_KEY, Results, Solr, SolrError, clean_xml_string,
-                    force_bytes, force_unicode, json, safe_urlencode, sanitize,
-                    unescape_html)
+from pysolr import (
+    NESTED_DOC_KEY,
+    Results,
+    Solr,
+    SolrError,
+    clean_xml_string,
+    force_bytes,
+    force_unicode,
+    json,
+    safe_urlencode,
+    sanitize,
+    unescape_html,
+)
 
 try:
     from unittest.mock import Mock
@@ -37,11 +46,14 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_safe_urlencode(self):
         self.assertEqual(force_unicode(unquote_plus(safe_urlencode({'test': 'Hello ☃! Helllo world!'}))), 'test=Hello ☃! Helllo world!')
-        self.assertEqual(force_unicode(unquote_plus(safe_urlencode({'test': ['Hello ☃!', 'Helllo world!']}, True))), "test=Hello \u2603!&test=Helllo world!")
-        self.assertEqual(force_unicode(unquote_plus(safe_urlencode({'test': ('Hello ☃!', 'Helllo world!')}, True))), "test=Hello \u2603!&test=Helllo world!")
+        self.assertEqual(force_unicode(unquote_plus(safe_urlencode(
+            {'test': ['Hello ☃!', 'Helllo world!']}, True))), "test=Hello \u2603!&test=Helllo world!")
+        self.assertEqual(force_unicode(unquote_plus(safe_urlencode(
+            {'test': ('Hello ☃!', 'Helllo world!')}, True))), "test=Hello \u2603!&test=Helllo world!")
 
     def test_sanitize(self):
-        self.assertEqual(sanitize('\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f'), 'hello'),
+        self.assertEqual(sanitize(
+            '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f'), 'hello'),
 
     def test_force_unicode(self):
         self.assertEqual(force_unicode(b'Hello \xe2\x98\x83'), 'Hello ☃')
@@ -375,11 +387,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(resp_1, ('Something is broke.', u''))
 
         # Other.
-        resp_2 = self.solr._scrape_response({'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
+        resp_2 = self.solr._scrape_response(
+            {'server': 'crapzilla'}, '<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>')
         self.assertEqual(resp_2, ('Wow. Seriously weird.', u''))
 
     def test__scrape_response_coyote_xml(self):
-        resp_3 = self.solr._scrape_response({'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
+        resp_3 = self.solr._scrape_response(
+            {'server': 'coyote'}, '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n')
         self.assertEqual(resp_3, ("Invalid Date String:'2015-03-23 10:43:33'", "Invalid Date String:'2015-03-23 10:43:33'"))
 
         # Valid XML with a traceback
@@ -387,12 +401,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 <response>
 <lst name="responseHeader"><int name="status">500</int><int name="QTime">138</int></lst><lst name="error"><str name="msg">Internal Server Error</str><str name="trace">org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)</str><int name="code">500</int></lst>
 </response>""")
-        self.assertEqual(resp_4, (u"Internal Server Error", u"org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)"))
+        self.assertEqual(resp_4, (u"Internal Server Error",
+                                  u"org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)"))
 
     def test__scrape_response_tomcat(self):
         """Tests for Tomcat error responses"""
 
-        resp_0 = self.solr._scrape_response({'server': 'coyote'}, '<html><body><h1>Something broke!</h1><pre>gigantic stack trace</pre></body></html>')
+        resp_0 = self.solr._scrape_response(
+            {'server': 'coyote'}, '<html><body><h1>Something broke!</h1><pre>gigantic stack trace</pre></body></html>')
         self.assertEqual(resp_0, ('Something broke!', ''))
 
         # Invalid XML
@@ -416,6 +432,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         class FakeTimeZone(datetime.tzinfo):
             offset = 0
+
             def utcoffset(self, dt):
                 return datetime.timedelta(minutes=self.offset)
 
@@ -534,7 +551,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_suggest_terms(self):
         results = self.solr.suggest_terms('title', '')
         self.assertEqual(len(results), 1)
-        self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2), ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
+        self.assertEqual(results, {'title': [('doc', 3), ('another', 2), ('example', 2),
+                                             ('1', 1), ('2', 1), ('boring', 1), ('rock', 1), ('thing', 1)]})
         # suggest_terms should default to 'mlt' handler
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith('terms/?'))
