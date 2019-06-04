@@ -86,6 +86,7 @@ VALID_XML_CHARS_REGEX = re.compile(
     r'[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+'
 )
 
+
 class NullHandler(logging.Handler):
     def emit(self, record):
         pass
