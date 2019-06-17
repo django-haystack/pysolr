@@ -1284,6 +1284,8 @@ class ZooKeeper(object):
     LIVE_NODES_ZKNODE = '/live_nodes'
     ALIASES = '/aliases.json'
     CLUSTER_STATE = '/clusterstate.json'
+    COLLECTION_STATUS = '/collections'
+    COLLECTION_STATE = '/collections/%s/state.json'
     SHARDS = 'shards'
     REPLICAS = 'replicas'
     STATE = 'state'
@@ -1326,6 +1328,7 @@ class ZooKeeper(object):
                 LOG.warning("No cluster state available: no collections defined?")
             else:
                 self.collections = json.loads(data.decode('utf-8'))
+                self.collections.update(json.loads(data.decode('utf-8')))
                 LOG.info('Updated collections: %s', self.collections)
 
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
@@ -1345,6 +1348,19 @@ class ZooKeeper(object):
             else:
                 self.aliases = None
             LOG.info("Updated aliases: %s", self.aliases)
+
+        def watchCollectionState(data, *args, **kwargs):
+            if not data:
+                LOG.warning("No cluster state available: no collections defined?")
+            else:
+                self.collections.update(json.loads(data.decode('utf-8')))
+                LOG.info('Updated collections: %s', self.collections)
+
+        @self.zk.ChildrenWatch(ZooKeeper.COLLECTION_STATUS)
+        def watchCollectionStatus(children):
+            LOG.info("Updated collection: %s", children)
+            for c in children:
+                self.zk.DataWatch(self.COLLECTION_STATE % c, watchCollectionState)
 
     def getHosts(self, collname, only_leader=False, seen_aliases=None):
         if self.aliases and collname in self.aliases:
