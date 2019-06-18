@@ -4,7 +4,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import signal
-import traceback
 import unittest
 
 from tests import utils as test_utils
