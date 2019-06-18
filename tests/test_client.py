@@ -749,13 +749,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         originalDocs = self.solr.search("doc")
         self.assertEqual(len(originalDocs), 3)
         updateList = []
-        for i, doc in enumerate(originalDocs):
+        for doc in originalDocs:
             updateList.append({"id": doc["id"], "popularity": 5})
         self.solr.add(updateList, fieldUpdates={"popularity": "inc"}, commit=True)
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], originalDoc["popularity"] + 5)
             # TODO: change this to use assertSetEqual:
@@ -772,13 +772,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         updated_popularity = 10
         self.assertEqual(len(originalDocs), 3)
         updateList = []
-        for i, doc in enumerate(originalDocs):
+        for doc in originalDocs:
             updateList.append({"id": doc["id"], "popularity": updated_popularity})
         self.solr.add(updateList, fieldUpdates={"popularity": "set"}, commit=True)
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], updated_popularity)
             # TODO: change this to use assertSetEqual:
@@ -810,13 +810,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         originalDocs = self.solr.search("multivalued")
         self.assertEqual(len(originalDocs), 2)
         updateList = []
-        for i, doc in enumerate(originalDocs):
+        for doc in originalDocs:
             updateList.append({"id": doc["id"], "word_ss": ["epsilon", "gamma"]})
         self.solr.add(updateList, fieldUpdates={"word_ss": "add"}, commit=True)
 
         updatedDocs = self.solr.search("multivalued")
         self.assertEqual(len(updatedDocs), 2)
-        for i, (originalDoc, updatedDoc) in enumerate(zip(originalDocs, updatedDocs)):
+        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(
                 updatedDoc["word_ss"], originalDoc["word_ss"] + ["epsilon", "gamma"]
@@ -1047,18 +1047,18 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         self.solr.use_qt_param = True
 
-        response = self.solr.search("my query")
+        self.solr.search("my query")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("select"))
 
-        response = self.solr.search("my", search_handler="/autocomplete")
+        self.solr.search("my", search_handler="/autocomplete")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("select"))
         self.assertGreaterEqual(args[1].find("qt=%2Fautocomplete"), 0)
 
         self.solr.search_handler = "/autocomplete"
 
-        response = self.solr.search("my")
+        self.solr.search("my")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("select"))
         self.assertGreaterEqual(args[1].find("qt=%2Fautocomplete"), 0)
@@ -1066,7 +1066,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr.use_qt_param = False
         # will change the path, so expect a 404
         with self.assertRaises(SolrError):
-            response = self.solr.search("my")
+            self.solr.search("my")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("/autocomplete"))
         self.assertLess(args[1].find("qt=%2Fautocomplete"), 0)
