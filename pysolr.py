@@ -1549,7 +1549,7 @@ class ZooKeeper(object):
     def getAliasHosts(self, collname, only_leader, seen_aliases):
         if seen_aliases:
             if collname in seen_aliases:
-                LOG.warn("%s in circular alias definition - ignored", collname)
+                LOG.warning("%s in circular alias definition - ignored", collname)
                 return []
         else:
             seen_aliases = []
