@@ -915,17 +915,17 @@ class Solr(object):
         # if no commands (no boost, no atomic updates) needed use json multidocument api
         #   The JSON API skipts the XML conversion and speedup load from 15 to 20 times.
         #   CPU Usage is drastically lower.
-        if boost is None and fieldUpdates is None:    
+        if boost is None and fieldUpdates is None:
             solrapi = 'JSON'
             message = docs
-            # single doc convert to array of docs 
+            # single doc convert to array of docs
             if isinstance(message, dict):
                 # convert dict to list
                 message = [message]
-                # json array of docs 
+                # json array of docs
             if isinstance(message, list):
                 # convert to string
-                m = json.dumps(message).encode('utf-8') 
+                m = json.dumps(message).encode('utf-8')
             else:
                 raise ValueError("wrong message type")
         else:
