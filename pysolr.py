@@ -864,11 +864,12 @@ class Solr(object):
         terms = result.get("terms", {})
         res = {}
 
-        # in Solr 1.x the value of terms is a flat list:
-        #   ["field_name", ["dance",23,"dancers",10,"dancing",8,"dancer",6]]
+        # in Solr 1.x the value of terms is list of elements with the field name
+        # and a flat list of value, count pairs:
+        # ["field_name", ["dance", 23, "dancers", 10, …]]
         #
-        # in Solr 3.x the value of terms is a dict:
-        #   {"field_name": ["dance",23,"dancers",10,"dancing",8,"dancer",6]}
+        # in Solr 3+ the value of terms is a dict of field name and a flat list of
+        # value, count pairs: {"field_name": ["dance", 23, "dancers", 10, …]}
         if isinstance(terms, (list, tuple)):
             terms = dict(zip(terms[0::2], terms[1::2]))
 
