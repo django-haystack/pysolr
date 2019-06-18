@@ -1402,6 +1402,7 @@ class SolrCloud(Solr):
         collection,
         decoder=None,
         timeout=60,
+        retry_count=5,
         retry_timeout=0.2,
         auth=None,
         verify=True,
@@ -1410,7 +1411,11 @@ class SolrCloud(Solr):
     ):
         url = zookeeper.getRandomURL(collection)
         self.auth = auth
+        self.collection = collection
+        self.retry_count = retry_count
+        self.retry_timeout = retry_timeout
         self.verify = verify
+        self.zookeeper = zookeeper
 
         super(SolrCloud, self).__init__(
             url,
@@ -1422,37 +1427,28 @@ class SolrCloud(Solr):
             **kwargs
         )
 
-        self.zookeeper = zookeeper
-        self.collection = collection
-        self.retry_timeout = retry_timeout
-
-    def _randomized_request(self, method, path, body, headers, files):
-        self.url = self.zookeeper.getRandomURL(self.collection)
-        LOG.debug("Using random URL: %s", self.url)
-        return Solr._send_request(self, method, path, body, headers, files)
-
     def _send_request(self, method, path="", body=None, headers=None, files=None):
-        # FIXME: this needs to have a maximum retry counter rather than waiting endlessly
-        try:
-            return self._randomized_request(method, path, body, headers, files)
-        except requests.exceptions.RequestException:
-            LOG.warning(
-                "RequestException, retrying after %fs",
-                self.retry_timeout,
-                exc_info=True,
-            )
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
-        except SolrError:
-            LOG.warning(
-                "SolrException, retrying after %fs", self.retry_timeout, exc_info=True
-            )
-            time.sleep(self.retry_timeout)  # give zookeeper time to notice
-            return self._randomized_request(method, path, body, headers, files)
+        for retry_number in range(0, self.retry_count):
+            try:
+                self.url = self.zookeeper.getRandomURL(self.collection)
+                return Solr._send_request(self, method, path, body, headers, files)
+            except (SolrError, requests.exceptions.RequestException):
+                LOG.exception(
+                    "%s %s failed on retry %s, will retry after %0.1fs",
+                    method,
+                    self.url,
+                    retry_number,
+                    self.retry_timeout,
+                )
+                time.sleep(self.retry_timeout)
+
+        raise SolrError(
+            "Request %s %s failed after %d attempts" % (method, path, self.retry_count)
+        )
 
     def _update(self, *args, **kwargs):
         self.url = self.zookeeper.getLeaderURL(self.collection)
-        LOG.debug("Using random leader URL: %s", self.url)
+        LOG.debug("Using leader URL: %s", self.url)
         return Solr._update(self, *args, **kwargs)
 
 
