@@ -1590,7 +1590,7 @@ class ZooKeeper(object):
         hosts = self.getHosts(collname, only_leader=only_leader)
         if not hosts:
             raise SolrError("ZooKeeper returned no active shards!")
-        return "%s/%s" % (random.choice(hosts), collname)
+        return "%s/%s" % (random.choice(hosts), collname)  # NOQA: B311
 
     def getLeaderURL(self, collname):
         return self.getRandomURL(collname, only_leader=True)

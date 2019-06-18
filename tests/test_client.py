@@ -872,7 +872,9 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         leaf_q = "price:[* TO *]"
         self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
         # Extract a random doc from the list, to later check it wasn't deleted.
-        graced_doc_id = to_delete_ids.pop(random.randint(0, len(to_delete_ids) - 1))
+        graced_doc_id = to_delete_ids.pop(
+            random.randint(0, len(to_delete_ids) - 1)  # NOQA: B311
+        )
         self.solr.delete(id=to_delete_ids, commit=True)
         # There should be only one left, our graced id
         self.assertEqual(len(self.solr.search(leaf_q)), 1)
