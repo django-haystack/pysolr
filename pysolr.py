@@ -1282,7 +1282,11 @@ class SolrCoreAdmin(object):
         return force_unicode(resp.content)
 
     def status(self, core=None):
-        """http://wiki.apache.org/solr/CoreAdmin#head-9be76f5a459882c5c093a7a1456e98bea7723953"""
+        """
+        Get core status information
+
+        See https://wiki.apache.org/solr/CoreAdmin#STATUS
+        """
         params = {"action": "STATUS"}
 
         if core is not None:
@@ -1293,7 +1297,11 @@ class SolrCoreAdmin(object):
     def create(
         self, name, instance_dir=None, config="solrconfig.xml", schema="schema.xml"
     ):
-        """http://wiki.apache.org/solr/CoreAdmin#head-7ca1b98a9df8b8ca0dcfbfc49940ed5ac98c4a08"""
+        """
+        Create a new core
+
+        See https://wiki.apache.org/solr/CoreAdmin#CREATE
+        """
         params = {"action": "CREATE", "name": name, "config": config, "schema": schema}
 
         if instance_dir is None:
@@ -1303,23 +1311,39 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def reload(self, core):  # NOQA: A003
-        """http://wiki.apache.org/solr/CoreAdmin#head-3f125034c6a64611779442539812067b8b430930"""
+    def reload(self, core):
+        """
+        Reload a core
+
+        See https://wiki.apache.org/solr/CoreAdmin#RELOAD
+        """
         params = {"action": "RELOAD", "core": core}
         return self._get_url(self.url, params=params)
 
     def rename(self, core, other):
-        """http://wiki.apache.org/solr/CoreAdmin#head-9473bee1abed39e8583ba45ef993bebb468e3afe"""
+        """
+        Rename a core
+
+        See http://wiki.apache.org/solr/CoreAdmin#RENAME
+        """
         params = {"action": "RENAME", "core": core, "other": other}
         return self._get_url(self.url, params=params)
 
     def swap(self, core, other):
-        """http://wiki.apache.org/solr/CoreAdmin#head-928b872300f1b66748c85cebb12a59bb574e501b"""
+        """
+        Swap a core
+
+        See http://wiki.apache.org/solr/CoreAdmin#SWAP
+        """
         params = {"action": "SWAP", "core": core, "other": other}
         return self._get_url(self.url, params=params)
 
     def unload(self, core):
-        """http://wiki.apache.org/solr/CoreAdmin#head-f5055a885932e2c25096a8856de840b06764d143"""
+        """
+        Unload a core
+
+        See http://wiki.apache.org/solr/CoreAdmin#UNLOAD
+        """
         params = {"action": "UNLOAD", "core": core}
         return self._get_url(self.url, params=params)
 
