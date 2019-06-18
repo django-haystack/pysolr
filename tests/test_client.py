@@ -573,9 +573,6 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 "spellcheck": "true",
                 "spellcheck.collate": "true",
                 "spellcheck.count": 1,
-                # TODO: Can't get these working in my test setup.
-                # 'group': 'true',
-                # 'group.field': 'id',
             }
         )
         self.assertEqual(len(results), 3)
@@ -586,19 +583,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             results.facets["facet_fields"]["popularity"],
             ["10", 2, "7", 1, "2", 0, "8", 0],
         )
-        # TODO: Can't get these working in my test setup.
-        # self.assertEqual(results.grouped, '')
         self.assertIsNotNone(results.qtime)
 
         # Nested search #1: find parent where child's comment has 'hello'
         results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
         self.assertEqual(len(results), 1)
-        # TODO: for some reason Solr 4.10 returns all parents and non-nested
-        # docs together with matched children when running {!child} query
-        # Nested search #2: find children for parent 'id:nestdoc_1'
-        # results = self.solr.search("{!child of=type_s:nested}id:nestdoc_1")
-        # self.assertEqual(len(results), 2)
-        # Nested search #3: find child with a child
+        # Nested search #2: find child with a child
         results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
         self.assertEqual(len(results), 1)
 
