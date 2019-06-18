@@ -46,12 +46,10 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertIn("response", results)
 
     def test__send_request_to_bad_path(self):
-        # This test makes no sense in a SolrCloud world.
-        pass
+        unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_send_request_to_bad_core(self):
-        # This test makes no sense in a SolrCloud world, see test_invalid_collection
-        pass
+        unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_invalid_collection(self):
         self.assertRaises(SolrError, SolrCloud, self.zk, "core12345")
