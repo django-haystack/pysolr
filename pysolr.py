@@ -1030,7 +1030,7 @@ class Solr(object):
 
     def delete(
         self,
-        id=None,
+        id=None,  # NOQA: A002
         q=None,
         commit=None,
         softCommit=False,
