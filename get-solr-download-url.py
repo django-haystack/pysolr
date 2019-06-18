@@ -40,9 +40,9 @@ if not mirror_response.ok:
 
 mirror_data = mirror_response.json()
 
-# Since the Apache mirrors are often unreliable and releases may disappear without notice we'll
-# try the preferred mirror, all of the alternates and backups, and fall back to the main Apache
-# archive server:
+# Since the Apache mirrors are often unreliable and releases may disappear
+# without notice we'll try the preferred mirror, all of the alternates and
+# backups, and fall back to the main Apache archive server:
 for base_url in chain(
     (mirror_data["preferred"],),
     mirror_data["http"],
@@ -51,7 +51,8 @@ for base_url in chain(
 ):
     test_url = urljoin(base_url, mirror_data["path_info"])
 
-    # The Apache mirror script's response format has recently changed to exclude the actual file paths:
+    # The Apache mirror script's response format has recently changed to exclude
+    # the actual file paths:
     if not test_url.endswith(tarball):
         test_url = urljoin(test_url, dist_path)
 
