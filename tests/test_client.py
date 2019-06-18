@@ -74,7 +74,7 @@ class UtilsTestCase(unittest.TestCase):
     def test_sanitize(self):
         self.assertEqual(
             sanitize(
-                "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f"
+                "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f"  # NOQA: E501
             ),
             "hello",
         ),
@@ -246,7 +246,9 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr._send_request = Mock(wraps=self.solr._send_request)
 
     def assertURLStartsWith(self, URL, path):
-        """Assert that the test URL provided starts with a known base and the provided path"""
+        """
+        Assert that the test URL provided starts with a known base and the provided path
+        """
         # Note that we do not use urljoin to ensure that any changes in trailing
         # slash handling are caught quickly:
         return self.assertEqual(
@@ -286,7 +288,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         )
 
     def test__create_full_url_with_path_and_querystring(self):
-        # Note the use of a querystring parameter including a trailing slash to catch sloppy trimming:
+        # Note the use of a querystring parameter including a trailing slash to
+        # catch sloppy trimming:
         self.assertURLStartsWith(
             self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
             "core0/pysolr_tests/select/?whatever=/",
@@ -298,7 +301,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn('"numFound":3', resp_body)
 
         # Test a lowercase method & a body.
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'  # NOQA: E501
         resp_body = self.solr._send_request(
             "POST",
             "update/?commit=true",
@@ -362,12 +365,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(resp_data["response"]["numFound"], 0)
 
     def test__update(self):
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'  # NOQA: E501
         resp_body = self.solr._update(xml_body)
         self.assertIn('<int name="status">0</int>', resp_body)
 
     def test__soft_commit(self):
-        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
+        xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'  # NOQA: E501
         resp_body = self.solr._update(xml_body, softCommit=True)
         self.assertIn('<int name="status">0</int>', resp_body)
 
@@ -429,14 +432,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         # Other.
         resp_2 = self.solr._scrape_response(
             {"server": "crapzilla"},
-            "<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>",
+            "<html><head><title>Wow. Seriously weird.</title></head><body><pre>Something is broke.</pre></body></html>",  # NOQA: E501
         )
         self.assertEqual(resp_2, ("Wow. Seriously weird.", ""))
 
     def test__scrape_response_coyote_xml(self):
         resp_3 = self.solr._scrape_response(
             {"server": "coyote"},
-            '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n',
+            '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>\n</response>\n',  # NOQA: E501
         )
         self.assertEqual(
             resp_3,
@@ -452,13 +455,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             """<?xml version="1.0"?>
 <response>
 <lst name="responseHeader"><int name="status">500</int><int name="QTime">138</int></lst><lst name="error"><str name="msg">Internal Server Error</str><str name="trace">org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)</str><int name="code">500</int></lst>
-</response>""",
+</response>""",  # NOQA: E501
         )
         self.assertEqual(
             resp_4,
             (
                 "Internal Server Error",
-                "org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)",
+                "org.apache.solr.common.SolrException: Internal Server Error at java.lang.Thread.run(Thread.java:745)",  # NOQA: E501
             ),
         )
 
@@ -467,12 +470,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         resp_0 = self.solr._scrape_response(
             {"server": "coyote"},
-            "<html><body><h1>Something broke!</h1><pre>gigantic stack trace</pre></body></html>",
+            "<html><body><h1>Something broke!</h1><pre>gigantic stack trace</pre></body></html>",  # NOQA: E501
         )
         self.assertEqual(resp_0, ("Something broke!", ""))
 
         # Invalid XML
-        bogus_xml = '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>'
+        bogus_xml = '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>'  # NOQA: E501
         reason, full_html = self.solr._scrape_response({"server": "coyote"}, bogus_xml)
         self.assertIsNone(reason, None)
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
