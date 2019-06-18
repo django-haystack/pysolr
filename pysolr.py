@@ -268,10 +268,11 @@ class Results(object):
     Note that ``Results`` object does not support indexing and slicing. If you
     need to retrieve documents by index just use ``docs`` attribute.
 
-    Other common response metadata (debug, highlighting, qtime, etc.) are available as attributes.
+    Other common response metadata (debug, highlighting, qtime, etc.) are
+    available as attributes.
 
-    The full response from Solr is provided as the `raw_response` dictionary for use with features which
-    change the response format.
+    The full response from Solr is provided as the `raw_response` dictionary for
+    use with features which change the response format.
     """
 
     def __init__(self, decoded):
