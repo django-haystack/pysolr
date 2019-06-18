@@ -665,7 +665,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(doc_xml), 152)
 
     def test__build_doc_with_sets(self):
-        doc = {"id": "doc_1", "title": "Set test doc", "tags": set(["alpha", "beta"])}
+        doc = {"id": "doc_1", "title": "Set test doc", "tags": {"alpha", "beta"}}
         doc_xml = force_unicode(
             ElementTree.tostring(self.solr._build_doc(doc), encoding="utf-8")
         )
