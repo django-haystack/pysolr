@@ -1328,7 +1328,6 @@ class ZooKeeper(object):
                 LOG.warning("No cluster state available: no collections defined?")
             else:
                 self.collections = json.loads(data.decode('utf-8'))
-                self.collections.update(json.loads(data.decode('utf-8')))
                 LOG.info('Updated collections: %s', self.collections)
 
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
