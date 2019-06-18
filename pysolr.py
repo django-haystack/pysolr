@@ -899,7 +899,8 @@ class Solr(object):
                 doc_elem.set("boost", force_unicode(value))
                 continue
 
-            # To avoid multiple code-paths we'd like to treat all of our values as iterables:
+            # To avoid multiple code-paths we'd like to treat all of our values
+            # as iterables:
             if isinstance(value, (list, tuple, set)):
                 values = value
             else:
@@ -1186,7 +1187,7 @@ class Solr(object):
         """
         if not hasattr(file_obj, "name"):
             raise ValueError(
-                "extract() requires file-like objects which have a defined name property"
+                "extract() requires file-like objects which have a defined name"
             )
 
         params = {
