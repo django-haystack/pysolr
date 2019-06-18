@@ -31,7 +31,7 @@ class SolrCloudTestCase(SolrTestCase):
 
     def test_init(self):
         self.assertTrue(self.solr.url.endswith("/solr/core0"))
-        self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
+        self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
         self.assertEqual(self.solr.timeout, 60)
 
         custom_solr = self.get_solr("core0", timeout=17)
@@ -41,9 +41,9 @@ class SolrCloudTestCase(SolrTestCase):
         solr = SolrCloud(self.zk, "core0", results_cls=dict)
 
         results = solr.search(q="*:*")
-        assert isinstance(results, dict)
-        assert "responseHeader" in results
-        assert "response" in results
+        self.assertIsInstance(results, dict)
+        self.assertIn("responseHeader", results)
+        self.assertIn("response", results)
 
     def test__send_request_to_bad_path(self):
         # This test makes no sense in a SolrCloud world.

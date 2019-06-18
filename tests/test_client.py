@@ -113,7 +113,7 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(default_results.facets, {})
         self.assertEqual(default_results.spellcheck, {})
         self.assertEqual(default_results.stats, {})
-        self.assertEqual(default_results.qtime, None)
+        self.assertIsNone(default_results.qtime)
         self.assertEqual(default_results.debug, {})
         self.assertEqual(default_results.grouped, {})
 
@@ -138,7 +138,7 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(full_results.spellcheck, "sp")
         self.assertEqual(full_results.stats, "st")
         self.assertEqual(full_results.qtime, "0.001")
-        self.assertEqual(full_results.debug, True)
+        self.assertTrue(full_results.debug)
         self.assertEqual(full_results.grouped, ["a"])
 
     def test_len(self):
@@ -262,20 +262,20 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
     def test_init(self):
         self.assertEqual(self.solr.url, "http://localhost:8983/solr/core0")
-        self.assertTrue(isinstance(self.solr.decoder, json.JSONDecoder))
+        self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
         self.assertEqual(self.solr.timeout, 60)
 
         custom_solr = self.get_solr("core0", timeout=17, always_commit=True)
         self.assertEqual(custom_solr.timeout, 17)
-        self.assertEqual(custom_solr.always_commit, True)
+        self.assertTrue(custom_solr.always_commit)
 
     def test_custom_results_class(self):
         solr = Solr("http://localhost:8983/solr/core0", results_cls=dict)
 
         results = solr.search(q="*:*")
-        assert isinstance(results, dict)
-        assert "responseHeader" in results
-        assert "response" in results
+        self.assertIsInstance(results, dict)
+        self.assertIn("responseHeader", results)
+        self.assertIn("response", results)
 
     def test__create_full_url_base(self):
         self.assertURLStartsWith(self.solr._create_full_url(path=""), "core0")
@@ -295,7 +295,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test__send_request(self):
         # Test a valid request.
         resp_body = self.solr._send_request("GET", "select/?q=doc&wt=json")
-        self.assertTrue('"numFound":3' in resp_body)
+        self.assertIn('"numFound":3', resp_body)
 
         # Test a lowercase method & a body.
         xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'
@@ -305,7 +305,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             body=xml_body,
             headers={"Content-type": "text/xml; charset=utf-8"},
         )
-        self.assertTrue('<int name="status">0</int>' in resp_body)
+        self.assertIn('<int name="status">0</int>', resp_body)
 
         # Test JSON Array
         json_body = '[{"id":"doc_13","title":"Whee hoo! ☃"}]'
@@ -315,7 +315,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             body=json_body,
             headers={"Content-type": "application/json; charset=utf-8"},
         )
-        self.assertTrue('"status":0' in resp_body)
+        self.assertIn('"status":0', resp_body)
 
     def test__send_request_to_bad_path(self):
         # Test a non-existent URL:
@@ -364,12 +364,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test__update(self):
         xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
         resp_body = self.solr._update(xml_body)
-        self.assertTrue('<int name="status">0</int>' in resp_body)
+        self.assertIn('<int name="status">0</int>', resp_body)
 
     def test__soft_commit(self):
         xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee!</field></doc></add>'
         resp_body = self.solr._update(xml_body, softCommit=True)
-        self.assertTrue('<int name="status">0</int>' in resp_body)
+        self.assertIn('<int name="status">0</int>', resp_body)
 
     def test__extract_error(self):
         class RubbishResponse(object):
@@ -474,7 +474,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         # Invalid XML
         bogus_xml = '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>'
         reason, full_html = self.solr._scrape_response({"server": "coyote"}, bogus_xml)
-        self.assertEqual(reason, None)
+        self.assertIsNone(reason, None)
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
 
     def test__from_python(self):
@@ -529,8 +529,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             self.solr._to_python("2013-01-18T00:30:28Z"),
             datetime.datetime(2013, 1, 18, 0, 30, 28),
         )
-        self.assertEqual(self.solr._to_python("true"), True)
-        self.assertEqual(self.solr._to_python("false"), False)
+        self.assertTrue(self.solr._to_python("true"))
+        self.assertFalse(self.solr._to_python("false"))
         self.assertEqual(self.solr._to_python(1), 1)
         self.assertEqual(self.solr._to_python(1.2), 1.2)
         self.assertEqual(self.solr._to_python(b"hello"), "hello")
@@ -579,16 +579,16 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             }
         )
         self.assertEqual(len(results), 3)
-        self.assertTrue("explain" in results.debug)
+        self.assertIn("explain", results.debug)
         self.assertEqual(results.highlighting, {"doc_4": {}, "doc_2": {}, "doc_1": {}})
         self.assertEqual(results.spellcheck, {})
         self.assertEqual(
             results.facets["facet_fields"]["popularity"],
             ["10", 2, "7", 1, "2", 0, "8", 0],
         )
-        self.assertTrue(results.qtime is not None)
         # TODO: Can't get these working in my test setup.
         # self.assertEqual(results.grouped, '')
+        self.assertIsNotNone(results.qtime)
 
         # Nested search #1: find parent where child's comment has 'hello'
         results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
@@ -670,8 +670,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         doc_xml = force_unicode(
             ElementTree.tostring(self.solr._build_doc(doc), encoding="utf-8")
         )
-        self.assertTrue('<field name="title">Example doc ☃ 1</field>' in doc_xml)
-        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
+        self.assertIn('<field name="title">Example doc ☃ 1</field>', doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
     def test__build_doc_with_sets(self):
@@ -679,10 +679,10 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         doc_xml = force_unicode(
             ElementTree.tostring(self.solr._build_doc(doc), encoding="utf-8")
         )
-        self.assertTrue('<field name="id">doc_1</field>' in doc_xml)
-        self.assertTrue('<field name="title">Set test doc</field>' in doc_xml)
-        self.assertTrue('<field name="tags">alpha</field>' in doc_xml)
-        self.assertTrue('<field name="tags">beta</field>' in doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
+        self.assertIn('<field name="title">Set test doc</field>', doc_xml)
+        self.assertIn('<field name="tags">alpha</field>', doc_xml)
+        self.assertIn('<field name="tags">beta</field>', doc_xml)
         self.assertEqual(len(doc_xml), 144)
 
     def test__build_doc_with_sub_docs(self):
@@ -769,13 +769,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], originalDoc["popularity"] + 5)
             # TODO: change this to use assertSetEqual:
-            self.assertEqual(
-                True,
+            self.assertTrue(
                 all(
                     updatedDoc[k] == originalDoc[k]
                     for k in updatedDoc.keys()
                     if k not in ["_version_", "popularity"]
-                ),
+                )
             )
 
     def test_field_update_set(self):
@@ -793,13 +792,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], updated_popularity)
             # TODO: change this to use assertSetEqual:
-            self.assertEqual(
-                True,
+            self.assertTrue(
                 all(
                     updatedDoc[k] == originalDoc[k]
                     for k in updatedDoc.keys()
                     if k not in ["_version_", "popularity"]
-                ),
+                )
             )
 
     def test_field_update_add(self):
@@ -834,13 +832,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 updatedDoc["word_ss"], originalDoc["word_ss"] + ["epsilon", "gamma"]
             )
             # TODO: change this to use assertSetEqual:
-            self.assertEqual(
-                True,
+            self.assertTrue(
                 all(
                     updatedDoc[k] == originalDoc[k]
                     for k in updatedDoc.keys()
                     if k not in ["_version_", "word_ss"]
-                ),
+                )
             )
 
     def test_delete(self):
@@ -1067,14 +1064,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         response = self.solr.search("my", search_handler="/autocomplete")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("select"))
-        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+        self.assertGreaterEqual(args[1].find("qt=%2Fautocomplete"), 0)
 
         self.solr.search_handler = "/autocomplete"
 
         response = self.solr.search("my")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("select"))
-        self.assertTrue(args[1].find("qt=%2Fautocomplete") > -1)
+        self.assertGreaterEqual(args[1].find("qt=%2Fautocomplete"), 0)
 
         self.solr.use_qt_param = False
         # will change the path, so expect a 404
@@ -1082,7 +1079,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             response = self.solr.search("my")
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("/autocomplete"))
-        self.assertTrue(args[1].find("qt=%2Fautocomplete") < 0)
+        self.assertLess(args[1].find("qt=%2Fautocomplete"), 0)
 
         # reset the values to what they were before the test
         self.solr.use_qt_param = before_test_use_qt_param
