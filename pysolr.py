@@ -1316,7 +1316,7 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def reload(self, core):
+    def reload(self, core):  # NOQA: A003
         """
         Reload a core
 
