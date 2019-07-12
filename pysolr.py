@@ -914,6 +914,21 @@ class Solr(object):
                     child = self._build_doc(bit, boost)
                     doc_elem.append(child)
                     continue
+                elif isinstance(bit, dict):
+                    attrs = {'name': key}
+
+                    if fieldUpdates and key in fieldUpdates:
+                        attrs['update'] = fieldUpdates[key]
+
+                    if boost and key in boost:
+                        attrs['boost'] = force_unicode(boost[key])
+
+                    childfield = ElementTree.Element('field', **attrs)
+
+                    child = self._build_doc(bit, boost)
+                    childfield.append(child)
+                    doc_elem.append(childfield)
+                    continue
 
                 attrs = {"name": key}
 
