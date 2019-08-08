@@ -295,7 +295,8 @@ class Results(object):
         self.qtime = decoded.get("responseHeader", {}).get("QTime", None)
         self.grouped = decoded.get("grouped", {})
         self.nextCursorMark = decoded.get("nextCursorMark", None)
-        self._next_page_query = self.nextCursorMark is not None and next_page_query or None
+        self._next_page_query = self.nextCursorMark is not None \
+            and next_page_query or None
 
     def __len__(self):
         return self._next_page_query and self.hits or len(self.docs)
@@ -306,7 +307,6 @@ class Results(object):
             for d in result.docs:
                 yield d
             result = result._next_page_query and result._next_page_query()
-
 
 
 class Solr(object):
@@ -830,12 +830,13 @@ class Solr(object):
             (decoded.get("response", {}) or {}).get("numFound", 0),
         )
 
-        if "cursorMark" in params and params["cursorMark"] != decoded.get('nextCursorMark',params["cursorMark"]):
+        if "cursorMark" in params and params["cursorMark"] != \
+                decoded.get('nextCursorMark', params["cursorMark"]):
             def next_page_query():
                 nextParams = dict(params)
-                nextParams["cursorMark"]=decoded['nextCursorMark']
-                return self.search(search_handler=search_handler,**nextParams)
-            return self.results_cls(decoded,next_page_query)
+                nextParams["cursorMark"] = decoded['nextCursorMark']
+                return self.search(search_handler=search_handler, **nextParams)
+            return self.results_cls(decoded, next_page_query)
         else:
             return self.results_cls(decoded)
 

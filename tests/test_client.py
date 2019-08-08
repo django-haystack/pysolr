@@ -283,7 +283,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         solr = Solr('http://localhost:8983/solr/core0')
 
         expected = solr.search(q="*:*", rows=len(self.docs)*3, sort="id asc").docs
-        results = solr.search(q='*:*',cursorMark="*",rows=2,sort="id asc")
+        results = solr.search(q='*:*', cursorMark="*", rows=2, sort="id asc")
         all_docs = [doc for doc in results]
         self.assertEqual(len(expected), len(all_docs))
         self.assertEqual(len(results), len(all_docs))
