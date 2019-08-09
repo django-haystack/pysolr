@@ -299,7 +299,10 @@ class Results(object):
             and next_page_query or None
 
     def __len__(self):
-        return self._next_page_query and self.hits or len(self.docs)
+        if self._next_page_query:
+            return self.hits
+        else:
+            return len(self.docs)
 
     def __iter__(self):
         result = self
@@ -830,11 +833,11 @@ class Solr(object):
             (decoded.get("response", {}) or {}).get("numFound", 0),
         )
 
-        if "cursorMark" in params and params["cursorMark"] != \
-                decoded.get('nextCursorMark', params["cursorMark"]):
+        cursorMark = params.get("cursorMark", None)
+        if cursorMark != decoded.get("nextCursorMark", cursorMark):
             def next_page_query():
-                nextParams = dict(params)
-                nextParams["cursorMark"] = decoded['nextCursorMark']
+                nextParams = params.copy()
+                nextParams["cursorMark"] = decoded["nextCursorMark"]
                 return self.search(search_handler=search_handler, **nextParams)
             return self.results_cls(decoded, next_page_query)
         else:
