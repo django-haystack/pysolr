@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# encoding: utf-8
 
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import, print_function
 
 import faulthandler
 import signal
@@ -20,7 +19,7 @@ def main():
     try:
         unittest.main(module="tests", verbosity=1)
     finally:
-        print("Tests complete; halting Solr servers…")
+        print("Tests complete; halting Solr servers...")
         test_utils.stop_solr()
 
 
