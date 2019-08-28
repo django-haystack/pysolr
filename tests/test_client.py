@@ -1100,6 +1100,7 @@ class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
     def setUp(self):
         super(SolrCommitByDefaultTestCase, self).setUp()
         self.solr = self.get_solr("core0", always_commit=True)
+        self.solr.delete(q="*:*", commit=True)
         self.docs = [
             {"id": "doc_1", "title": "Newly added doc"},
             {"id": "doc_2", "title": "Another example doc"},
