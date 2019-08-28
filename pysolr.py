@@ -949,6 +949,10 @@ class Solr(object):
 
                 doc_elem.append(field)
 
+            if not values and fieldUpdates and fieldUpdates.get(key) == 'set':
+                field = ElementTree.Element("field", name=key, update=fieldUpdates[key])
+                doc_elem.append(field)
+
         return doc_elem
 
     def add(
