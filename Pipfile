@@ -1,0 +1,24 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+bandit = "*"
+black = "==19.3b0"
+coverage = "*"
+flake8 = "*"
+flake8-assertive = "*"
+flake8-bugbear = "*"
+flake8-builtins = "*"
+flake8-comprehensions = "*"
+flake8-eradicate = "*"
+flake8-logging-format = "*"
+isort = "*"
+
+[packages]
+requests = "*"
+kazoo = "*"
+
+[requires]
+python_version = "3.7"

@@ -28,7 +28,7 @@ Features
 Requirements
 ============
 
-* Python 2.7 - 3.6
+* Python 2.7 - 3.7
 * Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
@@ -42,7 +42,11 @@ pysolr is on PyPI:
 
    $ pip install pysolr
 
-Or if you want to install directly from the repository: ``python setup.py install``, or drop the ``pysolr.py`` file anywhere on your ``PYTHONPATH``.
+Or if you want to install directly from the repository:
+
+.. code-block:: console
+
+    $ python setup.py install
 
 Usage
 =====
@@ -53,10 +57,16 @@ Basic usage looks like:
 
     # If on Python 2.X
     from __future__ import print_function
+
     import pysolr
 
-    # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/', timeout=10, auth=<type of authentication>)
+    # Create a client instance. The timeout and authentication options are not required.
+    solr = pysolr.Solr('http://localhost:8983/solr/', always_commit=True, [timeout=10], [auth=<type of authentication>])
+
+    # Note that auto_commit defaults to False for performance. You can set
+    # `auto_commit=True` to have commands always update the index immediately, make
+    # an update call with `commit=True`, or use Solr's `autoCommit` / `commitWithin`
+    # to have your data be committed following a particular policy.
 
     # Do a health check.
     solr.ping()
@@ -76,9 +86,6 @@ Basic usage looks like:
             ]
         },
     ])
-
-    # Note that the add method has commit=True by default, so this is
-    # immediately committed to your index.
 
     # You can index a parent/child document relationship by
     # associating a list of child documents with the special key '_doc'. This
@@ -146,38 +153,40 @@ Custom Request Handlers
     solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
 
 
-If ``use_qt_param`` is ``True`` it is essential that the name of the handler is exactly what is configured
-in ``solrconfig.xml``, including the leading slash if any (though with the ``qt`` parameter a leading slash is not
-a requirement by SOLR). If ``use_qt_param`` is ``False`` (default), the leading and trailing slashes can be
-omitted.
+If ``use_qt_param`` is ``True`` it is essential that the name of the handler is
+exactly what is configured in ``solrconfig.xml``, including the leading slash
+if any. If ``use_qt_param`` is ``False`` (default), the leading and trailing
+slashes can be omitted.
 
 If ``search_handler`` is not specified, pysolr will default to ``/select``.
 
-The handlers for MoreLikeThis, Update, Terms etc. all default to the values set in the ``solrconfig.xml`` SOLR ships
-with: ``mlt``, ``update``, ``terms`` etc. The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
-``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value. This includes the ``search`` method.
-Setting a handler in ``search`` explicitly overrides the ``search_handler`` setting (if any).
+The handlers for MoreLikeThis, Update, Terms etc. all default to the values set
+in the ``solrconfig.xml`` SOLR ships with: ``mlt``, ``update``, ``terms`` etc.
+The specific methods of pysolr's ``Solr`` class (like ``more_like_this``,
+``suggest_terms`` etc.) allow for a kwarg ``handler`` to override that value.
+This includes the ``search`` method. Setting a handler in ``search`` explicitly
+overrides the ``search_handler`` setting (if any).
 
 
 Custom Authentication
 ~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
-	
-	# Setup a Solr instance in a kerborized enviornment
-	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
-	solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
-	
+
+    # Setup a Solr instance in a kerborized enviornment
+    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+    kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+
+    solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
+
 .. code-block:: python
-	
-	# Setup a CloudSolr instance in a kerborized environment
-	from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-	kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
-	
-	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
-	solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
+
+    # Setup a CloudSolr instance in a kerborized environment
+    from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+    kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
 
 
 If your Solr servers run off https
@@ -185,15 +194,15 @@ If your Solr servers run off https
 
 .. code-block:: python
 
-	# Setup a Solr instance in an https environment
-	solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
+    # Setup a Solr instance in an https environment
+    solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
 
 .. code-block:: python
-	
-	# Setup a CloudSolr instance in a kerborized environment
-	
-	zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
-	solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
+
+    # Setup a CloudSolr instance in a kerborized environment
+
+    zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
+    solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
 
 
 Custom Commit Policy
@@ -202,17 +211,22 @@ Custom Commit Policy
 .. code-block:: python
 
     # Setup a Solr instance. The trailing slash is optional.
-    # All request to solr will result in a commit
+    # All requests to Solr will be immediately committed because `always_commit=True`:
     solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', always_commit=True)
 
-``always_commit`` signals to the Solr object to either commit or not commit by default for any solr request.
-Be sure to change this to True if you are upgrading from a version where the default policy was alway commit by default.
+``always_commit`` signals to the Solr object to either commit or not commit by
+default for any solr request. Be sure to change this to ``True`` if you are
+upgrading from a version where the default policy was alway commit by default.
 
-Functions like ``add`` and ``delete`` also still provide a way to override the default by passing the ``commit`` kwarg.
+Functions like ``add`` and ``delete`` also still provide a way to override the
+default by passing the ``commit`` kwarg.
 
-It is generally good practice to limit the amount of commits to solr.
-Excessive commits risk opening too many searcher or using too many system resources.
+It is generally good practice to limit the amount of commits to Solr as
+excessive commits risk opening too many searchers or excessive system
+resource consumption. See the Solr documentation for more information and
+details about the ``autoCommit`` and ``commitWithin`` options:
 
+https://lucene.apache.org/solr/guide/7_7/updatehandlers-in-solrconfig.html#UpdateHandlersinSolrConfig-autoCommit
 
 
 LICENSE
@@ -220,11 +234,25 @@ LICENSE
 
 ``pysolr`` is licensed under the New BSD license.
 
+Contributing to pysolr
+======================
+
+For consistency, this project uses `pre-commit <https://pre-commit.com/>`_ to manage Git commit hooks:
+
+#. Install the `pre-commit` package: e.g. `brew install pre-commit`,
+   `pip install pre-commit`, etc.
+#. Run `pre-commit install` each time you check out a new copy of this Git
+   repository to ensure that every subsequent commit will be processed by
+   running `pre-commit run`, which you may also do as desired. To test the
+   entire repository or in a CI scenario, you can check every file rather than
+   just the staged ones using `pre-commit run --all`.
+
+
 Running Tests
 =============
 
-The ``run-tests.py`` script will automatically perform the steps below and is recommended for testing by
-default unless you need more control.
+The ``run-tests.py`` script will automatically perform the steps below and is
+recommended for testing by default unless you need more control.
 
 Running a test Solr instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -236,13 +264,6 @@ Downloading, configuring and running Solr 4 looks like this::
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
-The test suite requires the unittest2 library:
+.. code-block:: console
 
-Python 2::
-
-    python -m unittest2 tests
-
-Python 3::
-
-    python3 -m unittest tests
-
+    $ python -m unittest tests

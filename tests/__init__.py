@@ -2,6 +2,6 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from .test_client import *
-from .test_admin import *
-from .test_cloud import *
+from .test_admin import *  # NOQA
+from .test_client import *  # NOQA
+from .test_cloud import *  # NOQA
