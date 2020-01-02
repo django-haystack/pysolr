@@ -191,11 +191,11 @@
         },
         "flake8-comprehensions": {
             "hashes": [
-                "sha256:d1337979289e2877693b49a862c3e193a443833e2843e0e2450d54abd93aea9a",
-                "sha256:d3a8339e262205a15a4a84f6363eabb63e2dbd8292c4655366aaa0452eb28496"
+                "sha256:6de428c3ac67d3614d527456469c8a3d6638960e9ad7e1222358526a2507400a",
+                "sha256:e3a8350a35d7bc71f8a1f64cf3c633a418a26b0edace2219d26ea4dd78ac21f3"
             ],
             "index": "pypi",
-            "version": "==3.0.1"
+            "version": "==3.1.4"
         },
         "flake8-eradicate": {
             "hashes": [
