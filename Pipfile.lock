@@ -39,11 +39,11 @@
         },
         "kazoo": {
             "hashes": [
-                "sha256:322c0dfa7e3a91ce217d01cb954fe3bffbc9b412c3eec7d5f800412b5145773e",
-                "sha256:4a73c2c62a7163ca1c4aef82aa042d795560497cc81034f212ef13cc037cc783"
+                "sha256:6883f6dd3e8d4e1741076dd3b23b0861592f13759072e3835f035bcb72b077cb",
+                "sha256:ef83ffd126b3bb4971f58e2f6171f9063129dbce72d160f178a08b65fb75d6b6"
             ],
             "index": "pypi",
-            "version": "==2.6.1"
+            "version": "==2.7.0"
         },
         "requests": {
             "hashes": [
