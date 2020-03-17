@@ -166,11 +166,11 @@
         },
         "flake8-assertive": {
             "hashes": [
-                "sha256:06e98538ebc6252476d0af6a50d7277a065dceb53adab2da418a9df6c977ebe2",
-                "sha256:dd66ccd5cb15d01c8aaaa5f82d66af534f50fdac7b1e0cec3153e3288f8dec5a"
+                "sha256:1416eba73332437fdf918f05d3a94a17287d2062423e00ed76c4985b39db5938",
+                "sha256:25b98c2d6c0d5eba509d89d4847fa63c2bf704135b427f0b8e0203dab7073e9f"
             ],
             "index": "pypi",
-            "version": "==1.1.0"
+            "version": "==1.2.1"
         },
         "flake8-bugbear": {
             "hashes": [
