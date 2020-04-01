@@ -216,7 +216,7 @@ Custom Commit Policy
 
 ``always_commit`` signals to the Solr object to either commit or not commit by
 default for any solr request. Be sure to change this to ``True`` if you are
-upgrading from a version where the default policy was alway commit by default.
+upgrading from a version where the default policy was always commit by default.
 
 Functions like ``add`` and ``delete`` also still provide a way to override the
 default by passing the ``commit`` kwarg.
