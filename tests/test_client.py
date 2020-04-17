@@ -284,7 +284,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         expected = solr.search(q="*:*", rows=len(self.docs)*3, sort="id asc").docs
         results = solr.search(q='*:*', cursorMark="*", rows=2, sort="id asc")
-        all_docs = [doc for doc in results]
+        all_docs = list(results)
         self.assertEqual(len(expected), len(all_docs))
         self.assertEqual(len(results), len(all_docs))
         self.assertEqual(expected, all_docs)
