@@ -663,7 +663,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         args, kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("fakehandler"))
 
-    def test__build_doc(self):
+    def test__build_xml_doc(self):
         doc = {
             "id": "doc_1",
             "title": "Example doc ☃ 1",
@@ -671,16 +671,16 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             "popularity": 10,
         }
         doc_xml = force_unicode(
-            ElementTree.tostring(self.solr._build_doc(doc), encoding="utf-8")
+            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
         )
         self.assertIn('<field name="title">Example doc ☃ 1</field>', doc_xml)
         self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
-    def test__build_doc_with_sets(self):
+    def test__build_xml_doc_with_sets(self):
         doc = {"id": "doc_1", "title": "Set test doc", "tags": {"alpha", "beta"}}
         doc_xml = force_unicode(
-            ElementTree.tostring(self.solr._build_doc(doc), encoding="utf-8")
+            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
         )
         self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertIn('<field name="title">Set test doc</field>', doc_xml)
@@ -688,7 +688,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn('<field name="tags">beta</field>', doc_xml)
         self.assertEqual(len(doc_xml), 144)
 
-    def test__build_doc_with_sub_docs(self):
+    def test__build_xml_doc_with_sub_docs(self):
         sub_docs = [
             {
                 "id": "sub_doc_1",
@@ -710,7 +710,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             "popularity": 10,
             "_doc": sub_docs,
         }
-        doc_xml = self.solr._build_doc(doc)
+        doc_xml = self.solr._build_xml_doc(doc)
         self.assertEqual(doc_xml.find("*[@name='id']").text, doc["id"])
 
         children_docs = doc_xml.findall("doc")
@@ -718,6 +718,19 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]["id"])
         self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]["id"])
+
+    def test_build_json_doc_matches_xml(self):
+        doc = {
+            "id": "doc_1",
+            "title": "",
+            "price": 12.59,
+            "popularity": 10
+        }
+
+        doc_json = self.solr._build_json_doc(doc)
+        doc_xml = self.solr._build_xml_doc(doc)
+        self.assertTrue("title" not in doc_json)
+        self.assertTrue(doc_xml.find("*[name='title']") is None)
 
     def test_add(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
