@@ -729,8 +729,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         doc_json = self.solr._build_json_doc(doc)
         doc_xml = self.solr._build_xml_doc(doc)
-        self.assertTrue("title" not in doc_json)
-        self.assertTrue(doc_xml.find("*[name='title']") is None)
+        self.assertNotIn("title", doc_json)
+        self.assertIsNone(doc_xml.find("*[name='title']"))
 
     def test_add(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
