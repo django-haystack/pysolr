@@ -1007,7 +1007,7 @@ class Solr(object):
         self.log.debug("Starting to build add request...")
         solrapi = "XML"
         # if no commands (no boost, no atomic updates) needed use json multidocument api
-        #   The JSON API skipts the XML conversion and speedup load from 15 to 20 times.
+        #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
         #   CPU Usage is drastically lower.
         if boost is None and fieldUpdates is None:
             solrapi = "JSON"
