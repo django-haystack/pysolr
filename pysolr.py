@@ -910,13 +910,17 @@ class Solr(object):
         )
         return res
 
-    def _build_doc(self, doc, boost=None, fieldUpdates=None):
+    def _build_json_doc(self, doc):
+        cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+        return cleaned_doc
+
+    def _build_xml_doc(self, doc, boost=None, fieldUpdates=None):
         doc_elem = ElementTree.Element("doc")
 
         for key, value in doc.items():
             if key == NESTED_DOC_KEY:
                 for child in value:
-                    doc_elem.append(self._build_doc(child, boost, fieldUpdates))
+                    doc_elem.append(self._build_xml_doc(child, boost, fieldUpdates))
                 continue
 
             if key == "boost":
@@ -935,7 +939,7 @@ class Solr(object):
                     continue
 
                 if key == "_doc":
-                    child = self._build_doc(bit, boost)
+                    child = self._build_xml_doc(bit, boost)
                     doc_elem.append(child)
                     continue
 
@@ -1006,7 +1010,7 @@ class Solr(object):
         self.log.debug("Starting to build add request...")
         solrapi = "XML"
         # if no commands (no boost, no atomic updates) needed use json multidocument api
-        #   The JSON API skipts the XML conversion and speedup load from 15 to 20 times.
+        #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
         #   CPU Usage is drastically lower.
         if boost is None and fieldUpdates is None:
             solrapi = "JSON"
@@ -1018,7 +1022,8 @@ class Solr(object):
                 # json array of docs
             if isinstance(message, list):
                 # convert to string
-                m = json.dumps(message).encode("utf-8")
+                cleaned_message = [self._build_json_doc(doc) for doc in message]
+                m = json.dumps(cleaned_message).encode("utf-8")
             else:
                 raise ValueError("wrong message type")
         else:
@@ -1028,7 +1033,7 @@ class Solr(object):
                 message.set("commitWithin", commitWithin)
 
             for doc in docs:
-                el = self._build_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
+                el = self._build_xml_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
                 message.append(el)
 
             # This returns a bytestring. Ugh.
