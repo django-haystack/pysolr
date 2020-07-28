@@ -62,10 +62,10 @@
         },
         "urllib3": {
             "hashes": [
-                "sha256:3018294ebefce6572a474f0604c2021e33b3fd8006ecd11d62107a5d2a963527",
-                "sha256:88206b0eb87e6d677d424843ac5209e3fb9d0190d0ee169599165ec25e9d9115"
+                "sha256:91056c15fa70756691db97756772bb1eb9678fa585d9184f24534b100dc60f4a",
+                "sha256:e7983572181f5e1522d9c98453462384ee92a0be7fac5f1413a1e35c56cc0461"
             ],
-            "version": "==1.25.9"
+            "version": "==1.25.10"
         }
     },
     "develop": {
@@ -231,11 +231,11 @@
         },
         "isort": {
             "hashes": [
-                "sha256:1590a5f707fa72a12d91152f2f930c648ebc8b455405fade20716fbb939d5fbd",
-                "sha256:b19b7ebce5e292507afa8fab30dd666011dd5ae8f4ef2a2d431751dc84c22140"
+                "sha256:1b0265ff0639af0a6f0f95a44956a985a1256960905aaf57ecf9175356c54ced",
+                "sha256:27c7f27adc4b1a6afde1b66c8af46d42da03671d68648e2a8ab2166df03b668e"
             ],
             "index": "pypi",
-            "version": "==5.1.0"
+            "version": "==5.2.0"
         },
         "mccabe": {
             "hashes": [
@@ -297,10 +297,10 @@
         },
         "stevedore": {
             "hashes": [
-                "sha256:79270bd5fb4a052e76932e9fef6e19afa77090c4000f2680eb8c2e887d2e6e36",
-                "sha256:9fb12884b510fdc25f8a883bb390b8ff82f67863fb360891a33135bcb2ce8c54"
+                "sha256:38791aa5bed922b0a844513c5f9ed37774b68edc609e5ab8ab8d8fe0ce4315e5",
+                "sha256:c8f4f0ebbc394e52ddf49de8bcc3cf8ad2b4425ebac494106bbc5e3661ac7633"
             ],
-            "version": "==3.1.0"
+            "version": "==3.2.0"
         },
         "toml": {
             "hashes": [
