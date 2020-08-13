@@ -231,11 +231,11 @@
         },
         "isort": {
             "hashes": [
-                "sha256:96b27045e3187b9bdde001143b79f9b10a462f372bff7062302818013b6c86f3",
-                "sha256:aea484023188ef1c38256dd24afa96e914adafe3a911a1786800a74e433006d1"
+                "sha256:2426f423a77bfb639ec67cf13ef7cb96f3521772b8831f099a777aae0c9ba571",
+                "sha256:32bd1190ae0a5cc45f10fbe3fb85918b17441f8e51db51e67453972e9acb6c96"
             ],
             "index": "pypi",
-            "version": "==5.2.2"
+            "version": "==5.4.0"
         },
         "mccabe": {
             "hashes": [
