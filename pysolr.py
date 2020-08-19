@@ -1307,7 +1307,7 @@ class SolrCoreAdmin(object):
         if params is None:
             params = {}
         if headers is None:
-            headers = {}
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         resp = requests.get(url, data=safe_urlencode(params), headers=headers)
         return force_unicode(resp.content)
