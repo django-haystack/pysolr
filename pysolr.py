@@ -348,12 +348,13 @@ class Solr(object):
         always_commit=False,
         auth=None,
         verify=True,
+        session=None,
     ):
         self.decoder = decoder or json.JSONDecoder()
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
-        self.session = None
+        self.session = session
         self.results_cls = results_cls
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
