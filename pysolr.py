@@ -514,6 +514,7 @@ class Solr(object):
         overwrite=None,
         handler="update",
         solrapi="XML",
+        min_rf=None,
     ):
         """
         Posts the given xml or json message to http://<self.url>/update and
@@ -540,6 +541,8 @@ class Solr(object):
         if commit is None:
             commit = self.always_commit
 
+        if min_rf:
+            query_vars.append("min_rf=%i" % min_rf)
         if commit:
             query_vars.append("commit=%s" % str(bool(commit)).lower())
         elif softCommit:
@@ -968,6 +971,7 @@ class Solr(object):
         waitSearcher=None,
         overwrite=None,
         handler="update",
+        min_rf=None
     ):
         """
         Adds or updates documents.
@@ -990,6 +994,8 @@ class Solr(object):
         Optionally accepts ``waitSearcher``. Default is ``None``.
 
         Optionally accepts ``overwrite``. Default is ``None``.
+
+        Optionally accepts ``min_rf``. Default is ``None``.
 
         Usage::
 
@@ -1054,6 +1060,7 @@ class Solr(object):
             overwrite=overwrite,
             handler=handler,
             solrapi=solrapi,
+            min_rf=min_rf,
         )
 
     def delete(
