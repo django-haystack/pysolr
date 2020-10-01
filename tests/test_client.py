@@ -265,6 +265,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_init(self):
         self.assertEqual(self.solr.url, "http://localhost:8983/solr/core0")
         self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
+        self.assertIsInstance(self.solr.encoder, json.JSONEncoder)
         self.assertEqual(self.solr.timeout, 60)
 
         custom_solr = self.get_solr("core0", timeout=17, always_commit=True)

@@ -319,6 +319,9 @@ class Solr(object):
     Optionally accepts ``decoder`` for an alternate JSON decoder instance.
     Default is ``json.JSONDecoder()``.
 
+    Optionally accepts ``encoder`` for an alternate JSON Encoder instance.
+    Default is ``json.JSONEncoder()``.
+
     Optionally accepts ``timeout`` for wait seconds until giving up on a
     request. Default is ``60`` seconds.
 
@@ -341,6 +344,7 @@ class Solr(object):
         self,
         url,
         decoder=None,
+        encoder=None,
         timeout=60,
         results_cls=Results,
         search_handler="select",
@@ -351,6 +355,7 @@ class Solr(object):
         session=None,
     ):
         self.decoder = decoder or json.JSONDecoder()
+        self.encoder = encoder or json.JSONEncoder()
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
@@ -1027,7 +1032,7 @@ class Solr(object):
             if isinstance(message, list):
                 # convert to string
                 cleaned_message = [self._build_json_doc(doc) for doc in message]
-                m = json.dumps(cleaned_message).encode("utf-8")
+                m = self.encoder.encode(cleaned_message).encode("utf-8")
             else:
                 raise ValueError("wrong message type")
         else:
@@ -1242,7 +1247,7 @@ class Solr(object):
             raise
 
         try:
-            data = json.loads(resp)
+            data = self.decoder.decode(resp)
         except ValueError:
             self.log.exception("Failed to load JSON response")
             raise
@@ -1440,6 +1445,7 @@ class SolrCloud(Solr):
         zookeeper,
         collection,
         decoder=None,
+        encoder=None,
         timeout=60,
         retry_count=5,
         retry_timeout=0.2,
@@ -1459,6 +1465,7 @@ class SolrCloud(Solr):
         super(SolrCloud, self).__init__(
             url,
             decoder=decoder,
+            encoder=encoder,
             timeout=timeout,
             auth=self.auth,
             verify=self.verify,
