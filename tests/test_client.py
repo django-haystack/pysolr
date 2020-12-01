@@ -281,10 +281,10 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn("response", results)
 
     def test_cursor_traversal(self):
-        solr = Solr('http://localhost:8983/solr/core0')
+        solr = Solr("http://localhost:8983/solr/core0")
 
-        expected = solr.search(q="*:*", rows=len(self.docs)*3, sort="id asc").docs
-        results = solr.search(q='*:*', cursorMark="*", rows=2, sort="id asc")
+        expected = solr.search(q="*:*", rows=len(self.docs) * 3, sort="id asc").docs
+        results = solr.search(q="*:*", cursorMark="*", rows=2, sort="id asc")
         all_docs = list(results)
         self.assertEqual(len(expected), len(all_docs))
         self.assertEqual(len(results), len(all_docs))
@@ -760,12 +760,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(doc_xml), 134)
 
     def test_build_json_doc_matches_xml(self):
-        doc = {
-            "id": "doc_1",
-            "title": "",
-            "price": 12.59,
-            "popularity": 10
-        }
+        doc = {"id": "doc_1", "title": "", "price": 12.59, "popularity": 10}
 
         doc_json = self.solr._build_json_doc(doc)
         doc_xml = self.solr._build_xml_doc(doc)
