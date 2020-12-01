@@ -720,6 +720,45 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]["id"])
         self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]["id"])
 
+    def test__build_xml_doc_with_empty_values(self):
+        doc = {
+            "id": "doc_1",
+            "title": "",
+            "price": None,
+            "tags": [],
+        }
+        doc_xml = force_unicode(
+            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
+        )
+        self.assertNotIn('<field name="title" />', doc_xml)
+        self.assertNotIn('<field name="price" />', doc_xml)
+        self.assertNotIn('<field name="tags" />', doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
+        self.assertEqual(len(doc_xml), 41)
+
+    def test__build_xml_doc_with_empty_values_and_field_updates(self):
+        doc = {
+            "id": "doc_1",
+            "title": "",
+            "price": None,
+            "tags": [],
+        }
+        fieldUpdates = {
+            "title": "set",
+            "tags": "set",
+        }
+        doc_xml = force_unicode(
+            ElementTree.tostring(
+                self.solr._build_xml_doc(doc, fieldUpdates=fieldUpdates),
+                encoding="utf-8",
+            )
+        )
+        self.assertIn('<field name="title" null="true" update="set" />', doc_xml)
+        self.assertNotIn('<field name="price" />', doc_xml)
+        self.assertIn('<field name="tags" null="true" update="set" />', doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
+        self.assertEqual(len(doc_xml), 134)
+
     def test_build_json_doc_matches_xml(self):
         doc = {
             "id": "doc_1",

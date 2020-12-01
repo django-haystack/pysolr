@@ -940,18 +940,26 @@ class Solr(object):
             else:
                 values = (value,)
 
+            use_field_updates = fieldUpdates and key in fieldUpdates
+            if use_field_updates and not values:
+                values = ("",)
             for bit in values:
+
+                attrs = {"name": key}
+
                 if self._is_null_value(bit):
-                    continue
+                    if use_field_updates:
+                        bit = ""
+                        attrs["null"] = "true"
+                    else:
+                        continue
 
                 if key == "_doc":
                     child = self._build_xml_doc(bit, boost)
                     doc_elem.append(child)
                     continue
 
-                attrs = {"name": key}
-
-                if fieldUpdates and key in fieldUpdates:
+                if use_field_updates:
                     attrs["update"] = fieldUpdates[key]
 
                 if boost and key in boost:
