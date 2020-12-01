@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, unicode_literals
+from __future__ import absolute_import
+from __future__ import unicode_literals
 
 import datetime
 import random
@@ -8,19 +8,17 @@ import unittest
 from io import StringIO
 from xml.etree import ElementTree
 
-from pysolr import (
-    NESTED_DOC_KEY,
-    Results,
-    Solr,
-    SolrError,
-    clean_xml_string,
-    force_bytes,
-    force_unicode,
-    json,
-    safe_urlencode,
-    sanitize,
-    unescape_html,
-)
+from pysolr import clean_xml_string
+from pysolr import force_bytes
+from pysolr import force_unicode
+from pysolr import json
+from pysolr import NESTED_DOC_KEY
+from pysolr import Results
+from pysolr import safe_urlencode
+from pysolr import sanitize
+from pysolr import Solr
+from pysolr import SolrError
+from pysolr import unescape_html
 
 try:
     from unittest.mock import Mock

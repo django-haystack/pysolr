@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
+from __future__ import absolute_import
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import ast
 import datetime
@@ -11,7 +13,9 @@ import time
 from xml.etree import ElementTree
 
 import requests
-from pkg_resources import DistributionNotFound, get_distribution, parse_version
+from pkg_resources import DistributionNotFound
+from pkg_resources import get_distribution
+from pkg_resources import parse_version
 
 try:
     from kazoo.client import KazooClient, KazooState
