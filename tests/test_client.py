@@ -38,34 +38,32 @@ except ImportError:
 
 class UtilsTestCase(unittest.TestCase):
     def test_unescape_html(self):
-        self.assertEqual(unescape_html("Hello &#149; world"), "Hello \x95 world")
+        self.assertEqual(unescape_html("Hello &#149; world"),
+                         "Hello \x95 world")
         self.assertEqual(unescape_html("Hello &#x64; world"), "Hello d world")
         self.assertEqual(unescape_html("Hello &amp; ☃"), "Hello & ☃")
-        self.assertEqual(
-            unescape_html("Hello &doesnotexist; world"), "Hello &doesnotexist; world"
-        )
+        self.assertEqual(unescape_html("Hello &doesnotexist; world"),
+                         "Hello &doesnotexist; world")
 
     def test_safe_urlencode(self):
         self.assertEqual(
             force_unicode(
-                unquote_plus(safe_urlencode({"test": "Hello ☃! Helllo world!"}))
-            ),
+                unquote_plus(safe_urlencode({"test":
+                                             "Hello ☃! Helllo world!"}))),
             "test=Hello ☃! Helllo world!",
         )
         self.assertEqual(
             force_unicode(
                 unquote_plus(
-                    safe_urlencode({"test": ["Hello ☃!", "Helllo world!"]}, True)
-                )
-            ),
+                    safe_urlencode({"test": ["Hello ☃!", "Helllo world!"]},
+                                   True))),
             "test=Hello \u2603!&test=Helllo world!",
         )
         self.assertEqual(
             force_unicode(
                 unquote_plus(
-                    safe_urlencode({"test": ("Hello ☃!", "Helllo world!")}, True)
-                )
-            ),
+                    safe_urlencode({"test": ("Hello ☃!", "Helllo world!")},
+                                   True))),
             "test=Hello \u2603!&test=Helllo world!",
         )
 
@@ -82,18 +80,18 @@ class UtilsTestCase(unittest.TestCase):
         # Don't mangle, it's already Unicode.
         self.assertEqual(force_unicode("Hello ☃"), "Hello ☃")
 
-        self.assertEqual(force_unicode(1), "1", "force_unicode() should convert ints")
-        self.assertEqual(
-            force_unicode(1.0), "1.0", "force_unicode() should convert floats"
-        )
-        self.assertEqual(
-            force_unicode(None), "None", "force_unicode() should convert None"
-        )
+        self.assertEqual(force_unicode(1), "1",
+                         "force_unicode() should convert ints")
+        self.assertEqual(force_unicode(1.0), "1.0",
+                         "force_unicode() should convert floats")
+        self.assertEqual(force_unicode(None), "None",
+                         "force_unicode() should convert None")
 
     def test_force_bytes(self):
         self.assertEqual(force_bytes("Hello ☃"), b"Hello \xe2\x98\x83")
         # Don't mangle, it's already a bytestring.
-        self.assertEqual(force_bytes(b"Hello \xe2\x98\x83"), b"Hello \xe2\x98\x83")
+        self.assertEqual(force_bytes(b"Hello \xe2\x98\x83"),
+                         b"Hello \xe2\x98\x83")
 
     def test_clean_xml_string(self):
         self.assertEqual(clean_xml_string("\x00\x0b\x0d\uffff"), "\x0d")
@@ -102,8 +100,14 @@ class UtilsTestCase(unittest.TestCase):
 class ResultsTestCase(unittest.TestCase):
     def test_init(self):
         default_results = Results(
-            {"response": {"docs": [{"id": 1}, {"id": 2}], "numFound": 2}}
-        )
+            {"response": {
+                "docs": [{
+                    "id": 1
+                }, {
+                    "id": 2
+                }],
+                "numFound": 2
+            }})
 
         self.assertEqual(default_results.docs, [{"id": 1}, {"id": 2}])
         self.assertEqual(default_results.hits, 2)
@@ -115,19 +119,28 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(default_results.debug, {})
         self.assertEqual(default_results.grouped, {})
 
-        full_results = Results(
-            {
-                "response": {"docs": [{"id": 1}, {"id": 2}, {"id": 3}], "numFound": 3},
-                # Fake data just to check assignments.
-                "highlighting": "hi",
-                "facet_counts": "fa",
-                "spellcheck": "sp",
-                "stats": "st",
-                "responseHeader": {"QTime": "0.001"},
-                "debug": True,
-                "grouped": ["a"],
-            }
-        )
+        full_results = Results({
+            "response": {
+                "docs": [{
+                    "id": 1
+                }, {
+                    "id": 2
+                }, {
+                    "id": 3
+                }],
+                "numFound": 3
+            },
+            # Fake data just to check assignments.
+            "highlighting": "hi",
+            "facet_counts": "fa",
+            "spellcheck": "sp",
+            "stats": "st",
+            "responseHeader": {
+                "QTime": "0.001"
+            },
+            "debug": True,
+            "grouped": ["a"],
+        })
 
         self.assertEqual(full_results.docs, [{"id": 1}, {"id": 2}, {"id": 3}])
         self.assertEqual(full_results.hits, 3)
@@ -141,19 +154,43 @@ class ResultsTestCase(unittest.TestCase):
 
     def test_len(self):
         small_results = Results(
-            {"response": {"docs": [{"id": 1}, {"id": 2}], "numFound": 2}}
-        )
+            {"response": {
+                "docs": [{
+                    "id": 1
+                }, {
+                    "id": 2
+                }],
+                "numFound": 2
+            }})
         self.assertEqual(len(small_results), 2)
 
-        wrong_hits_results = Results(
-            {"response": {"docs": [{"id": 1}, {"id": 2}, {"id": 3}], "numFound": 7}}
-        )
+        wrong_hits_results = Results({
+            "response": {
+                "docs": [{
+                    "id": 1
+                }, {
+                    "id": 2
+                }, {
+                    "id": 3
+                }],
+                "numFound": 7
+            }
+        })
         self.assertEqual(len(wrong_hits_results), 3)
 
     def test_iter(self):
-        long_results = Results(
-            {"response": {"docs": [{"id": 1}, {"id": 2}, {"id": 3}], "numFound": 7}}
-        )
+        long_results = Results({
+            "response": {
+                "docs": [{
+                    "id": 1
+                }, {
+                    "id": 2
+                }, {
+                    "id": 3
+                }],
+                "numFound": 7
+            }
+        })
 
         to_iter = list(long_results)
         self.assertEqual(to_iter[0], {"id": 1})
@@ -175,23 +212,47 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         super(SolrTestCase, self).setUp()
         self.solr = self.get_solr("core0")
         self.docs = [
-            {"id": "doc_1", "title": "Example doc 1", "price": 12.59, "popularity": 10},
+            {
+                "id": "doc_1",
+                "title": "Example doc 1",
+                "price": 12.59,
+                "popularity": 10
+            },
             {
                 "id": "doc_2",
                 "title": "Another example ☃ doc 2",
                 "price": 13.69,
                 "popularity": 7,
             },
-            {"id": "doc_3", "title": "Another thing", "price": 2.35, "popularity": 8},
-            {"id": "doc_4", "title": "doc rock", "price": 99.99, "popularity": 10},
-            {"id": "doc_5", "title": "Boring", "price": 1.12, "popularity": 2},
+            {
+                "id": "doc_3",
+                "title": "Another thing",
+                "price": 2.35,
+                "popularity": 8
+            },
+            {
+                "id": "doc_4",
+                "title": "doc rock",
+                "price": 99.99,
+                "popularity": 10
+            },
+            {
+                "id": "doc_5",
+                "title": "Boring",
+                "price": 1.12,
+                "popularity": 2
+            },
             # several with nested docs (not using fields that are used in
             # normal docs so that they don't interfere with their tests)
             {
-                "id": "parentdoc_1",
-                "type_s": "parent",
-                "name_t": "Parent no. 1",
-                "pages_i": 5,
+                "id":
+                "parentdoc_1",
+                "type_s":
+                "parent",
+                "name_t":
+                "Parent no. 1",
+                "pages_i":
+                5,
                 NESTED_DOC_KEY: [
                     {
                         "id": "childdoc_1",
@@ -208,26 +269,30 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 ],
             },
             {
-                "id": "parentdoc_2",
-                "type_s": "parent",
-                "name_t": "Parent no. 2",
-                "pages_i": 500,
-                NESTED_DOC_KEY: [
-                    {
-                        "id": "childdoc_3",
-                        "type_s": "child",
-                        "name_t": "Child of another parent",
-                        "comment_t": "Yello",
-                        NESTED_DOC_KEY: [
-                            {
-                                "id": "grandchilddoc_1",
-                                "type_s": "grandchild",
-                                "name_t": "Grand child of parent",
-                                "comment_t": "Blah",
-                            }
-                        ],
-                    }
-                ],
+                "id":
+                "parentdoc_2",
+                "type_s":
+                "parent",
+                "name_t":
+                "Parent no. 2",
+                "pages_i":
+                500,
+                NESTED_DOC_KEY: [{
+                    "id":
+                    "childdoc_3",
+                    "type_s":
+                    "child",
+                    "name_t":
+                    "Child of another parent",
+                    "comment_t":
+                    "Yello",
+                    NESTED_DOC_KEY: [{
+                        "id": "grandchilddoc_1",
+                        "type_s": "grandchild",
+                        "name_t": "Grand child of parent",
+                        "comment_t": "Blah",
+                    }],
+                }],
             },
         ]
 
@@ -250,8 +315,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         # Note that we do not use urljoin to ensure that any changes in trailing
         # slash handling are caught quickly:
         return self.assertEqual(
-            URL, "%s/%s" % (self.solr.url.replace("/core0", ""), path)
-        )
+            URL, "%s/%s" % (self.solr.url.replace("/core0", ""), path))
 
     def get_solr(self, collection, timeout=60, always_commit=False):
         return Solr(
@@ -281,7 +345,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_cursor_traversal(self):
         solr = Solr("http://localhost:8983/solr/core0")
 
-        expected = solr.search(q="*:*", rows=len(self.docs) * 3, sort="id asc").docs
+        expected = solr.search(q="*:*", rows=len(self.docs) * 3,
+                               sort="id asc").docs
         results = solr.search(q="*:*", cursorMark="*", rows=2, sort="id asc")
         all_docs = list(results)
         self.assertEqual(len(expected), len(all_docs))
@@ -293,14 +358,15 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
     def test__create_full_url_with_path(self):
         self.assertURLStartsWith(
-            self.solr._create_full_url(path="pysolr_tests"), "core0/pysolr_tests"
-        )
+            self.solr._create_full_url(path="pysolr_tests"),
+            "core0/pysolr_tests")
 
     def test__create_full_url_with_path_and_querystring(self):
         # Note the use of a querystring parameter including a trailing slash to
         # catch sloppy trimming:
         self.assertURLStartsWith(
-            self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
+            self.solr._create_full_url(
+                path="/pysolr_tests/select/?whatever=/"),
             "core0/pysolr_tests/select/?whatever=/",
         )
 
@@ -332,16 +398,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test__send_request_to_bad_path(self):
         # Test a non-existent URL:
         self.solr.url = "http://127.0.0.1:56789/wahtever"
-        self.assertRaises(
-            SolrError, self.solr._send_request, "get", "select/?q=doc&wt=json"
-        )
+        self.assertRaises(SolrError, self.solr._send_request, "get",
+                          "select/?q=doc&wt=json")
 
     def test_send_request_to_bad_core(self):
         # Test a bad core on a valid URL:
         self.solr.url = "http://localhost:8983/solr/bad_core"
-        self.assertRaises(
-            SolrError, self.solr._send_request, "get", "select/?q=doc&wt=json"
-        )
+        self.assertRaises(SolrError, self.solr._send_request, "get",
+                          "select/?q=doc&wt=json")
 
     def test__select(self):
         # Short params.
@@ -353,12 +417,17 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         resp_body = self.solr._select({"q": "doc" * 1024})
         resp_data = json.loads(resp_body)
         self.assertEqual(resp_data["response"]["numFound"], 0)
-        self.assertEqual(len(resp_data["responseHeader"]["params"]["q"]), 3 * 1024)
+        self.assertEqual(len(resp_data["responseHeader"]["params"]["q"]),
+                         3 * 1024)
 
         # Test Deep Pagination CursorMark
-        resp_body = self.solr._select(
-            {"q": "*", "cursorMark": "*", "sort": "id desc", "start": 0, "rows": 2}
-        )
+        resp_body = self.solr._select({
+            "q": "*",
+            "cursorMark": "*",
+            "sort": "id desc",
+            "start": 0,
+            "rows": 2
+        })
         resp_data = json.loads(resp_body)
         self.assertEqual(len(resp_data["response"]["docs"]), 2)
         self.assertIn("nextCursorMark", resp_data)
@@ -398,37 +467,34 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 return json.loads(self.content)
 
         # Just the reason.
-        resp_1 = RubbishResponse("We don't care.", {"reason": "Something went wrong."})
-        self.assertEqual(
-            self.solr._extract_error(resp_1), "[Reason: Something went wrong.]"
-        )
+        resp_1 = RubbishResponse("We don't care.",
+                                 {"reason": "Something went wrong."})
+        self.assertEqual(self.solr._extract_error(resp_1),
+                         "[Reason: Something went wrong.]")
 
         # Empty reason.
         resp_2 = RubbishResponse("We don't care.", {"reason": None})
-        self.assertEqual(
-            self.solr._extract_error(resp_2), "[Reason: None]\nWe don't care."
-        )
+        self.assertEqual(self.solr._extract_error(resp_2),
+                         "[Reason: None]\nWe don't care.")
 
         # No reason. Time to scrape.
         resp_3 = RubbishResponse(
             "<html><body><pre>Something is broke.</pre></body></html>",
             {"server": "jetty"},
         )
-        self.assertEqual(
-            self.solr._extract_error(resp_3), "[Reason: Something is broke.]"
-        )
+        self.assertEqual(self.solr._extract_error(resp_3),
+                         "[Reason: Something is broke.]")
 
         # No reason. JSON response.
-        resp_4 = RubbishResponse(
-            b'\n {"error": {"msg": "It happens"}}', {"server": "tomcat"}
-        )
-        self.assertEqual(self.solr._extract_error(resp_4), "[Reason: It happens]")
+        resp_4 = RubbishResponse(b'\n {"error": {"msg": "It happens"}}',
+                                 {"server": "tomcat"})
+        self.assertEqual(self.solr._extract_error(resp_4),
+                         "[Reason: It happens]")
 
         # No reason. Weird JSON response.
         resp_5 = RubbishResponse(b'{"kinda": "weird"}', {"server": "jetty"})
-        self.assertEqual(
-            self.solr._extract_error(resp_5), '[Reason: None]\n{"kinda": "weird"}'
-        )
+        self.assertEqual(self.solr._extract_error(resp_5),
+                         '[Reason: None]\n{"kinda": "weird"}')
 
     def test__scrape_response(self):
         # Jetty.
@@ -485,7 +551,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         # Invalid XML
         bogus_xml = '<?xml version="1.0"?>\n<response>\n<lst name="responseHeader"><int name="status">400</int><int name="QTime">0</int></lst><lst name="error"><str name="msg">Invalid Date String:\'2015-03-23 10:43:33\'</str><int name="code">400</int></lst>'  # NOQA: E501
-        reason, full_html = self.solr._scrape_response({"server": "coyote"}, bogus_xml)
+        reason, full_html = self.solr._scrape_response({"server": "coyote"},
+                                                       bogus_xml)
         self.assertIsNone(reason, None)
         self.assertEqual(full_html, bogus_xml.replace("\n", ""))
 
@@ -499,9 +566,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(self.solr._from_python("\x01test\x02"), "test")
 
     def test__from_python_dates(self):
-        self.assertEqual(
-            self.solr._from_python(datetime.date(2013, 1, 18)), "2013-01-18T00:00:00Z"
-        )
+        self.assertEqual(self.solr._from_python(datetime.date(2013, 1, 18)),
+                         "2013-01-18T00:00:00Z")
         self.assertEqual(
             self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28)),
             "2013-01-18T00:30:28Z",
@@ -519,8 +585,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         # Check a UTC timestamp
         self.assertEqual(
             self.solr._from_python(
-                datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
-            ),
+                datetime.datetime(2013,
+                                  1,
+                                  18,
+                                  0,
+                                  30,
+                                  28,
+                                  tzinfo=FakeTimeZone())),
             "2013-01-18T00:30:28Z",
         )
 
@@ -528,15 +599,19 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         FakeTimeZone.offset = -(5 * 60)
         self.assertEqual(
             self.solr._from_python(
-                datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
-            ),
+                datetime.datetime(2013,
+                                  1,
+                                  18,
+                                  0,
+                                  30,
+                                  28,
+                                  tzinfo=FakeTimeZone())),
             "2013-01-18T05:30:28Z",
         )
 
     def test__to_python(self):
-        self.assertEqual(
-            self.solr._to_python("2013-01-18T00:00:00Z"), datetime.datetime(2013, 1, 18)
-        )
+        self.assertEqual(self.solr._to_python("2013-01-18T00:00:00Z"),
+                         datetime.datetime(2013, 1, 18))
         self.assertEqual(
             self.solr._to_python("2013-01-18T00:30:28Z"),
             datetime.datetime(2013, 1, 18, 0, 30, 28),
@@ -549,9 +624,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(self.solr._to_python("hello ☃"), "hello ☃")
         self.assertEqual(self.solr._to_python(["foo", "bar"]), "foo")
         self.assertEqual(self.solr._to_python(("foo", "bar")), "foo")
-        self.assertEqual(
-            self.solr._to_python('tuple("foo", "bar")'), 'tuple("foo", "bar")'
-        )
+        self.assertEqual(self.solr._to_python('tuple("foo", "bar")'),
+                         'tuple("foo", "bar")')
 
     def test__is_null_value(self):
         self.assertTrue(self.solr._is_null_value(None))
@@ -575,8 +649,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         # Advanced options.
         results = self.solr.search(
-            "doc",
-            **{
+            "doc", **{
                 "debug": "true",
                 "hl": "true",
                 "hl.fragsize": 8,
@@ -585,11 +658,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 "spellcheck": "true",
                 "spellcheck.collate": "true",
                 "spellcheck.count": 1,
-            }
-        )
+            })
         self.assertEqual(len(results), 3)
         self.assertIn("explain", results.debug)
-        self.assertEqual(results.highlighting, {"doc_4": {}, "doc_2": {}, "doc_1": {}})
+        self.assertEqual(results.highlighting, {
+            "doc_4": {},
+            "doc_2": {},
+            "doc_1": {}
+        })
         self.assertEqual(results.spellcheck, {})
         self.assertEqual(
             results.facets["facet_fields"]["popularity"],
@@ -598,10 +674,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIsNotNone(results.qtime)
 
         # Nested search #1: find parent where child's comment has 'hello'
-        results = self.solr.search("{!parent which=type_s:parent}comment_t:hello")
+        results = self.solr.search(
+            "{!parent which=type_s:parent}comment_t:hello")
         self.assertEqual(len(results), 1)
         # Nested search #2: find child with a child
-        results = self.solr.search("{!parent which=type_s:child}comment_t:blah")
+        results = self.solr.search(
+            "{!parent which=type_s:child}comment_t:blah")
         self.assertEqual(len(results), 1)
 
     def test_multiple_search_handlers(self):
@@ -670,17 +748,21 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             "popularity": 10,
         }
         doc_xml = force_unicode(
-            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
-        )
+            ElementTree.tostring(self.solr._build_xml_doc(doc),
+                                 encoding="utf-8"))
         self.assertIn('<field name="title">Example doc ☃ 1</field>', doc_xml)
         self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertEqual(len(doc_xml), 152)
 
     def test__build_xml_doc_with_sets(self):
-        doc = {"id": "doc_1", "title": "Set test doc", "tags": {"alpha", "beta"}}
+        doc = {
+            "id": "doc_1",
+            "title": "Set test doc",
+            "tags": {"alpha", "beta"}
+        }
         doc_xml = force_unicode(
-            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
-        )
+            ElementTree.tostring(self.solr._build_xml_doc(doc),
+                                 encoding="utf-8"))
         self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertIn('<field name="title">Set test doc</field>', doc_xml)
         self.assertIn('<field name="tags">alpha</field>', doc_xml)
@@ -715,8 +797,10 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         children_docs = doc_xml.findall("doc")
         self.assertEqual(len(children_docs), len(sub_docs))
 
-        self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]["id"])
-        self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]["id"])
+        self.assertEqual(children_docs[0].find("*[@name='id']").text,
+                         sub_docs[0]["id"])
+        self.assertEqual(children_docs[1].find("*[@name='id']").text,
+                         sub_docs[1]["id"])
 
     def test__build_xml_doc_with_empty_values(self):
         doc = {
@@ -726,8 +810,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             "tags": [],
         }
         doc_xml = force_unicode(
-            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
-        )
+            ElementTree.tostring(self.solr._build_xml_doc(doc),
+                                 encoding="utf-8"))
         self.assertNotIn('<field name="title" />', doc_xml)
         self.assertNotIn('<field name="price" />', doc_xml)
         self.assertNotIn('<field name="tags" />', doc_xml)
@@ -749,11 +833,12 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             ElementTree.tostring(
                 self.solr._build_xml_doc(doc, fieldUpdates=fieldUpdates),
                 encoding="utf-8",
-            )
-        )
-        self.assertIn('<field name="title" null="true" update="set" />', doc_xml)
+            ))
+        self.assertIn('<field name="title" null="true" update="set" />',
+                      doc_xml)
         self.assertNotIn('<field name="price" />', doc_xml)
-        self.assertIn('<field name="tags" null="true" update="set" />', doc_xml)
+        self.assertIn('<field name="tags" null="true" update="set" />',
+                      doc_xml)
         self.assertIn('<field name="id">doc_1</field>', doc_xml)
         self.assertEqual(len(doc_xml), 134)
 
@@ -771,8 +856,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         self.solr.add(
             [
-                {"id": "doc_6", "title": "Newly added doc"},
-                {"id": "doc_7", "title": "Another example doc"},
+                {
+                    "id": "doc_6",
+                    "title": "Newly added doc"
+                },
+                {
+                    "id": "doc_7",
+                    "title": "Another example doc"
+                },
             ],
             commit=True,
         )
@@ -792,13 +883,18 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_add_with_boost(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
 
-        self.solr.add(
-            [{"id": "doc_6", "title": "Important doc"}], boost={"title": 10.0}
-        )
+        self.solr.add([{
+            "id": "doc_6",
+            "title": "Important doc"
+        }],
+                      boost={"title": 10.0})
 
-        self.solr.add(
-            [{"id": "doc_7", "title": "Spam doc doc"}], boost={"title": 0}, commit=True
-        )
+        self.solr.add([{
+            "id": "doc_7",
+            "title": "Spam doc doc"
+        }],
+                      boost={"title": 0},
+                      commit=True)
 
         res = self.solr.search("doc")
         self.assertEqual(len(res), 5)
@@ -810,21 +906,20 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         updateList = []
         for doc in originalDocs:
             updateList.append({"id": doc["id"], "popularity": 5})
-        self.solr.add(updateList, fieldUpdates={"popularity": "inc"}, commit=True)
+        self.solr.add(updateList,
+                      fieldUpdates={"popularity": "inc"},
+                      commit=True)
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
         for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
-            self.assertEqual(updatedDoc["popularity"], originalDoc["popularity"] + 5)
+            self.assertEqual(updatedDoc["popularity"],
+                             originalDoc["popularity"] + 5)
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
-                all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
-                    if k not in ["_version_", "popularity"]
-                )
-            )
+                all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                    if k not in ["_version_", "popularity"]))
 
     def test_field_update_set(self):
         originalDocs = self.solr.search("doc")
@@ -832,8 +927,13 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(originalDocs), 3)
         updateList = []
         for doc in originalDocs:
-            updateList.append({"id": doc["id"], "popularity": updated_popularity})
-        self.solr.add(updateList, fieldUpdates={"popularity": "set"}, commit=True)
+            updateList.append({
+                "id": doc["id"],
+                "popularity": updated_popularity
+            })
+        self.solr.add(updateList,
+                      fieldUpdates={"popularity": "set"},
+                      commit=True)
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
@@ -842,12 +942,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             self.assertEqual(updatedDoc["popularity"], updated_popularity)
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
-                all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
-                    if k not in ["_version_", "popularity"]
-                )
-            )
+                all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                    if k not in ["_version_", "popularity"]))
 
     def test_field_update_add(self):
         self.solr.add(
@@ -870,24 +966,22 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(originalDocs), 2)
         updateList = []
         for doc in originalDocs:
-            updateList.append({"id": doc["id"], "word_ss": ["epsilon", "gamma"]})
+            updateList.append({
+                "id": doc["id"],
+                "word_ss": ["epsilon", "gamma"]
+            })
         self.solr.add(updateList, fieldUpdates={"word_ss": "add"}, commit=True)
 
         updatedDocs = self.solr.search("multivalued")
         self.assertEqual(len(updatedDocs), 2)
         for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
-            self.assertEqual(
-                updatedDoc["word_ss"], originalDoc["word_ss"] + ["epsilon", "gamma"]
-            )
+            self.assertEqual(updatedDoc["word_ss"],
+                             originalDoc["word_ss"] + ["epsilon", "gamma"])
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
-                all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
-                    if k not in ["_version_", "word_ss"]
-                )
-            )
+                all(updatedDoc[k] == originalDoc[k] for k in updatedDoc.keys()
+                    if k not in ["_version_", "word_ss"]))
 
     def test_delete(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
@@ -929,7 +1023,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(self.solr.search(leaf_q)), len(to_delete_docs))
         # Extract a random doc from the list, to later check it wasn't deleted.
         graced_doc_id = to_delete_ids.pop(
-            random.randint(0, len(to_delete_ids) - 1)  # NOQA: B311
+            random.randint(0,
+                           len(to_delete_ids) - 1)  # NOQA: B311
         )
         self.solr.delete(id=to_delete_ids, commit=True)
         # There should be only one left, our graced id
@@ -969,7 +1064,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         commit_arg = [False, True, None]
 
         for expected_commit, arg in zip(expected_commits, commit_arg):
-            self.solr.add([{"id": "doc_6", "title": "Newly added doc"}], commit=arg)
+            self.solr.add([{
+                "id": "doc_6",
+                "title": "Newly added doc"
+            }],
+                          commit=arg)
             args, _ = self.solr._send_request.call_args
             committing_in_url = "commit" in args[1]
             self.assertEqual(expected_commit, committing_in_url)
@@ -978,8 +1077,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(self.solr.search("id:doc_overwrite_1")), 0)
         self.solr.add(
             [
-                {"id": "doc_overwrite_1", "title": "Kim is awesome."},
-                {"id": "doc_overwrite_1", "title": "Kim is more awesome."},
+                {
+                    "id": "doc_overwrite_1",
+                    "title": "Kim is awesome."
+                },
+                {
+                    "id": "doc_overwrite_1",
+                    "title": "Kim is more awesome."
+                },
             ],
             overwrite=False,
             commit=True,
@@ -995,7 +1100,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_optimize(self):
         # Make sure it doesn't blow up. Side effects are hard to measure. :/
         self.assertEqual(len(self.solr.search("doc")), 3)
-        self.solr.add([{"id": "doc_6", "title": "Newly added doc"}], commit=False)
+        self.solr.add([{
+            "id": "doc_6",
+            "title": "Newly added doc"
+        }],
+                      commit=False)
         self.assertEqual(len(self.solr.search("doc")), 3)
         self.solr.optimize()
         # optimize should default to 'update' handler
@@ -1010,8 +1119,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertTrue(args[1].startswith("fakehandler"))
 
     def test_extract(self):
-        fake_f = StringIO(
-            """
+        fake_f = StringIO("""
             <html>
                 <head>
                     <meta charset="utf-8">
@@ -1020,8 +1128,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 </head>
                     <body>foobar</body>
             </html>
-        """
-        )
+        """)
         fake_f.name = "test.html"
         extracted = self.solr.extract(fake_f)
         # extract should default to 'update/extract' handler
@@ -1044,7 +1151,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         self.assertEqual([fake_f.name], m["stream_name"])
 
-        self.assertIn("haystack-test", m, "HTML metadata should have been extracted!")
+        self.assertIn("haystack-test", m,
+                      "HTML metadata should have been extracted!")
         self.assertEqual(["test 1234"], m["haystack-test"])
 
         # Note the underhanded use of a double snowman to verify both that Tika
@@ -1053,8 +1161,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(["Test Title ☃☃"], m["title"])
 
     def test_extract_special_char_in_filename(self):
-        fake_f = StringIO(
-            """
+        fake_f = StringIO("""
             <html>
                 <head>
                     <meta charset="utf-8">
@@ -1063,8 +1170,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 </head>
                     <body>foobar</body>
             </html>
-        """
-        )
+        """)
         fake_f.name = "test☃.html"
         extracted = self.solr.extract(fake_f)
         # extract should default to 'update/extract' handler
@@ -1085,9 +1191,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         m = extracted["metadata"]
 
-        self.assertEqual([quote(fake_f.name.encode("utf-8"))], m["stream_name"])
+        self.assertEqual([quote(fake_f.name.encode("utf-8"))],
+                         m["stream_name"])
 
-        self.assertIn("haystack-test", m, "HTML metadata should have been extracted!")
+        self.assertIn("haystack-test", m,
+                      "HTML metadata should have been extracted!")
         self.assertEqual(["test 1234"], m["haystack-test"])
 
         # Note the underhanded use of a double snowman to verify both that Tika
@@ -1147,8 +1255,14 @@ class SolrCommitByDefaultTestCase(unittest.TestCase, SolrTestCaseMixin):
         super(SolrCommitByDefaultTestCase, self).setUp()
         self.solr = self.get_solr("core0", always_commit=True)
         self.docs = [
-            {"id": "doc_1", "title": "Newly added doc"},
-            {"id": "doc_2", "title": "Another example doc"},
+            {
+                "id": "doc_1",
+                "title": "Newly added doc"
+            },
+            {
+                "id": "doc_2",
+                "title": "Another example doc"
+            },
         ]
 
     def test_does_not_require_commit(self):

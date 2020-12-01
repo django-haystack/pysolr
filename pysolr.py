@@ -64,7 +64,6 @@ except NameError:
     # Ugh.
     long = int  # NOQA: A001
 
-
 __author__ = "Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss, Thomas Rieder"
 __all__ = ["Solr"]
 
@@ -218,12 +217,8 @@ def is_valid_xml_char_ordinal(i):
     Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
     """
     # conditions ordered by presumed frequency
-    return (
-        0x20 <= i <= 0xD7FF
-        or i in (0x9, 0xA, 0xD)
-        or 0xE000 <= i <= 0xFFFD
-        or 0x10000 <= i <= 0x10FFFF
-    )
+    return (0x20 <= i <= 0xD7FF or i in (0x9, 0xA, 0xD)
+            or 0xE000 <= i <= 0xFFFD or 0x10000 <= i <= 0x10FFFF)
 
 
 def clean_xml_string(s):
@@ -299,9 +294,8 @@ class Results(object):
         self.qtime = decoded.get("responseHeader", {}).get("QTime", None)
         self.grouped = decoded.get("grouped", {})
         self.nextCursorMark = decoded.get("nextCursorMark", None)
-        self._next_page_query = (
-            self.nextCursorMark is not None and next_page_query or None
-        )
+        self._next_page_query = (self.nextCursorMark is not None
+                                 and next_page_query or None)
 
     def __len__(self):
         if self._next_page_query:
@@ -346,18 +340,18 @@ class Solr(object):
     """
 
     def __init__(
-        self,
-        url,
-        decoder=None,
-        encoder=None,
-        timeout=60,
-        results_cls=Results,
-        search_handler="select",
-        use_qt_param=False,
-        always_commit=False,
-        auth=None,
-        verify=True,
-        session=None,
+            self,
+            url,
+            decoder=None,
+            encoder=None,
+            timeout=60,
+            results_cls=Results,
+            search_handler="select",
+            use_qt_param=False,
+            always_commit=False,
+            auth=None,
+            verify=True,
+            session=None,
     ):
         self.decoder = decoder or json.JSONDecoder()
         self.encoder = encoder or json.JSONEncoder()
@@ -389,7 +383,12 @@ class Solr(object):
         # No path? No problem.
         return self.url
 
-    def _send_request(self, method, path="", body=None, headers=None, files=None):
+    def _send_request(self,
+                      method,
+                      path="",
+                      body=None,
+                      headers=None,
+                      files=None):
         url = self._create_full_url(path)
         method = method.lower()
         log_body = body
@@ -415,7 +414,8 @@ class Solr(object):
         try:
             requests_method = getattr(session, method)
         except AttributeError:
-            raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
+            raise SolrError(
+                "Unable to use unknown HTTP method '{0}.".format(method))
 
         # Everything except the body can be Unicode. The body must be
         # encoded to bytes to work properly on Py3.
@@ -501,11 +501,13 @@ class Solr(object):
             # Handles very long queries by submitting as a POST.
             path = "%s/" % handler
             headers = {
-                "Content-type": "application/x-www-form-urlencoded; charset=utf-8"
+                "Content-type":
+                "application/x-www-form-urlencoded; charset=utf-8"
             }
-            return self._send_request(
-                "post", path, body=params_encoded, headers=headers
-            )
+            return self._send_request("post",
+                                      path,
+                                      body=params_encoded,
+                                      headers=headers)
 
     def _mlt(self, params, handler="mlt"):
         return self._select(params, handler)
@@ -514,17 +516,17 @@ class Solr(object):
         return self._select(params, handler)
 
     def _update(
-        self,
-        message,
-        clean_ctrl_chars=True,
-        commit=None,
-        softCommit=False,
-        waitFlush=None,
-        waitSearcher=None,
-        overwrite=None,
-        handler="update",
-        solrapi="XML",
-        min_rf=None,
+            self,
+            message,
+            clean_ctrl_chars=True,
+            commit=None,
+            softCommit=False,
+            waitFlush=None,
+            waitSearcher=None,
+            overwrite=None,
+            handler="update",
+            solrapi="XML",
+            min_rf=None,
     ):
         """
         Posts the given xml or json message to http://<self.url>/update and
@@ -565,7 +567,8 @@ class Solr(object):
             query_vars.append("overwrite=%s" % str(bool(overwrite)).lower())
 
         if waitSearcher is not None:
-            query_vars.append("waitSearcher=%s" % str(bool(waitSearcher)).lower())
+            query_vars.append("waitSearcher=%s" %
+                              str(bool(waitSearcher)).lower())
 
         if query_vars:
             path = "%s?%s" % (path, "&".join(query_vars))
@@ -576,8 +579,8 @@ class Solr(object):
 
         if solrapi == "XML":
             return self._send_request(
-                "post", path, message, {"Content-type": "text/xml; charset=utf-8"}
-            )
+                "post", path, message,
+                {"Content-type": "text/xml; charset=utf-8"})
         elif solrapi == "JSON":
             return self._send_request(
                 "post",
@@ -604,7 +607,8 @@ class Solr(object):
                 full_response = resp.content
             except ValueError:
                 # otherwise we assume it's html
-                reason, full_html = self._scrape_response(resp.headers, resp.content)
+                reason, full_html = self._scrape_response(
+                    resp.headers, resp.content)
                 full_response = unescape_html(full_html)
 
         msg = "[Reason: %s]" % reason
@@ -658,7 +662,8 @@ class Solr(object):
 
         if server_type == "tomcat":
             # Tomcat doesn't produce a valid XML response or consistent HTML:
-            m = re.search(r"<(h1)[^>]*>\s*(.+?)\s*</\1>", response, re.IGNORECASE)
+            m = re.search(r"<(h1)[^>]*>\s*(.+?)\s*</\1>", response,
+                          re.IGNORECASE)
             if m:
                 reason = m.group(2)
             else:
@@ -684,7 +689,9 @@ class Solr(object):
                 LOG.warning(  # NOQA: G200
                     "Unable to extract error message from invalid XML: %s",
                     err,
-                    extra={"data": {"response": response}},
+                    extra={"data": {
+                        "response": response
+                    }},
                 )
                 full_html = "%s" % response
 
@@ -918,13 +925,15 @@ class Solr(object):
 
             res[field] = tmp
 
-        self.log.debug(
-            "Found '%d' Term suggestions results.", sum(len(j) for i, j in res.items())
-        )
+        self.log.debug("Found '%d' Term suggestions results.",
+                       sum(len(j) for i, j in res.items()))
         return res
 
     def _build_json_doc(self, doc):
-        cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+        cleaned_doc = {
+            k: v
+            for k, v in doc.items() if not self._is_null_value(v)
+        }
         return cleaned_doc
 
     def _build_xml_doc(self, doc, boost=None, fieldUpdates=None):
@@ -933,7 +942,8 @@ class Solr(object):
         for key, value in doc.items():
             if key == NESTED_DOC_KEY:
                 for child in value:
-                    doc_elem.append(self._build_xml_doc(child, boost, fieldUpdates))
+                    doc_elem.append(
+                        self._build_xml_doc(child, boost, fieldUpdates))
                 continue
 
             if key == "boost":
@@ -945,11 +955,11 @@ class Solr(object):
             if isinstance(value, (list, tuple, set)):
                 values = value
             else:
-                values = (value,)
+                values = (value, )
 
             use_field_updates = fieldUpdates and key in fieldUpdates
             if use_field_updates and not values:
-                values = ("",)
+                values = ("", )
             for bit in values:
 
                 attrs = {"name": key}
@@ -980,18 +990,18 @@ class Solr(object):
         return doc_elem
 
     def add(
-        self,
-        docs,
-        boost=None,
-        fieldUpdates=None,
-        commit=None,
-        softCommit=False,
-        commitWithin=None,
-        waitFlush=None,
-        waitSearcher=None,
-        overwrite=None,
-        handler="update",
-        min_rf=None,
+            self,
+            docs,
+            boost=None,
+            fieldUpdates=None,
+            commit=None,
+            softCommit=False,
+            commitWithin=None,
+            waitFlush=None,
+            waitSearcher=None,
+            overwrite=None,
+            handler="update",
+            min_rf=None,
     ):
         """
         Adds or updates documents.
@@ -1046,7 +1056,9 @@ class Solr(object):
                 # json array of docs
             if isinstance(message, list):
                 # convert to string
-                cleaned_message = [self._build_json_doc(doc) for doc in message]
+                cleaned_message = [
+                    self._build_json_doc(doc) for doc in message
+                ]
                 m = self.encoder.encode(cleaned_message).encode("utf-8")
             else:
                 raise ValueError("wrong message type")
@@ -1057,7 +1069,9 @@ class Solr(object):
                 message.set("commitWithin", commitWithin)
 
             for doc in docs:
-                el = self._build_xml_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
+                el = self._build_xml_doc(doc,
+                                         boost=boost,
+                                         fieldUpdates=fieldUpdates)
                 message.append(el)
 
             # This returns a bytestring. Ugh.
@@ -1084,14 +1098,14 @@ class Solr(object):
         )
 
     def delete(
-        self,
-        id=None,  # NOQA: A002
-        q=None,
-        commit=None,
-        softCommit=False,
-        waitFlush=None,
-        waitSearcher=None,
-        handler="update",
+            self,
+            id=None,  # NOQA: A002
+            q=None,
+            commit=None,
+            softCommit=False,
+            waitFlush=None,
+            waitSearcher=None,
+            handler="update",
     ):  # NOQA: A002
         """
         Deletes documents.
@@ -1126,7 +1140,8 @@ class Solr(object):
             else:
                 doc_id = list(filter(None, id))
             if doc_id:
-                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % i for i in doc_id)
+                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % i
+                                                    for i in doc_id)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
@@ -1142,12 +1157,12 @@ class Solr(object):
         )
 
     def commit(
-        self,
-        softCommit=False,
-        waitFlush=None,
-        waitSearcher=None,
-        expungeDeletes=None,
-        handler="update",
+            self,
+            softCommit=False,
+            waitFlush=None,
+            waitSearcher=None,
+            expungeDeletes=None,
+            handler="update",
     ):
         """
         Forces Solr to write the index data to disk.
@@ -1166,7 +1181,8 @@ class Solr(object):
 
         """
         if expungeDeletes is not None:
-            msg = '<commit expungeDeletes="%s" />' % str(bool(expungeDeletes)).lower()
+            msg = '<commit expungeDeletes="%s" />' % str(
+                bool(expungeDeletes)).lower()
         else:
             msg = "<commit />"
 
@@ -1180,12 +1196,12 @@ class Solr(object):
         )
 
     def optimize(
-        self,
-        commit=True,
-        waitFlush=None,
-        waitSearcher=None,
-        maxSegments=None,
-        handler="update",
+            self,
+            commit=True,
+            waitFlush=None,
+            waitSearcher=None,
+            maxSegments=None,
+            handler="update",
     ):
         """
         Tells Solr to streamline the number of segments used, essentially a
@@ -1215,7 +1231,11 @@ class Solr(object):
             handler=handler,
         )
 
-    def extract(self, file_obj, extractOnly=True, handler="update/extract", **kwargs):
+    def extract(self,
+                file_obj,
+                extractOnly=True,
+                handler="update/extract",
+                **kwargs):
         """
         POSTs a file to the Solr ExtractingRequestHandler so rich content can
         be processed using Apache Tika. See the Solr wiki for details:
@@ -1254,9 +1274,10 @@ class Solr(object):
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
-            resp = self._send_request(
-                "post", handler, body=params, files={"file": (filename, file_obj)}
-            )
+            resp = self._send_request("post",
+                                      handler,
+                                      body=params,
+                                      files={"file": (filename, file_obj)})
         except (IOError, SolrError):
             self.log.exception("Failed to extract document metadata")
             raise
@@ -1300,11 +1321,13 @@ class Solr(object):
             # Handles very long queries by submitting as a POST.
             path = "%s/" % handler
             headers = {
-                "Content-type": "application/x-www-form-urlencoded; charset=utf-8"
+                "Content-type":
+                "application/x-www-form-urlencoded; charset=utf-8"
             }
-            return self._send_request(
-                "post", path, body=params_encoded, headers=headers
-            )
+            return self._send_request("post",
+                                      path,
+                                      body=params_encoded,
+                                      headers=headers)
 
 
 class SolrCoreAdmin(object):
@@ -1353,15 +1376,22 @@ class SolrCoreAdmin(object):
 
         return self._get_url(self.url, params=params)
 
-    def create(
-        self, name, instance_dir=None, config="solrconfig.xml", schema="schema.xml"
-    ):
+    def create(self,
+               name,
+               instance_dir=None,
+               config="solrconfig.xml",
+               schema="schema.xml"):
         """
         Create a new core
 
         See https://wiki.apache.org/solr/CoreAdmin#CREATE
         """
-        params = {"action": "CREATE", "name": name, "config": config, "schema": schema}
+        params = {
+            "action": "CREATE",
+            "name": name,
+            "config": config,
+            "schema": schema
+        }
 
         if instance_dir is None:
             params.update(instanceDir=name)
@@ -1407,7 +1437,8 @@ class SolrCoreAdmin(object):
         return self._get_url(self.url, params=params)
 
     def load(self, core):
-        raise NotImplementedError("Solr 1.4 and below do not support this operation.")
+        raise NotImplementedError(
+            "Solr 1.4 and below do not support this operation.")
 
 
 # Using two-tuples to preserve order.
@@ -1455,20 +1486,18 @@ def sanitize(data):
 
 
 class SolrCloud(Solr):
-    def __init__(
-        self,
-        zookeeper,
-        collection,
-        decoder=None,
-        encoder=None,
-        timeout=60,
-        retry_count=5,
-        retry_timeout=0.2,
-        auth=None,
-        verify=True,
-        *args,
-        **kwargs
-    ):
+    def __init__(self,
+                 zookeeper,
+                 collection,
+                 decoder=None,
+                 encoder=None,
+                 timeout=60,
+                 retry_count=5,
+                 retry_timeout=0.2,
+                 auth=None,
+                 verify=True,
+                 *args,
+                 **kwargs):
         url = zookeeper.getRandomURL(collection)
         self.auth = auth
         self.collection = collection
@@ -1477,22 +1506,26 @@ class SolrCloud(Solr):
         self.verify = verify
         self.zookeeper = zookeeper
 
-        super(SolrCloud, self).__init__(
-            url,
-            decoder=decoder,
-            encoder=encoder,
-            timeout=timeout,
-            auth=self.auth,
-            verify=self.verify,
-            *args,
-            **kwargs
-        )
+        super(SolrCloud, self).__init__(url,
+                                        decoder=decoder,
+                                        encoder=encoder,
+                                        timeout=timeout,
+                                        auth=self.auth,
+                                        verify=self.verify,
+                                        *args,
+                                        **kwargs)
 
-    def _send_request(self, method, path="", body=None, headers=None, files=None):
+    def _send_request(self,
+                      method,
+                      path="",
+                      body=None,
+                      headers=None,
+                      files=None):
         for retry_number in range(0, self.retry_count):
             try:
                 self.url = self.zookeeper.getRandomURL(self.collection)
-                return Solr._send_request(self, method, path, body, headers, files)
+                return Solr._send_request(self, method, path, body, headers,
+                                          files)
             except (SolrError, requests.exceptions.RequestException):
                 LOG.exception(
                     "%s %s failed on retry %s, will retry after %0.1fs",
@@ -1503,9 +1536,8 @@ class SolrCloud(Solr):
                 )
                 time.sleep(self.retry_timeout)
 
-        raise SolrError(
-            "Request %s %s failed after %d attempts" % (method, path, self.retry_count)
-        )
+        raise SolrError("Request %s %s failed after %d attempts" %
+                        (method, path, self.retry_count))
 
     def _update(self, *args, **kwargs):
         self.url = self.zookeeper.getLeaderURL(self.collection)
@@ -1530,9 +1562,14 @@ class ZooKeeper(object):
     FALSE = "false"
     COLLECTION = "collection"
 
-    def __init__(self, zkServerAddress, timeout=15, max_retries=-1, kazoo_client=None):
+    def __init__(self,
+                 zkServerAddress,
+                 timeout=15,
+                 max_retries=-1,
+                 kazoo_client=None):
         if KazooClient is None:
-            logging.error("ZooKeeper requires the `kazoo` library to be installed")
+            logging.error(
+                "ZooKeeper requires the `kazoo` library to be installed")
             raise RuntimeError
 
         self.collections = {}
@@ -1564,7 +1601,8 @@ class ZooKeeper(object):
         @self.zk.DataWatch(ZooKeeper.CLUSTER_STATE)
         def watchClusterState(data, *args, **kwargs):
             if not data:
-                LOG.warning("No cluster state available: no collections defined?")
+                LOG.warning(
+                    "No cluster state available: no collections defined?")
             else:
                 self.collections = json.loads(data.decode("utf-8"))
                 LOG.info("Updated collections: %s", self.collections)
@@ -1592,7 +1630,8 @@ class ZooKeeper(object):
 
         def watchCollectionState(data, *args, **kwargs):
             if not data:
-                LOG.warning("No cluster state available: no collections defined?")
+                LOG.warning(
+                    "No cluster state available: no collections defined?")
             else:
                 self.collections.update(json.loads(data.decode("utf-8")))
                 LOG.info("Updated collections: %s", self.collections)
@@ -1601,7 +1640,8 @@ class ZooKeeper(object):
         def watchCollectionStatus(children):
             LOG.info("Updated collection: %s", children)
             for c in children:
-                self.zk.DataWatch(self.COLLECTION_STATE % c, watchCollectionState)
+                self.zk.DataWatch(self.COLLECTION_STATE % c,
+                                  watchCollectionState)
 
     def getHosts(self, collname, only_leader=False, seen_aliases=None):
         if self.aliases and collname in self.aliases:
@@ -1620,9 +1660,8 @@ class ZooKeeper(object):
                     replica = replicas[replicaname]
 
                     if replica[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
-                        if not only_leader or (
-                            replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE
-                        ):
+                        if not only_leader or (replica.get(
+                                ZooKeeper.LEADER, None) == ZooKeeper.TRUE):
                             base_url = replica[ZooKeeper.BASE_URL]
                             if base_url not in hosts:
                                 hosts.append(base_url)
@@ -1631,7 +1670,8 @@ class ZooKeeper(object):
     def getAliasHosts(self, collname, only_leader, seen_aliases):
         if seen_aliases:
             if collname in seen_aliases:
-                LOG.warning("%s in circular alias definition - ignored", collname)
+                LOG.warning("%s in circular alias definition - ignored",
+                            collname)
                 return []
         else:
             seen_aliases = []
