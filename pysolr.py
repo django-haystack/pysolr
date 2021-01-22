@@ -9,6 +9,7 @@ import random
 import re
 import time
 from xml.etree import ElementTree
+import xml.sax.saxutils
 
 import requests
 from pkg_resources import DistributionNotFound, get_distribution, parse_version
@@ -1119,11 +1120,12 @@ class Solr(object):
             else:
                 doc_id = list(filter(None, id))
             if doc_id:
-                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % i for i in doc_id)
+                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % xml.sax.saxutils.escape(i) for i in doc_id)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
-            m = "<delete><query>%s</query></delete>" % q
+            xml_escaped_q = xml.sax.saxutils.escape(q)
+            m = "<delete><query>%s</query></delete>" % xml_escaped_q
 
         return self._update(
             m,
