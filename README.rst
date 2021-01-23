@@ -112,6 +112,10 @@ Basic usage looks like:
         'hl.fragsize': 10,
     })
 
+    # Traverse a cursor using its iterator:
+    for doc in solr.search('*:*',fl='id',cursorMark='*'):
+        print(doc['id'])
+
     # You can also perform More Like This searches, if your Solr is configured
     # correctly.
     similar = solr.more_like_this(q='id:doc_2', mltfl='text')
