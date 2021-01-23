@@ -1119,11 +1119,18 @@ class Solr(object):
             else:
                 doc_id = list(filter(None, id))
             if doc_id:
-                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % i for i in doc_id)
+                et = ElementTree.Element("delete")
+                for one_doc_id in doc_id:
+                    subelem = ElementTree.SubElement(et, 'id')
+                    subelem.text = one_doc_id
+                m = ElementTree.tostring(et)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
-            m = "<delete><query>%s</query></delete>" % q
+            et = ElementTree.Element("delete")
+            subelem = ElementTree.SubElement(et, 'query')
+            subelem.text = q
+            m = ElementTree.tostring(et)
 
         return self._update(
             m,

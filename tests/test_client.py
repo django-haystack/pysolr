@@ -909,6 +909,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(self.solr.search("type_s:grandchild")), 1)
         self.solr.delete(q="price:[0 TO 15]")
         self.solr.delete(q="type_s:parent", commit=True)
+
+        # Test a query that would need to be quoted when using the XML API.
+        # Ids with a "<" character will give an error using v3.9.0 or earlier
+        self.solr.delete(id='cats<dogs')
+        # These will delete too much when using v3.9.0 or earlier.
+        self.solr.delete(q='id:*</query><query> id:999 AND id:9999')
+        self.solr.delete(id='doc_4</id><id>doc_3', commit=True)
+
         # one simple doc should remain
         # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search("doc")), 1)
