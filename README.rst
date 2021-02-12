@@ -112,7 +112,8 @@ Basic usage looks like:
         'hl.fragsize': 10,
     })
 
-    # Traverse a cursor using its iterator:
+    # Traverse a cursor using its iterator.
+    # In this case, a tie breaker by a uniqueKey must be given in the sort parameter.
     for doc in solr.search('*:*',fl='id',cursorMark='*', sort='id desc'):
         print(doc['id'])
 
