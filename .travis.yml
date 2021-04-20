@@ -32,7 +32,7 @@ matrix:
         - python: "pypy"
 
 install:
-    - "pip install 'requests>2' coverage codecov pre-commit"
+    - "pip install 'requests>2' coverage pre-commit"
     - "pip install ."
     - 'if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then travis_retry pip install faulthandler; fi'
     - 'if [[ "${SOLRCLOUD:-false}" == "true" ]]; then pip install -e .[solrcloud]; fi'
@@ -44,7 +44,6 @@ script:
 
 after_success:
     - git fetch --unshallow --tags
-    - codecov
     - coverage xml
     - sonar-scanner -Dsonar.projectVersion="$(python setup.py --version)"
 
