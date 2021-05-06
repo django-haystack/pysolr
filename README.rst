@@ -113,7 +113,7 @@ Basic usage looks like:
     })
 
     # Traverse a cursor using its iterator:
-    for doc in solr.search('*:*',fl='id',cursorMark='*'):
+    for doc in solr.search('*:*',fl='id',sort='id ASC',cursorMark='*'):
         print(doc['id'])
 
     # You can also perform More Like This searches, if your Solr is configured
