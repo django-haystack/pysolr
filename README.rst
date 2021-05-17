@@ -5,7 +5,7 @@ pysolr
 ``pysolr`` is a lightweight Python client for `Apache Solr`_. It provides an
 interface that queries the server and returns results based on the query.
 
-.. _`Apache Solr`: http://lucene.apache.org/solr/
+.. _`Apache Solr`: https://solr.apache.org/
 
 Status
 ======
