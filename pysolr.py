@@ -285,6 +285,7 @@ class Results(object):
         response_part = decoded.get("response") or {}
         self.docs = response_part.get("docs", ())
         self.hits = response_part.get("numFound", 0)
+        self.start = response.part.get("start", 0)
 
         # other response metadata
         self.debug = decoded.get("debug", {})
