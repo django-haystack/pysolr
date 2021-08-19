@@ -520,6 +520,8 @@ class Solr(object):
         handler="update",
         solrapi="XML",
         min_rf=None,
+        optimisticConcurrencyMode=None,
+        includeVersionField=None,
     ):
         """
         Posts the given xml or json message to http://<self.url>/update and
@@ -561,6 +563,22 @@ class Solr(object):
 
         if waitSearcher is not None:
             query_vars.append("waitSearcher=%s" % str(bool(waitSearcher)).lower())
+
+        """
+        Optimistic Concurrency control from Solr Ref Guide: https://solr.apache.org/guide/6_6/updating-parts-of-documents.html#UpdatingPartsofDocuments-OptimisticConcurrency
+        If the optimisticConcurrencyMode is greater than '1' (i.e., '12345'), then the _version_ in the document must match the _version_ in the index.
+        If the optimisticConcurrencyMode is equal to '1', then the document must simply exist.
+        If the optimisticConcurrencyMode is less than '0' (i.e., '-1'), then the document must not exist.
+        If the optimisticConcurrencyMode is equal to '0', then it doesn’t matter if the versions match or if the document exists or not.
+        """
+        if optimisticConcurrencyMode is not None:
+            query_vars.append("_version_=%i" % optimisticConcurrencyMode)
+
+        """
+        When using Optimistic Concurrency includeVersionField=true parameter indicates that the new versions of the documents being added should be included in the response.
+        """
+        if includeVersionField is not None:
+            query_vars.append("versions=%s" % str(bool(includeVersionField)).lower())
 
         if query_vars:
             path = "%s?%s" % (path, "&".join(query_vars))
