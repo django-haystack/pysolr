@@ -916,9 +916,19 @@ class Solr(object):
         )
         return res
 
-    def _build_json_doc(self, doc):
-        cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+    def _build_json_doc(self, doc, fieldUpdates=None):
+        if fieldUpdates is None:
+            cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+        else:
+            # id must be added without a modifier
+            # if using field updates, all other fields should have a modifier
+            cleaned_doc = {
+                k: {fieldUpdates[k]: v} if k in fieldUpdates else v
+                for k, v in doc.items()
+            }
+
         return cleaned_doc
+            
 
     def _build_xml_doc(self, doc, boost=None, fieldUpdates=None):
         doc_elem = ElementTree.Element("doc")
@@ -1026,10 +1036,10 @@ class Solr(object):
         start_time = time.time()
         self.log.debug("Starting to build add request...")
         solrapi = "XML"
-        # if no commands (no boost, no atomic updates) needed use json multidocument api
+        # if no commands (no boost) needed use json multidocument api
         #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
         #   CPU Usage is drastically lower.
-        if boost is None and fieldUpdates is None:
+        if boost is None:
             solrapi = "JSON"
             message = docs
             # single doc convert to array of docs
@@ -1039,7 +1049,7 @@ class Solr(object):
                 # json array of docs
             if isinstance(message, list):
                 # convert to string
-                cleaned_message = [self._build_json_doc(doc) for doc in message]
+                cleaned_message = [self._build_json_doc(doc, fieldUpdates=fieldUpdates) for doc in message]
                 m = self.encoder.encode(cleaned_message).encode("utf-8")
             else:
                 raise ValueError("wrong message type")
