@@ -1,10 +1,10 @@
 repos:
-    - repo: https://github.com/pre-commit/mirrors-isort
-      rev: v5.7.0
+    - repo: https://github.com/PyCQA/isort
+      rev: 5.9.3
       hooks:
           - id: isort
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v3.4.0
+      rev: v4.0.1
       hooks:
           - id: check-added-large-files
             args: ["--maxkb=128"]
@@ -28,8 +28,8 @@ repos:
           - id: pretty-format-json
             args: ["--autofix", "--no-sort-keys", "--indent=4"]
           - id: trailing-whitespace
-    - repo: https://gitlab.com/pycqa/flake8
-      rev: 3.8.4
+    - repo: https://github.com/PyCQA/flake8
+      rev: 4.0.1
       hooks:
           - id: flake8
             additional_dependencies:
