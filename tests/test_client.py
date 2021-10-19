@@ -767,6 +767,36 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertNotIn("title", doc_json)
         self.assertIsNone(doc_xml.find("*[name='title']"))
 
+    def test__build_docs_plain(self):
+        docs = [{
+            "id": "doc_1",
+            "title": "",
+            "price": 12.59,
+            "popularity": 10
+        }]
+        solrapi, m, len_message = self.solr._build_docs(docs)
+        self.assertEqual(solrapi, "JSON")
+
+    def test__build_docs_boost(self):
+        docs = [{
+            "id": "doc_1",
+            "title": "",
+            "price": 12.59,
+            "popularity": 10
+        }]
+        solrapi, m, len_message = self.solr._build_docs(docs, boost={"title": 10.0})
+        self.assertEqual(solrapi, "XML")
+
+    def test__build_docs_field_updates(self):
+        docs = [{
+            "id": "doc_1",
+            "popularity": 10
+        }]
+        solrapi, m, len_message = self.solr._build_docs(
+            docs, fieldUpdates={"popularity": "inc"}
+        )
+        self.assertEqual(solrapi, "JSON")
+
     def test_add(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
         self.assertEqual(len(self.solr.search("example")), 2)
