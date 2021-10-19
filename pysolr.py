@@ -295,8 +295,9 @@ class Results(object):
         self.qtime = decoded.get("responseHeader", {}).get("QTime", None)
         self.grouped = decoded.get("grouped", {})
         self.nextCursorMark = decoded.get("nextCursorMark", None)
-        self._next_page_query = self.nextCursorMark is not None \
-            and next_page_query or None
+        self._next_page_query = (
+            self.nextCursorMark is not None and next_page_query or None
+        )
 
     def __len__(self):
         if self._next_page_query:
@@ -844,10 +845,12 @@ class Solr(object):
 
         cursorMark = params.get("cursorMark", None)
         if cursorMark != decoded.get("nextCursorMark", cursorMark):
+
             def next_page_query():
                 nextParams = params.copy()
                 nextParams["cursorMark"] = decoded["nextCursorMark"]
                 return self.search(search_handler=search_handler, **nextParams)
+
             return self.results_cls(decoded, next_page_query)
         else:
             return self.results_cls(decoded)
@@ -984,7 +987,7 @@ class Solr(object):
         waitSearcher=None,
         overwrite=None,
         handler="update",
-        min_rf=None
+        min_rf=None,
     ):
         """
         Adds or updates documents.
@@ -1121,14 +1124,14 @@ class Solr(object):
             if doc_id:
                 et = ElementTree.Element("delete")
                 for one_doc_id in doc_id:
-                    subelem = ElementTree.SubElement(et, 'id')
+                    subelem = ElementTree.SubElement(et, "id")
                     subelem.text = one_doc_id
                 m = ElementTree.tostring(et)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
             et = ElementTree.Element("delete")
-            subelem = ElementTree.SubElement(et, 'query')
+            subelem = ElementTree.SubElement(et, "query")
             subelem.text = q
             m = ElementTree.tostring(et)
 
@@ -1335,7 +1338,7 @@ class SolrCoreAdmin(object):
         if params is None:
             params = {}
         if headers is None:
-            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         resp = requests.get(url, data=safe_urlencode(params), headers=headers)
         return force_unicode(resp.content)

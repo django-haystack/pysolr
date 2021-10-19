@@ -3,6 +3,10 @@ repos:
       rev: 5.9.3
       hooks:
           - id: isort
+    - repo: https://github.com/psf/black
+      rev: 21.9b0
+      hooks:
+          - id: black
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v4.0.1
       hooks:
