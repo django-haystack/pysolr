@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import unittest
 
+import six
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
@@ -56,16 +57,16 @@ class SolrCloudTestCase(SolrTestCase):
 
     def test__create_full_url(self):
         # Nada.
-        self.assertRegexpMatches(
-            self.solr._create_full_url(path=""), r"http://localhost:89../solr/core0$"
+        six.assertRegex(
+            self, self.solr._create_full_url(path=""), r"http://localhost:89../solr/core0$"
         )
         # Basic path.
-        self.assertRegexpMatches(
-            self.solr._create_full_url(path="pysolr_tests"),
+        six.assertRegex(
+            self, self.solr._create_full_url(path="pysolr_tests"),
             r"http://localhost:89../solr/core0/pysolr_tests$",
         )
         # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertRegexpMatches(
-            self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
+        six.assertRegex(
+            self, self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
             r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/",
         )
