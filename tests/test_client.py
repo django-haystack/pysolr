@@ -839,8 +839,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
                 all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
+                    v == originalDoc[k]
+                    for k, v in updatedDoc.items()
                     if k not in ["_version_", "popularity"]
                 )
             )
@@ -862,8 +862,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
                 all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
+                    v == originalDoc[k]
+                    for k, v in updatedDoc.items()
                     if k not in ["_version_", "popularity"]
                 )
             )
@@ -902,8 +902,8 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             # TODO: change this to use assertSetEqual:
             self.assertTrue(
                 all(
-                    updatedDoc[k] == originalDoc[k]
-                    for k in updatedDoc.keys()
+                    v == originalDoc[k]
+                    for k, v in updatedDoc.items()
                     if k not in ["_version_", "word_ss"]
                 )
             )

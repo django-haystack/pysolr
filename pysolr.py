@@ -708,10 +708,7 @@ class Solr(object):
             else:
                 value = "%sT00:00:00Z" % value.isoformat()
         elif isinstance(value, bool):
-            if value:
-                value = "true"
-            else:
-                value = "false"
+            value = "true" if value else "false"
         else:
             if IS_PY3:
                 # Python 3.X
@@ -986,10 +983,7 @@ class Solr(object):
 
             # To avoid multiple code-paths we'd like to treat all of our values
             # as iterables:
-            if isinstance(value, (list, tuple, set)):
-                values = value
-            else:
-                values = (value,)
+            values = value if isinstance(value, (list, tuple, set)) else (value,)
 
             use_field_updates = fieldUpdates and key in fieldUpdates
             if use_field_updates and not values:
@@ -1633,13 +1627,10 @@ class ZooKeeper(object):
             raise SolrError("Unknown collection: %s" % collname)
         collection = self.collections[collname]
         shards = collection[ZooKeeper.SHARDS]
-        for shardname in shards.keys():
-            shard = shards[shardname]
+        for shard in shards.values():
             if shard[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
                 replicas = shard[ZooKeeper.REPLICAS]
-                for replicaname in replicas.keys():
-                    replica = replicas[replicaname]
-
+                for replica in replicas.values():
                     if replica[ZooKeeper.STATE] == ZooKeeper.ACTIVE:
                         if not only_leader or (
                             replica.get(ZooKeeper.LEADER, None) == ZooKeeper.TRUE
