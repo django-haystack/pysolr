@@ -833,7 +833,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], originalDoc["popularity"] + 5)
             # TODO: change this to use assertSetEqual:
@@ -856,7 +856,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], updated_popularity)
             # TODO: change this to use assertSetEqual:
@@ -894,7 +894,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("multivalued")
         self.assertEqual(len(updatedDocs), 2)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(
                 updatedDoc["word_ss"], originalDoc["word_ss"] + ["epsilon", "gamma"]
