@@ -995,7 +995,6 @@ class Solr(object):
             if use_field_updates and not values:
                 values = ("",)
             for bit in values:
-
                 attrs = {"name": key}
 
                 if self._is_null_value(bit):
