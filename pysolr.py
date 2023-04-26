@@ -295,8 +295,9 @@ class Results(object):
         self.qtime = decoded.get("responseHeader", {}).get("QTime", None)
         self.grouped = decoded.get("grouped", {})
         self.nextCursorMark = decoded.get("nextCursorMark", None)
-        self._next_page_query = self.nextCursorMark is not None \
-            and next_page_query or None
+        self._next_page_query = (
+            self.nextCursorMark is not None and next_page_query or None
+        )
 
     def __len__(self):
         if self._next_page_query:
@@ -318,6 +319,9 @@ class Solr(object):
 
     Optionally accepts ``decoder`` for an alternate JSON decoder instance.
     Default is ``json.JSONDecoder()``.
+
+    Optionally accepts ``encoder`` for an alternate JSON Encoder instance.
+    Default is ``json.JSONEncoder()``.
 
     Optionally accepts ``timeout`` for wait seconds until giving up on a
     request. Default is ``60`` seconds.
@@ -341,6 +345,7 @@ class Solr(object):
         self,
         url,
         decoder=None,
+        encoder=None,
         timeout=60,
         results_cls=Results,
         search_handler="select",
@@ -348,12 +353,14 @@ class Solr(object):
         always_commit=False,
         auth=None,
         verify=True,
+        session=None,
     ):
         self.decoder = decoder or json.JSONDecoder()
+        self.encoder = encoder or json.JSONEncoder()
         self.url = url
         self.timeout = timeout
         self.log = self._get_log()
-        self.session = None
+        self.session = session
         self.results_cls = results_cls
         self.search_handler = search_handler
         self.use_qt_param = use_qt_param
@@ -513,6 +520,7 @@ class Solr(object):
         overwrite=None,
         handler="update",
         solrapi="XML",
+        min_rf=None,
     ):
         """
         Posts the given xml or json message to http://<self.url>/update and
@@ -539,6 +547,8 @@ class Solr(object):
         if commit is None:
             commit = self.always_commit
 
+        if min_rf:
+            query_vars.append("min_rf=%i" % min_rf)
         if commit:
             query_vars.append("commit=%s" % str(bool(commit)).lower())
         elif softCommit:
@@ -835,10 +845,12 @@ class Solr(object):
 
         cursorMark = params.get("cursorMark", None)
         if cursorMark != decoded.get("nextCursorMark", cursorMark):
+
             def next_page_query():
                 nextParams = params.copy()
                 nextParams["cursorMark"] = decoded["nextCursorMark"]
                 return self.search(search_handler=search_handler, **nextParams)
+
             return self.results_cls(decoded, next_page_query)
         else:
             return self.results_cls(decoded)
@@ -907,8 +919,56 @@ class Solr(object):
         )
         return res
 
-    def _build_json_doc(self, doc):
-        cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+    def _build_docs(self, docs, boost=None, fieldUpdates=None, commitWithin=None):
+        # if no boost needed use json multidocument api
+        #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
+        #   CPU Usage is drastically lower.
+        if boost is None:
+            solrapi = "JSON"
+            message = docs
+            # single doc convert to array of docs
+            if isinstance(message, dict):
+                # convert dict to list
+                message = [message]
+                # json array of docs
+            if isinstance(message, list):
+                # convert to string
+                cleaned_message = [
+                    self._build_json_doc(doc, fieldUpdates=fieldUpdates)
+                    for doc in message
+                ]
+                m = self.encoder.encode(cleaned_message).encode("utf-8")
+            else:
+                raise ValueError("wrong message type")
+        else:
+            solrapi = "XML"
+            message = ElementTree.Element("add")
+
+            if commitWithin:
+                message.set("commitWithin", commitWithin)
+
+            for doc in docs:
+                el = self._build_xml_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
+                message.append(el)
+
+            # This returns a bytestring. Ugh.
+            m = ElementTree.tostring(message, encoding="utf-8")
+            # Convert back to Unicode please.
+            m = force_unicode(m)
+
+        return (solrapi, m, len(message))
+
+    def _build_json_doc(self, doc, fieldUpdates=None):
+        if fieldUpdates is None:
+            cleaned_doc = {k: v for k, v in doc.items() if not self._is_null_value(v)}
+        else:
+            # id must be added without a modifier
+            # if using field updates, all other fields should have a modifier
+            cleaned_doc = {
+                k: {fieldUpdates[k]: v} if k in fieldUpdates else v
+                for k, v in doc.items()
+            }
+
         return cleaned_doc
 
     def _build_xml_doc(self, doc, boost=None, fieldUpdates=None):
@@ -931,18 +991,25 @@ class Solr(object):
             else:
                 values = (value,)
 
+            use_field_updates = fieldUpdates and key in fieldUpdates
+            if use_field_updates and not values:
+                values = ("",)
             for bit in values:
+                attrs = {"name": key}
+
                 if self._is_null_value(bit):
-                    continue
+                    if use_field_updates:
+                        bit = ""
+                        attrs["null"] = "true"
+                    else:
+                        continue
 
                 if key == "_doc":
                     child = self._build_xml_doc(bit, boost)
                     doc_elem.append(child)
                     continue
 
-                attrs = {"name": key}
-
-                if fieldUpdates and key in fieldUpdates:
+                if use_field_updates:
                     attrs["update"] = fieldUpdates[key]
 
                 if boost and key in boost:
@@ -967,6 +1034,7 @@ class Solr(object):
         waitSearcher=None,
         overwrite=None,
         handler="update",
+        min_rf=None,
     ):
         """
         Adds or updates documents.
@@ -990,6 +1058,8 @@ class Solr(object):
 
         Optionally accepts ``overwrite``. Default is ``None``.
 
+        Optionally accepts ``min_rf``. Default is ``None``.
+
         Usage::
 
             solr.add([
@@ -1005,43 +1075,13 @@ class Solr(object):
         """
         start_time = time.time()
         self.log.debug("Starting to build add request...")
-        solrapi = "XML"
-        # if no commands (no boost, no atomic updates) needed use json multidocument api
-        #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
-        #   CPU Usage is drastically lower.
-        if boost is None and fieldUpdates is None:
-            solrapi = "JSON"
-            message = docs
-            # single doc convert to array of docs
-            if isinstance(message, dict):
-                # convert dict to list
-                message = [message]
-                # json array of docs
-            if isinstance(message, list):
-                # convert to string
-                cleaned_message = [self._build_json_doc(doc) for doc in message]
-                m = json.dumps(cleaned_message).encode("utf-8")
-            else:
-                raise ValueError("wrong message type")
-        else:
-            message = ElementTree.Element("add")
-
-            if commitWithin:
-                message.set("commitWithin", commitWithin)
-
-            for doc in docs:
-                el = self._build_xml_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
-                message.append(el)
-
-            # This returns a bytestring. Ugh.
-            m = ElementTree.tostring(message, encoding="utf-8")
-            # Convert back to Unicode please.
-            m = force_unicode(m)
-
+        solrapi, m, len_message = self._build_docs(
+            docs, boost, fieldUpdates, commitWithin
+        )
         end_time = time.time()
         self.log.debug(
             "Built add request of %s docs in %0.2f seconds.",
-            len(message),
+            len_message,
             end_time - start_time,
         )
         return self._update(
@@ -1053,6 +1093,7 @@ class Solr(object):
             overwrite=overwrite,
             handler=handler,
             solrapi=solrapi,
+            min_rf=min_rf,
         )
 
     def delete(
@@ -1098,11 +1139,18 @@ class Solr(object):
             else:
                 doc_id = list(filter(None, id))
             if doc_id:
-                m = "<delete>%s</delete>" % "".join("<id>%s</id>" % i for i in doc_id)
+                et = ElementTree.Element("delete")
+                for one_doc_id in doc_id:
+                    subelem = ElementTree.SubElement(et, "id")
+                    subelem.text = one_doc_id
+                m = ElementTree.tostring(et)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
-            m = "<delete><query>%s</query></delete>" % q
+            et = ElementTree.Element("delete")
+            subelem = ElementTree.SubElement(et, "query")
+            subelem.text = q
+            m = ElementTree.tostring(et)
 
         return self._update(
             m,
@@ -1234,7 +1282,7 @@ class Solr(object):
             raise
 
         try:
-            data = json.loads(resp)
+            data = self.decoder.decode(resp)
         except ValueError:
             self.log.exception("Failed to load JSON response")
             raise
@@ -1307,7 +1355,7 @@ class SolrCoreAdmin(object):
         if params is None:
             params = {}
         if headers is None:
-            headers = {}
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
 
         resp = requests.get(url, data=safe_urlencode(params), headers=headers)
         return force_unicode(resp.content)
@@ -1432,6 +1480,7 @@ class SolrCloud(Solr):
         zookeeper,
         collection,
         decoder=None,
+        encoder=None,
         timeout=60,
         retry_count=5,
         retry_timeout=0.2,
@@ -1451,6 +1500,7 @@ class SolrCloud(Solr):
         super(SolrCloud, self).__init__(
             url,
             decoder=decoder,
+            encoder=encoder,
             timeout=timeout,
             auth=self.auth,
             verify=self.verify,

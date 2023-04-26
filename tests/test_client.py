@@ -265,6 +265,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test_init(self):
         self.assertEqual(self.solr.url, "http://localhost:8983/solr/core0")
         self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
+        self.assertIsInstance(self.solr.encoder, json.JSONEncoder)
         self.assertEqual(self.solr.timeout, 60)
 
         custom_solr = self.get_solr("core0", timeout=17, always_commit=True)
@@ -280,10 +281,10 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn("response", results)
 
     def test_cursor_traversal(self):
-        solr = Solr('http://localhost:8983/solr/core0')
+        solr = Solr("http://localhost:8983/solr/core0")
 
-        expected = solr.search(q="*:*", rows=len(self.docs)*3, sort="id asc").docs
-        results = solr.search(q='*:*', cursorMark="*", rows=2, sort="id asc")
+        expected = solr.search(q="*:*", rows=len(self.docs) * 3, sort="id asc").docs
+        results = solr.search(q="*:*", cursorMark="*", rows=2, sort="id asc")
         all_docs = list(results)
         self.assertEqual(len(expected), len(all_docs))
         self.assertEqual(len(results), len(all_docs))
@@ -719,18 +720,69 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(children_docs[0].find("*[@name='id']").text, sub_docs[0]["id"])
         self.assertEqual(children_docs[1].find("*[@name='id']").text, sub_docs[1]["id"])
 
-    def test_build_json_doc_matches_xml(self):
+    def test__build_xml_doc_with_empty_values(self):
         doc = {
             "id": "doc_1",
             "title": "",
-            "price": 12.59,
-            "popularity": 10
+            "price": None,
+            "tags": [],
         }
+        doc_xml = force_unicode(
+            ElementTree.tostring(self.solr._build_xml_doc(doc), encoding="utf-8")
+        )
+        self.assertNotIn('<field name="title" />', doc_xml)
+        self.assertNotIn('<field name="price" />', doc_xml)
+        self.assertNotIn('<field name="tags" />', doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
+        self.assertEqual(len(doc_xml), 41)
+
+    def test__build_xml_doc_with_empty_values_and_field_updates(self):
+        doc = {
+            "id": "doc_1",
+            "title": "",
+            "price": None,
+            "tags": [],
+        }
+        fieldUpdates = {
+            "title": "set",
+            "tags": "set",
+        }
+        doc_xml = force_unicode(
+            ElementTree.tostring(
+                self.solr._build_xml_doc(doc, fieldUpdates=fieldUpdates),
+                encoding="utf-8",
+            )
+        )
+        self.assertIn('<field name="title" null="true" update="set" />', doc_xml)
+        self.assertNotIn('<field name="price" />', doc_xml)
+        self.assertIn('<field name="tags" null="true" update="set" />', doc_xml)
+        self.assertIn('<field name="id">doc_1</field>', doc_xml)
+        self.assertEqual(len(doc_xml), 134)
+
+    def test_build_json_doc_matches_xml(self):
+        doc = {"id": "doc_1", "title": "", "price": 12.59, "popularity": 10}
 
         doc_json = self.solr._build_json_doc(doc)
         doc_xml = self.solr._build_xml_doc(doc)
         self.assertNotIn("title", doc_json)
         self.assertIsNone(doc_xml.find("*[name='title']"))
+
+    def test__build_docs_plain(self):
+        docs = [{"id": "doc_1", "title": "", "price": 12.59, "popularity": 10}]
+        solrapi, m, len_message = self.solr._build_docs(docs)
+        self.assertEqual(solrapi, "JSON")
+
+    def test__build_docs_boost(self):
+        docs = [{"id": "doc_1", "title": "", "price": 12.59, "popularity": 10}]
+        solrapi, m, len_message = self.solr._build_docs(docs, boost={"title": 10.0})
+        self.assertEqual(solrapi, "XML")
+
+    def test__build_docs_field_updates(self):
+        docs = [{"id": "doc_1", "popularity": 10}]
+        solrapi, m, len_message = self.solr._build_docs(
+            docs, fieldUpdates={"popularity": "inc"}
+        )
+        self.assertEqual(solrapi, "JSON")
 
     def test_add(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
@@ -781,7 +833,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], originalDoc["popularity"] + 5)
             # TODO: change this to use assertSetEqual:
@@ -804,7 +856,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("doc")
         self.assertEqual(len(updatedDocs), 3)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(updatedDoc["popularity"], updated_popularity)
             # TODO: change this to use assertSetEqual:
@@ -842,7 +894,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
         updatedDocs = self.solr.search("multivalued")
         self.assertEqual(len(updatedDocs), 2)
-        for (originalDoc, updatedDoc) in zip(originalDocs, updatedDocs):
+        for originalDoc, updatedDoc in zip(originalDocs, updatedDocs):
             self.assertEqual(len(updatedDoc.keys()), len(originalDoc.keys()))
             self.assertEqual(
                 updatedDoc["word_ss"], originalDoc["word_ss"] + ["epsilon", "gamma"]
@@ -869,6 +921,14 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(self.solr.search("type_s:grandchild")), 1)
         self.solr.delete(q="price:[0 TO 15]")
         self.solr.delete(q="type_s:parent", commit=True)
+
+        # Test a query that would need to be quoted when using the XML API.
+        # Ids with a "<" character will give an error using v3.9.0 or earlier
+        self.solr.delete(id="cats<dogs")
+        # These will delete too much when using v3.9.0 or earlier.
+        self.solr.delete(q="id:*</query><query> id:999 AND id:9999")
+        self.solr.delete(id="doc_4</id><id>doc_3", commit=True)
+
         # one simple doc should remain
         # parent documents were also deleted but children remain as orphans
         self.assertEqual(len(self.solr.search("doc")), 1)
