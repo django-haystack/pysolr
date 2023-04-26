@@ -174,7 +174,7 @@ Custom Authentication
 
 .. code-block:: python
 
-    # Setup a Solr instance in a kerborized enviornment
+    # Setup a Solr instance in a kerborized environment
     from requests_kerberos import HTTPKerberosAuth, OPTIONAL
     kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
 
