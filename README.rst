@@ -5,13 +5,10 @@ pysolr
 ``pysolr`` is a lightweight Python client for `Apache Solr`_. It provides an
 interface that queries the server and returns results based on the query.
 
-.. _`Apache Solr`: http://lucene.apache.org/solr/
+.. _`Apache Solr`: https://solr.apache.org/
 
 Status
 ======
-
-.. image:: https://secure.travis-ci.org/django-haystack/pysolr.png
-   :target: https://secure.travis-ci.org/django-haystack/pysolr
 
 `Changelog <https://github.com/django-haystack/pysolr/blob/master/CHANGELOG.rst>`_
 
@@ -111,6 +108,10 @@ Basic usage looks like:
         'hl': 'true',
         'hl.fragsize': 10,
     })
+
+    # Traverse a cursor using its iterator:
+    for doc in solr.search('*:*',fl='id',sort='id ASC',cursorMark='*'):
+        print(doc['id'])
 
     # You can also perform More Like This searches, if your Solr is configured
     # correctly.
