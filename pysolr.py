@@ -83,6 +83,10 @@ DATETIME_REGEX = re.compile(
 # dict key used to add nested documents to a document
 NESTED_DOC_KEY = "_childDocuments_"
 
+VALID_XML_CHARS_REGEX = re.compile(
+    "[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+"
+)
+
 
 class NullHandler(logging.Handler):
     def emit(self, record):
@@ -205,23 +209,6 @@ def safe_urlencode(params, doseq=0):
     return urlencode(new_params, doseq)
 
 
-def is_valid_xml_char_ordinal(i):
-    """
-    Defines whether char is valid to use in xml document
-
-    XML standard defines a valid char as::
-
-    Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
-    """
-    # conditions ordered by presumed frequency
-    return (
-        0x20 <= i <= 0xD7FF
-        or i in (0x9, 0xA, 0xD)
-        or 0xE000 <= i <= 0xFFFD
-        or 0x10000 <= i <= 0x10FFFF
-    )
-
-
 def clean_xml_string(s):
     """
     Cleans string from invalid xml chars
@@ -230,7 +217,7 @@ def clean_xml_string(s):
 
     http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
     """
-    return "".join(c for c in s if is_valid_xml_char_ordinal(ord(c)))
+    return VALID_XML_CHARS_REGEX.sub("", s)
 
 
 class SolrError(Exception):
