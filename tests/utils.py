@@ -6,7 +6,7 @@ import os
 import subprocess  # NOQA: B404
 from functools import total_ordering
 
-SOLR_VERSION = os.environ.get('SOLR_VERSION', '4.10.4')
+SOLR_VERSION = os.environ.get("SOLR_VERSION", "4.10.4")
 
 
 def _process(action):
@@ -28,15 +28,15 @@ def stop_solr():
 def solr_version_to_tuple(version):
     """Given a string, integer, or tuple return a version tuple (x, y, z)"""
     if isinstance(version, str):
-        version = version.split('.')
+        version = version.split(".")
     elif isinstance(version, int):
-        version = version,
+        version = (version,)
 
     if len(version) < 2:
-        version += 0,
+        version += (0,)
 
     if len(version) < 3:
-        version += 0,
+        version += (0,)
 
     return tuple((int(v) for v in version))
 
@@ -54,22 +54,22 @@ class SolrVersion(object):
 
 
 if __name__ == "__main__":
-    solr = SolrVersion('5.5')
-    assert(solr < 6)
-    assert(solr < '6')
-    assert(solr < '6.0')
-    assert(solr < '6.0.0')
-    assert(solr < (6,))
-    assert(solr < (6, 0))
-    assert(solr < (6, 0, 0))
-    assert(solr > 5)
-    assert(solr > '5')
-    assert(solr > '5.4')
-    assert(solr > '5.4.2')
-    assert(solr > (5, 4))
-    assert(solr > '4.10.4')
-    assert(solr > (4, 10, 4))
-    assert(solr > ())
-    assert(solr > (0,))
-    assert(solr > (0, 0))
-    assert(solr > (0, 0, 1))
+    solr = SolrVersion("5.5")
+    assert solr < 6
+    assert solr < "6"
+    assert solr < "6.0"
+    assert solr < "6.0.0"
+    assert solr < (6,)
+    assert solr < (6, 0)
+    assert solr < (6, 0, 0)
+    assert solr > 5
+    assert solr > "5"
+    assert solr > "5.4"
+    assert solr > "5.4.2"
+    assert solr > (5, 4)
+    assert solr > "4.10.4"
+    assert solr > (4, 10, 4)
+    assert solr > ()
+    assert solr > (0,)
+    assert solr > (0, 0)
+    assert solr > (0, 0, 1)

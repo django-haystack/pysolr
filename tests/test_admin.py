@@ -18,7 +18,7 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         self.assertIn('name="defaultCoreName"', self.solr_admin.status())
         self.assertIn('<int name="status">', self.solr_admin.status(core="core0"))
 
-    @unittest.skipIf(SolrVersion() >= 5, 'Solr 5+ does not use defaultCoreName')
+    @unittest.skipIf(SolrVersion() >= 5, "Solr 5+ does not use defaultCoreName")
     def test_status_has_defaultCoreName(self):
         self.assertTrue('name="defaultCoreName"' in self.solr_admin.status())
 
