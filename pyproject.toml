@@ -85,4 +85,4 @@ max-statements = 54
 
 [tool.codespell]
 ignore-words-list = "dekstop,nwe,yello"
-skip="./.*"
+skip="./.*,*.xml"
