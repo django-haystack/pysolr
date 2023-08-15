@@ -1,7 +1,6 @@
 name: "PyPI releases"
 
-# FIXME: restrict this to releases after testing
-on: [push, release]
+on: release
 
 jobs:
     build_sdist:
@@ -19,8 +18,7 @@ jobs:
 
     pypi-publish:
         name: Upload release to PyPI
-        # FIXME: restrict this after testing
-        # if: github.event_name == 'release' && github.event.action == 'published'
+        if: github.event_name == 'release' && github.event.action == 'published'
         needs:
             - build_sdist
         runs-on: ubuntu-latest
