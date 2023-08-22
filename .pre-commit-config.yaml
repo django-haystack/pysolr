@@ -34,7 +34,7 @@ repos:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.0.284
+      rev: v0.0.285
       hooks:
           - id: ruff
 
@@ -49,6 +49,6 @@ repos:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.13
+      rev: v0.14
       hooks:
           - id: validate-pyproject
