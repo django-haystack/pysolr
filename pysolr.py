@@ -1499,7 +1499,7 @@ class SolrCloud(Solr):
         )
 
     def _send_request(self, method, path="", body=None, headers=None, files=None):
-        for retry_number in range(0, self.retry_count):
+        for retry_number in range(self.retry_count):
             try:
                 self.url = self.zookeeper.getRandomURL(self.collection)
                 return Solr._send_request(self, method, path, body, headers, files)
