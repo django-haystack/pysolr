@@ -502,6 +502,7 @@ class Solr(object):
         clean_ctrl_chars=True,
         commit=None,
         softCommit=False,
+        commitWithin=None,
         waitFlush=None,
         waitSearcher=None,
         overwrite=None,
@@ -540,6 +541,8 @@ class Solr(object):
             query_vars.append("commit=%s" % str(bool(commit)).lower())
         elif softCommit:
             query_vars.append("softCommit=%s" % str(bool(softCommit)).lower())
+        elif commitWithin is not None:
+            query_vars.append("commitWithin=%s" % str(int(commitWithin)))
 
         if waitFlush is not None:
             query_vars.append("waitFlush=%s" % str(bool(waitFlush)).lower())
@@ -909,7 +912,7 @@ class Solr(object):
         )
         return res
 
-    def _build_docs(self, docs, boost=None, fieldUpdates=None, commitWithin=None):
+    def _build_docs(self, docs, boost=None, fieldUpdates=None):
         # if no boost needed use json multidocument api
         #   The JSON API skips the XML conversion and speedup load from 15 to 20 times.
         #   CPU Usage is drastically lower.
@@ -933,9 +936,6 @@ class Solr(object):
         else:
             solrapi = "XML"
             message = ElementTree.Element("add")
-
-            if commitWithin:
-                message.set("commitWithin", commitWithin)
 
             for doc in docs:
                 el = self._build_xml_doc(doc, boost=boost, fieldUpdates=fieldUpdates)
@@ -1066,7 +1066,9 @@ class Solr(object):
         start_time = time.time()
         self.log.debug("Starting to build add request...")
         solrapi, m, len_message = self._build_docs(
-            docs, boost, fieldUpdates, commitWithin
+            docs,
+            boost,
+            fieldUpdates,
         )
         end_time = time.time()
         self.log.debug(
@@ -1078,6 +1080,7 @@ class Solr(object):
             m,
             commit=commit,
             softCommit=softCommit,
+            commitWithin=commitWithin,
             waitFlush=waitFlush,
             waitSearcher=waitSearcher,
             overwrite=overwrite,
