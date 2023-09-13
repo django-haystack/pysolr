@@ -23,7 +23,7 @@ setup(
     ],
     url="https://github.com/django-haystack/pysolr/",
     license="BSD",
-    install_requires=["requests>=2.9.1"],
+    install_requires=["requests>=2.9.1", "setuptools"],
     extras_require={"solrcloud": ["kazoo>=2.5.0"]},
     setup_requires=["setuptools_scm"],
 )
