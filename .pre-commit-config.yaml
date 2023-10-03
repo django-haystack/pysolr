@@ -27,14 +27,14 @@ repos:
           - id: trailing-whitespace
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.2.5
+      rev: v2.2.6
       hooks:
           - id: codespell
             additional_dependencies:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.0.291
+      rev: v0.0.292
       hooks:
           - id: ruff
 
@@ -44,7 +44,7 @@ repos:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 1.1.0
+      rev: 1.2.0
       hooks:
           - id: pyproject-fmt
 

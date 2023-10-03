@@ -334,7 +334,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
     def test__send_request_to_bad_path(self):
         # Test a non-existent URL:
-        self.solr.url = "http://127.0.0.1:56789/wahtever"
+        self.solr.url = "http://127.0.0.1:56789/whatever"
         self.assertRaises(
             SolrError, self.solr._send_request, "get", "select/?q=doc&wt=json"
         )
