@@ -464,8 +464,8 @@ class Solr(object):
         :param handler: defaults to self.search_handler (fallback to 'select')
         :return:
         """
-        # specify json encoding of results
-        params["wt"] = "json"
+        # Returns json docs unless otherwise specified
+        params.setdefault("wt", "json")
         custom_handler = handler or self.search_handler
         handler = "select"
         if custom_handler:
