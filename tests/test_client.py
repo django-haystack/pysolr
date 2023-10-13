@@ -366,6 +366,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(resp_data["response"]["docs"]), 2)
         self.assertIn("nextCursorMark", resp_data)
 
+    def test__select_wt_xml(self):
+        resp_body = self.solr._select({"q": "doc", "wt": "xml"})
+        response = ElementTree.fromstring(resp_body)
+        self.assertEqual(int(response.find("result").get("numFound")), 3)
+
     def test__mlt(self):
         resp_body = self.solr._mlt({"q": "id:doc_1", "mlt.fl": "title"})
         resp_data = json.loads(resp_body)
