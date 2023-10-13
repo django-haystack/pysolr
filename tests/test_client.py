@@ -369,7 +369,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
     def test__select_wt_xml(self):
         resp_body = self.solr._select({"q": "doc", "wt": "xml"})
         response = ElementTree.fromstring(resp_body)
-        self.assertEqual(int(response.find('result').get("numFound")), 3)
+        self.assertEqual(int(response.find("result").get("numFound")), 3)
 
     def test__mlt(self):
         resp_body = self.solr._mlt({"q": "id:doc_1", "mlt.fl": "title"})
