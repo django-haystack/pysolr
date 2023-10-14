@@ -6,7 +6,6 @@ import datetime
 import random
 import time
 import unittest
-import json
 from io import StringIO
 from xml.etree import ElementTree
 
@@ -18,11 +17,10 @@ from pysolr import (
     clean_xml_string,
     force_bytes,
     force_unicode,
-    json,
+    get_nested,
     safe_urlencode,
     sanitize,
     unescape_html,
-    get_nested,
 )
 
 try:
@@ -75,7 +73,7 @@ class UtilsTestCase(unittest.TestCase):
         )
 
         # Boolean options for Solr should be in lowercase.
-        self.assertTrue("True" not in safe_urlencode(dict(group=True)))
+        self.assertTrue("True" not in safe_urlencode({"group": True}))
 
     def test_sanitize(self):
         self.assertEqual(
