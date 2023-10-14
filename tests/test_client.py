@@ -6,6 +6,7 @@ import datetime
 import random
 import time
 import unittest
+import json
 from io import StringIO
 from xml.etree import ElementTree
 
@@ -21,6 +22,7 @@ from pysolr import (
     safe_urlencode,
     sanitize,
     unescape_html,
+    get_nested,
 )
 
 try:
@@ -72,6 +74,9 @@ class UtilsTestCase(unittest.TestCase):
             "test=Hello \u2603!&test=Helllo world!",
         )
 
+        # Boolean options for Solr should be in lowercase.
+        self.assertTrue("True" not in safe_urlencode(dict(group=True)))
+
     def test_sanitize(self):
         self.assertEqual(
             sanitize(
@@ -100,6 +105,12 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_clean_xml_string(self):
         self.assertEqual(clean_xml_string("\x00\x0b\x0d\uffff"), "\x0d")
+
+    def test_get_nested(self):
+        doc = {"a": {"b": {"c": 2023}}}
+        self.assertEqual(get_nested(doc, ["a", "e"]), None)
+        self.assertEqual(get_nested(doc, ["a"]), doc["a"])
+        self.assertEqual(get_nested(doc, ["a", "b", "c"]), doc["a"]["b"]["c"])
 
 
 class ResultsTestCase(unittest.TestCase):
