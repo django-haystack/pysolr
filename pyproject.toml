@@ -85,5 +85,5 @@ max-statements = 54
 "tests/*" = ["S101"]
 
 [tool.codespell]
-ignore-words-list = "dekstop,nwe,yello"
+ignore-words-list = "dekstop,nwe,wahtever,yello"
 skip="./.*"
