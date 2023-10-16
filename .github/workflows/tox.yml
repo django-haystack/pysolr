@@ -18,7 +18,7 @@ jobs:
           pip install --user "codespell[toml]" ruff
       - run: codespell
       - run: ruff check .
-        env: 
+        env:
           RUFF_FORMAT: github
 
   tox:
