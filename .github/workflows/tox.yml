@@ -19,7 +19,7 @@ jobs:
       - run: codespell
       - run: ruff check .
         env:
-          RUFF_FORMAT: github
+          RUFF_OUTPUT_FORMAT: github
 
   tox:
     needs: ruff
