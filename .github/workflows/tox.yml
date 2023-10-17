@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v3
     - run: pip install --user "codespell[toml]" ruff
     - run: codespell
-    - run: ruff --format=github .
+    - run: ruff --output-format=github .
 
   tox:
     needs: ruff
