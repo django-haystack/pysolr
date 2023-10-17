@@ -5,13 +5,19 @@ on:
   pull_request:
     branches: [master]
 jobs:
-  ruff:  # https://beta.ruff.rs
+  ruff: # https://docs.astral.sh/ruff/editor-integrations/#github-actions
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - run: pip install --user "codespell[toml]" ruff
-    - run: codespell
-    - run: ruff --output-format=github .
+      - uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install --user "codespell[toml]" ruff
+      - run: codespell
+      - run: ruff check --output-format=github .
 
   tox:
     needs: ruff
@@ -19,7 +25,7 @@ jobs:
       fail-fast: false
       max-parallel: 6
       matrix:
-        python: ['3.8', '3.9', '3.10', '3.11', 'pypy3.10']
+        python: ["3.8", "3.9", "3.10", "3.11"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
