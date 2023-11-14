@@ -34,17 +34,17 @@ repos:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.3
+      rev: v0.1.5
       hooks:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 23.10.1
+      rev: 23.11.0
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 1.3.0
+      rev: 1.5.1
       hooks:
           - id: pyproject-fmt
 
