@@ -4,6 +4,7 @@ from __future__ import absolute_import, unicode_literals
 
 import datetime
 import random
+import time
 import unittest
 from io import StringIO
 from xml.etree import ElementTree
@@ -333,7 +334,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
 
     def test__send_request_to_bad_path(self):
         # Test a non-existent URL:
-        self.solr.url = "http://127.0.0.1:56789/wahtever"
+        self.solr.url = "http://127.0.0.1:56789/whatever"
         self.assertRaises(
             SolrError, self.solr._send_request, "get", "select/?q=doc&wt=json"
         )
@@ -364,6 +365,11 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         resp_data = json.loads(resp_body)
         self.assertEqual(len(resp_data["response"]["docs"]), 2)
         self.assertIn("nextCursorMark", resp_data)
+
+    def test__select_wt_xml(self):
+        resp_body = self.solr._select({"q": "doc", "wt": "xml"})
+        response = ElementTree.fromstring(resp_body)
+        self.assertEqual(int(response.find("result").get("numFound")), 3)
 
     def test__mlt(self):
         resp_body = self.solr._mlt({"q": "id:doc_1", "mlt.fl": "title"})
@@ -822,6 +828,22 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         res = self.solr.search("doc")
         self.assertEqual(len(res), 5)
         self.assertEqual("doc_6", res.docs[0]["id"])
+
+    def test_add_with_commit_within(self):
+        self.assertEqual(len(self.solr.search("commitWithin")), 0)
+
+        commit_within_ms = 50
+        self.solr.add(
+            [
+                {"id": "doc_6", "title": "commitWithin test"},
+            ],
+            commitWithin=commit_within_ms,
+        )
+        # we should not see the doc immediately
+        self.assertEqual(len(self.solr.search("commitWithin")), 0)
+        # but we should see it after commitWithin period (+ small grace period)
+        time.sleep((commit_within_ms / 1000.0) + 0.01)
+        self.assertEqual(len(self.solr.search("commitWithin")), 1)
 
     def test_field_update_inc(self):
         originalDocs = self.solr.search("doc")

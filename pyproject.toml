@@ -59,6 +59,7 @@ ignore = [
   "PLR5501",
   "PLW2901",
   "PT009",
+  "PT027",
   "PTH123",
   "RET505",
   "RET506",
@@ -84,5 +85,5 @@ max-statements = 54
 "tests/*" = ["S101"]
 
 [tool.codespell]
-ignore-words-list = "dekstop,nwe,yello"
-skip="./.*,*.xml"
+ignore-words-list = "dekstop,nwe,wahtever,yello"
+skip="./.*"

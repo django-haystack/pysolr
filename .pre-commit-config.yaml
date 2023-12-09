@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.4.0
+      rev: v4.5.0
       hooks:
           - id: check-added-large-files
             args: ["--maxkb=128"]
@@ -27,28 +27,28 @@ repos:
           - id: trailing-whitespace
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.2.5
+      rev: v2.2.6
       hooks:
           - id: codespell
             additional_dependencies:
                 - tomli
 
-    - repo: https://github.com/charliermarsh/ruff-pre-commit
-      rev: v0.0.275
+    - repo: https://github.com/astral-sh/ruff-pre-commit
+      rev: v0.1.6
       hooks:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 23.3.0
+      rev: 23.11.0
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 0.12.1
+      rev: 1.5.3
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.13
+      rev: v0.15
       hooks:
           - id: validate-pyproject
