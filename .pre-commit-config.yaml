@@ -39,7 +39,7 @@ repos:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 23.12.1
+      rev: 24.1.1
       hooks:
           - id: black
 
@@ -49,6 +49,6 @@ repos:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.15
+      rev: v0.16
       hooks:
           - id: validate-pyproject
