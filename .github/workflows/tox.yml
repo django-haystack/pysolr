@@ -33,5 +33,5 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: pip install --upgrade pip
-      - run: pip install six tox
+      - run: pip install tox
       - run: tox -e py
