@@ -11,7 +11,14 @@ import time
 from xml.etree import ElementTree
 
 import requests
-from pkg_resources import DistributionNotFound, get_distribution, parse_version
+
+try:
+    from importlib.metadata import PackageNotFoundError
+    from importlib.metadata import version as _get_version
+except ImportError:
+    # python < 3.8
+    from importlib_metadata import PackageNotFoundError
+    from importlib_metadata import version as _get_version
 
 try:
     from kazoo.client import KazooClient, KazooState
@@ -65,12 +72,9 @@ __author__ = "Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss, Thomas Ried
 __all__ = ["Solr"]
 
 try:
-    pkg_distribution = get_distribution(__name__)
-    __version__ = pkg_distribution.version
-    version_info = pkg_distribution.parsed_version
-except DistributionNotFound:
+    __version__ = _get_version(__name__)
+except PackageNotFoundError:
     __version__ = "0.0.dev0"
-    version_info = parse_version(__version__)
 
 
 def get_version():

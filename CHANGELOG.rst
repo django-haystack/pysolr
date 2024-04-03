@@ -61,6 +61,10 @@ Changes
   IMPORTANT: If you are upgrading to this version and need to keep committing by default,
   change the Solr objects to have ``always_commit=True``.
 
+- `pysolr.version_info` and `pysolr.pkg_distribution` have been removed. [Craig de Stigter]
+
+- Added dependency on `importlib_metadata` for Python < 3.8 [Craig de Stigter]
+
 Fix
 ~~~
 
@@ -119,6 +123,10 @@ Other
 - Tox: run SolrCloud tests (parity with Travis CI) [Chris Adams]
 
 - Update project URL. [Chris Adams]
+
+- Fixed DeprecationWarning from `pkg_resources` on Python 3.10+ [Craig de Stigter]
+
+  Closes #464
 
 v3.5.0 (2016-05-24)
 -------------------
