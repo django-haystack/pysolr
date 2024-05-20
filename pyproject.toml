@@ -1,8 +1,7 @@
 [tool.ruff]
 target-version = "py37"
 
-[tool.ruff.lint]
-select = [
+lint.select = [
   "A",   # flake8-builtins
   "B",   # flake8-bugbear
   "BLE", # flake8-blind-except
@@ -51,7 +50,7 @@ select = [
   # "TRY",  # tryceratops
   # "UP",   # pyupgrade
 ]
-ignore = [
+lint.ignore = [
   "B018",
   "B026",
   "B904",
@@ -72,24 +71,18 @@ ignore = [
   "S314",
   "S603",
 ]
-
-[tool.ruff.lint.mccabe]
-max-complexity = 16
-
-[tool.ruff.lint.pylint]
-allow-magic-value-types = [
+lint.per-file-ignores."tests/*" = [
+  "S101",
+]
+lint.mccabe.max-complexity = 16
+lint.pylint.allow-magic-value-types = [
   "int",
   "str",
 ]
-max-args = 12
-max-branches = 20
-max-returns = 7
-max-statements = 54
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = [
-  "S101",
-]
+lint.pylint.max-args = 12
+lint.pylint.max-branches = 20
+lint.pylint.max-returns = 7
+lint.pylint.max-statements = 54
 
 [tool.codespell]
 ignore-words-list = "dekstop,nwe,wahtever,yello"
