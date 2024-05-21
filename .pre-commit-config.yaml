@@ -44,11 +44,11 @@ repos:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 2.0.4
+      rev: 2.1.2
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.17
+      rev: v0.18
       hooks:
           - id: validate-pyproject
