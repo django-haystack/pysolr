@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.5.0
+      rev: v4.6.0
       hooks:
           - id: check-added-large-files
             args: ["--maxkb=128"]
@@ -34,21 +34,21 @@ repos:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.1.6
+      rev: v0.4.4
       hooks:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 23.11.0
+      rev: 24.4.2
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 1.5.3
+      rev: 2.1.2
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.15
+      rev: v0.18
       hooks:
           - id: validate-pyproject
