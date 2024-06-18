@@ -85,5 +85,5 @@ lint.pylint.max-returns = 7
 lint.pylint.max-statements = 54
 
 [tool.codespell]
-ignore-words-list = "dekstop,nwe,wahtever,yello"
+ignore-words-list = "dekstop,assertin,nwe,wahtever,yello"
 skip = "./.*"
