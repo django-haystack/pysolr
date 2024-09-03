@@ -8,7 +8,7 @@ import os
 import random
 import re
 import time
-from xml.etree import ElementTree
+from xml.etree import ElementTree  # noqa: ICN001
 
 import requests
 
