@@ -13,9 +13,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.x
-      - run: |
-          python -m pip install --upgrade pip
-          pip install --user "codespell[toml]==2.2.6" ruff
+      - run: pipx install "codespell[toml]" ruff
       - run: codespell
       - run: ruff check --output-format=github
 
@@ -23,9 +21,9 @@ jobs:
     needs: ruff
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 5
       matrix:
-        python: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
