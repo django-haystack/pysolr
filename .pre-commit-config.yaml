@@ -1,3 +1,5 @@
+ci:
+  autoupdate_schedule: monthly
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v4.6.0
@@ -27,28 +29,28 @@ repos:
           - id: trailing-whitespace
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.2.6
+      rev: v2.3.0
       hooks:
           - id: codespell
             additional_dependencies:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.4.4
+      rev: v0.6.3
       hooks:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 24.4.2
+      rev: 24.8.0
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 2.1.2
+      rev: 2.2.1
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.18
+      rev: v0.19
       hooks:
           - id: validate-pyproject

@@ -7,7 +7,7 @@ import random
 import time
 import unittest
 from io import StringIO
-from xml.etree import ElementTree
+from xml.etree import ElementTree  # noqa: ICN001
 
 from pysolr import (
     NESTED_DOC_KEY,
