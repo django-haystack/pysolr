@@ -2,7 +2,7 @@ ci:
   autoupdate_schedule: monthly
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.6.0
+      rev: v5.0.0
       hooks:
           - id: check-added-large-files
             args: ["--maxkb=128"]
@@ -36,21 +36,21 @@ repos:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.6.3
+      rev: v0.7.2
       hooks:
           - id: ruff
 
     - repo: https://github.com/psf/black
-      rev: 24.8.0
+      rev: 24.10.0
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 2.2.1
+      rev: v2.5.0
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.19
+      rev: v0.22
       hooks:
           - id: validate-pyproject
