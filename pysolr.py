@@ -1284,10 +1284,21 @@ class Solr(object):
             self.log.exception("Failed to load JSON response")
             raise
 
-        data["contents"] = data.pop(filename, None)
+        if "file" in data:
+            # For Solr >= 8.
+            data["contents"] = data.pop("file", None)
+        else:
+            # For Solr <= 7.
+            data["contents"] = data.pop(filename, None)
+
         data["metadata"] = metadata = {}
 
-        raw_metadata = data.pop("%s_metadata" % filename, None)
+        if "file_metadata" in data:
+            # For Solr >= 8.
+            raw_metadata = data.pop("file_metadata", None)
+        else:
+            # For Solr <= 7.
+            raw_metadata = data.pop("%s_metadata" % filename, None)
 
         if raw_metadata:
             # The raw format is somewhat annoying: it's a flat list of
