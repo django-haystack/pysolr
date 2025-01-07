@@ -287,8 +287,8 @@ class Results(object):
         self.grouped = decoded.get("grouped", {})
         self.nextCursorMark = decoded.get("nextCursorMark", None)
         self._next_page_query = (
-            (self.nextCursorMark is not None and next_page_query) or None
-        )
+            self.nextCursorMark is not None and next_page_query
+        ) or None
 
     def __len__(self):
         if self._next_page_query:
