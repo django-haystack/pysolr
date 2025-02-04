@@ -88,7 +88,7 @@ DATETIME_REGEX = re.compile(
 NESTED_DOC_KEY = "_childDocuments_"
 
 VALID_XML_CHARS_REGEX = re.compile(
-    "[^\u0020-\uD7FF\u0009\u000A\u000D\uE000-\uFFFD\U00010000-\U0010FFFF]+"
+    "[^\u0020-\ud7ff\u0009\u000a\u000d\ue000-\ufffd\U00010000-\U0010ffff]+"
 )
 
 
