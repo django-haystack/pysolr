@@ -25,7 +25,7 @@ Features
 Requirements
 ============
 
-* Python 2.7 - 3.7
+* A supported version of Python 3
 * Requests 2.9.1+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
