@@ -256,13 +256,6 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
             URL, "%s/%s" % (self.solr.url.replace("/core0", ""), path)
         )
 
-    def get_solr(self, collection, timeout=60, always_commit=False):
-        return Solr(
-            "http://localhost:8983/solr/%s" % collection,
-            timeout=timeout,
-            always_commit=always_commit,
-        )
-
     def test_init(self):
         self.assertEqual(self.solr.url, "http://localhost:8983/solr/core0")
         self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
