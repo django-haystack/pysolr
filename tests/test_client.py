@@ -566,7 +566,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(results), 3)
         # search should default to 'select' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("select/?"))
+        self.assertTrue(args[1].startswith("select?"))
 
         results = self.solr.search("example")
         self.assertEqual(len(results), 2)
@@ -627,7 +627,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertEqual(len(results), 0)
         # more_like_this should default to 'mlt' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("mlt/?"))
+        self.assertTrue(args[1].startswith("mlt?"))
 
         # more_like_this should support custom handlers
         with self.assertRaises(SolrError):
@@ -655,7 +655,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         )
         # suggest_terms should default to 'mlt' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("terms/?"))
+        self.assertTrue(args[1].startswith("terms?"))
 
         # suggest_terms should support custom handlers
         with self.assertRaises(SolrError):
@@ -796,7 +796,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         )
         # add should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("update/?"))
+        self.assertTrue(args[1].startswith("update?"))
 
         self.assertEqual(len(self.solr.search("doc")), 5)
         self.assertEqual(len(self.solr.search("example")), 3)
@@ -928,7 +928,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr.delete(id="doc_1", commit=True)
         # delete should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("update/?"))
+        self.assertTrue(args[1].startswith("update?"))
 
         self.assertEqual(len(self.solr.search("doc")), 2)
         self.assertEqual(len(self.solr.search("type_s:parent")), 2)
@@ -1003,7 +1003,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr.commit()
         # commit should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("update/?"))
+        self.assertTrue(args[1].startswith("update?"))
         self.assertEqual(len(self.solr.search("doc")), 4)
 
     def test_can_handles_default_commit_policy(self):
@@ -1042,7 +1042,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.solr.optimize()
         # optimize should default to 'update' handler
         args, kwargs = self.solr._send_request.call_args
-        self.assertTrue(args[1].startswith("update/?"))
+        self.assertTrue(args[1].startswith("update?"))
         self.assertEqual(len(self.solr.search("doc")), 4)
 
         # optimize should support custom handlers
