@@ -7,7 +7,6 @@ repos:
           - id: check-added-large-files
             args: ["--maxkb=128"]
           - id: check-ast
-          - id: check-byte-order-marker
           - id: check-case-conflict
           - id: check-docstring-first
           - id: check-executables-have-shebangs
@@ -22,6 +21,7 @@ repos:
             args: ["--allow-missing-credentials"]
           - id: detect-private-key
           - id: end-of-file-fixer
+          - id: fix-byte-order-marker
           - id: mixed-line-ending
             args: ["--fix=lf"]
           - id: pretty-format-json
