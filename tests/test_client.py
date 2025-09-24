@@ -3,6 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import datetime
+import json
 import random
 import time
 import unittest
@@ -17,7 +18,7 @@ from pysolr import (
     clean_xml_string,
     force_bytes,
     force_unicode,
-    json,
+    get_nested,
     safe_urlencode,
     sanitize,
     unescape_html,
@@ -72,6 +73,9 @@ class UtilsTestCase(unittest.TestCase):
             "test=Hello \u2603!&test=Helllo world!",
         )
 
+        # Boolean options for Solr should be in lowercase.
+        self.assertTrue("True" not in safe_urlencode({"group": True}))
+
     def test_sanitize(self):
         self.assertEqual(
             sanitize(
@@ -100,6 +104,12 @@ class UtilsTestCase(unittest.TestCase):
 
     def test_clean_xml_string(self):
         self.assertEqual(clean_xml_string("\x00\x0b\x0d\uffff"), "\x0d")
+
+    def test_get_nested(self):
+        doc = {"a": {"b": {"c": 2023}}}
+        self.assertEqual(get_nested(doc, ["a", "e"]), None)
+        self.assertEqual(get_nested(doc, ["a"]), doc["a"])
+        self.assertEqual(get_nested(doc, ["a", "b", "c"]), doc["a"]["b"]["c"])
 
 
 class ResultsTestCase(unittest.TestCase):

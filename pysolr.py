@@ -195,6 +195,9 @@ def safe_urlencode(params, doseq=0):
     which can't fail down to ascii.
     """
     if IS_PY3:
+        for key, val in params.items():
+            if isinstance(val, bool):
+                params[key] = str(val).lower()
         return urlencode(params, doseq)
 
     if hasattr(params, "items"):
@@ -302,6 +305,16 @@ class Results(object):
             for d in result.docs:
                 yield d
             result = result._next_page_query and result._next_page_query()
+
+
+def get_nested(obj, keys, default=None):
+    """Nested key lookup for a dict-like object."""
+    try:
+        for k in keys:
+            obj = obj[k]
+        return obj
+    except KeyError:
+        return default
 
 
 class Solr(object):
@@ -532,7 +545,7 @@ class Solr(object):
         path_handler = handler
         if self.use_qt_param:
             path_handler = "select"
-            query_vars.append("qt=%s" % safe_urlencode(handler, True))
+            query_vars.append("qt=%s" % handler)
 
         path = "%s/" % path_handler
 
@@ -834,11 +847,17 @@ class Solr(object):
         response = self._select(params, handler=search_handler)
         decoded = self.decoder.decode(response)
 
-        self.log.debug(
-            "Found '%s' search results.",
-            # cover both cases: there is no response key or value is None
-            (decoded.get("response", {}) or {}).get("numFound", 0),
-        )
+        if decoded.get("grouped"):
+            group_key = next(iter(decoded["grouped"]))
+            self.log.debug(
+                "Found results grouped by '%s' with %d matches",
+                group_key,
+                decoded["grouped"][group_key]["matches"],
+            )
+        else:
+            self.log.debug(
+                "Found %d docs", get_nested(decoded, ["response", "numFound"], 0)
+            )
 
         cursorMark = params.get("cursorMark", None)
         if cursorMark != decoded.get("nextCursorMark", cursorMark):
