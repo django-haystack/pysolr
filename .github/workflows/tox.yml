@@ -19,13 +19,14 @@ jobs:
       fail-fast: false
       max-parallel: 5
       matrix:
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+          allow-prereleases: true
       - run: pip install --upgrade pip
       - run: pip install tox
       - run: tox -e py
