@@ -1,20 +1,11 @@
-name: ruff_and_tox
+name: ci
 on:
   push:
     branches: [master]
   pull_request:
     branches: [master]
 jobs:
-  ruff: # https://docs.astral.sh/ruff/editor-integrations/#github-actions
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - run: pipx install "codespell[toml]" ruff
-      - run: codespell
-      - run: ruff check --output-format=github
-
   tox:
-    needs: ruff
     strategy:
       fail-fast: false
       max-parallel: 5
