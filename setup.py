@@ -28,6 +28,7 @@ setup(
         "setuptools",
         "importlib_metadata; python_version<'3.8'",
     ],
+    python_requires=">=3.10",
     extras_require={"solrcloud": ["kazoo>=2.5.0"]},
     setup_requires=["setuptools_scm"],
 )
