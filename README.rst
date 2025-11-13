@@ -25,8 +25,8 @@ Features
 Requirements
 ============
 
-* A supported version of Python 3
-* Requests 2.9.1+
+* Python 3.10+
+* Requests 2.32.5+
 * **Optional** - ``simplejson``
 * **Optional** - ``kazoo`` for SolrCloud mode
 
@@ -51,9 +51,6 @@ Usage
 Basic usage looks like:
 
 .. code-block:: python
-
-    # If on Python 2.X
-    from __future__ import print_function
 
     import pysolr
 
