@@ -9,7 +9,6 @@ coverage = "*"
 [packages]
 requests = "*"
 kazoo = "*"
-six = "*"
 
 [requires]
 python_version = "3.10"
