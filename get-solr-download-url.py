@@ -1,22 +1,10 @@
 #!/usr/bin/env python
-# encoding: utf-8
-
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import sys
 from itertools import chain
+from urllib.parse import urljoin
 
 import requests
-
-# Try to import urllib from the Python 3 reorganized stdlib first:
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    try:
-        from urlparse.parse import urljoin
-    except ImportError:
-        from urlparse import urljoin
-
 
 if len(sys.argv) != 2:
     print("Usage: %s SOLR_VERSION" % sys.argv[0], file=sys.stderr)
