@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, unicode_literals
-
 import datetime
 import random
 import time
 import unittest
 from io import StringIO
+from unittest.mock import Mock
+from urllib.parse import quote, unquote_plus
 from xml.etree import ElementTree  # noqa: ICN001
 
 from pysolr import (
@@ -22,21 +20,6 @@ from pysolr import (
     sanitize,
     unescape_html,
 )
-
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
-
-try:
-    from urllib.parse import unquote_plus
-except ImportError:
-    from urllib import unquote_plus
-
-try:
-    from urllib.parse import quote
-except ImportError:
-    from urllib import quote
 
 
 class UtilsTestCase(unittest.TestCase):
@@ -73,12 +56,14 @@ class UtilsTestCase(unittest.TestCase):
         )
 
     def test_sanitize(self):
-        self.assertEqual(
-            sanitize(
-                "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f"  # NOQA: E501
+        (
+            self.assertEqual(
+                sanitize(
+                    "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f"  # NOQA: E501
+                ),
+                "hello",
             ),
-            "hello",
-        ),
+        )
 
     def test_force_unicode(self):
         self.assertEqual(force_unicode(b"Hello \xe2\x98\x83"), "Hello ☃")
@@ -586,7 +571,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
                 "spellcheck": "true",
                 "spellcheck.collate": "true",
                 "spellcheck.count": 1,
-            }
+            },
         )
         self.assertEqual(len(results), 3)
         self.assertIn("explain", results.debug)

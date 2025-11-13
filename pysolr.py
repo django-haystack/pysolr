@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, unicode_literals
-
 import ast
 import datetime
 import logging
@@ -8,17 +5,11 @@ import os
 import random
 import re
 import time
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _get_version
 from xml.etree import ElementTree  # noqa: ICN001
 
 import requests
-
-try:
-    from importlib.metadata import PackageNotFoundError
-    from importlib.metadata import version as _get_version
-except ImportError:
-    # python < 3.8
-    from importlib_metadata import PackageNotFoundError
-    from importlib_metadata import version as _get_version
 
 try:
     from kazoo.client import KazooClient, KazooState
@@ -31,42 +22,10 @@ try:
 except ImportError:
     import json
 
-try:
-    # Python 3.X
-    from urllib.parse import urlencode
-except ImportError:
-    # Python 2.X
-    from urllib import urlencode
 
-try:
-    # Python 3.X
-    from urllib.parse import quote
-except ImportError:
-    # Python 2.X
-    from urllib import quote
-
-try:
-    # Python 3.X
-    import html.entities as htmlentities
-except ImportError:
-    # Python 2.X
-    import htmlentitydefs as htmlentities
-
-try:
-    # Python 3.X
-    from http.client import HTTPException
-except ImportError:
-    from httplib import HTTPException
-
-try:
-    # Python 2.X
-    unicode_char = unichr
-except NameError:
-    # Python 3.X
-    unicode_char = chr
-    # Ugh.
-    long = int  # NOQA: A001
-
+import html.entities as htmlentities
+from http.client import HTTPException
+from urllib.parse import quote, urlencode
 
 __author__ = "Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss, Thomas Rieder"
 __all__ = ["Solr"]
@@ -110,33 +69,14 @@ if os.environ.get("DEBUG_PYSOLR", "").lower() in ("true", "1"):
     LOG.addHandler(stream)
 
 
-def is_py3():
-    try:
-        basestring
-        return False
-    except NameError:
-        return True
-
-
-IS_PY3 = is_py3()
-
-
 def force_unicode(value):
     """
     Forces a bytestring to become a Unicode string.
     """
-    if IS_PY3:
-        # Python 3.X
-        if isinstance(value, bytes):
-            value = value.decode("utf-8", errors="replace")
-        elif not isinstance(value, str):
-            value = str(value)
-    else:
-        # Python 2.X
-        if isinstance(value, str):
-            value = value.decode("utf-8", "replace")
-        elif not isinstance(value, basestring):  # NOQA: F821
-            value = unicode(value)  # NOQA: F821
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    elif not isinstance(value, str):
+        value = str(value)
 
     return value
 
@@ -145,12 +85,8 @@ def force_bytes(value):
     """
     Forces a Unicode string to become a bytestring.
     """
-    if IS_PY3:
-        if isinstance(value, str):
-            value = value.encode("utf-8", "backslashreplace")
-    else:
-        if isinstance(value, unicode):  # NOQA: F821
-            value = value.encode("utf-8")
+    if isinstance(value, str):
+        value = value.encode("utf-8", "backslashreplace")
 
     return value
 
@@ -171,15 +107,15 @@ def unescape_html(text):
             # character reference
             try:
                 if text[:3] == "&#x":
-                    return unicode_char(int(text[3:-1], 16))
+                    return chr(int(text[3:-1], 16))
                 else:
-                    return unicode_char(int(text[2:-1]))
+                    return chr(int(text[2:-1]))
             except ValueError:
                 pass
         else:
             # named entity
             try:
-                text = unicode_char(htmlentities.name2codepoint[text[1:-1]])
+                text = chr(htmlentities.name2codepoint[text[1:-1]])
             except KeyError:
                 pass
         return text  # leave as is
@@ -187,30 +123,14 @@ def unescape_html(text):
     return re.sub(r"&#?\w+;", fixup, text)
 
 
-def safe_urlencode(params, doseq=0):
+def safe_urlencode(params, doseq=False):
     """
-    UTF-8-safe version of safe_urlencode
+    URL-encode parameters using UTF-8 encoding.
 
-    The stdlib safe_urlencode prior to Python 3.x chokes on UTF-8 values
-    which can't fail down to ascii.
+    This is a wrapper around `urllib.parse.urlencode` that ensures
+    consistent UTF-8 handling for all parameter values.
     """
-    if IS_PY3:
-        return urlencode(params, doseq)
-
-    if hasattr(params, "items"):
-        params = params.items()
-
-    new_params = []
-
-    for k, v in params:
-        k = k.encode("utf-8")
-
-        if isinstance(v, (list, tuple)):
-            new_params.append((k, [force_bytes(i) for i in v]))
-        else:
-            new_params.append((k, force_bytes(v)))
-
-    return urlencode(new_params, doseq)
+    return urlencode(params, doseq)
 
 
 def clean_xml_string(s):
@@ -622,9 +542,9 @@ class Solr(object):
         full_html = ""
         dom_tree = None
 
-        # In Python3, response can be made of bytes
-        if IS_PY3 and hasattr(response, "decode"):
+        if hasattr(response, "decode"):
             response = response.decode()
+
         if response.startswith("<?xml"):
             # Try a strict XML parse
             try:
@@ -707,14 +627,8 @@ class Solr(object):
             else:
                 value = "false"
         else:
-            if IS_PY3:
-                # Python 3.X
-                if isinstance(value, bytes):
-                    value = str(value, errors="replace")  # NOQA: F821
-            else:
-                # Python 2.X
-                if isinstance(value, str):
-                    value = unicode(value, errors="replace")  # NOQA: F821
+            if isinstance(value, bytes):
+                value = str(value, errors="replace")  # NOQA: F821
 
             value = "{0}".format(value)
 
@@ -724,7 +638,7 @@ class Solr(object):
         """
         Converts values from Solr to native Python values.
         """
-        if isinstance(value, (int, float, long, complex)):
+        if isinstance(value, (int, float, complex)):
             return value
 
         if isinstance(value, (list, tuple)):
@@ -740,18 +654,11 @@ class Solr(object):
 
         is_string = False
 
-        if IS_PY3:
-            if isinstance(value, bytes):
-                value = force_unicode(value)
+        if isinstance(value, bytes):
+            value = force_unicode(value)
 
-            if isinstance(value, str):
-                is_string = True
-        else:
-            if isinstance(value, str):
-                value = force_unicode(value)
-
-            if isinstance(value, basestring):  # NOQA: F821
-                is_string = True
+        if isinstance(value, str):
+            is_string = True
 
         if is_string:
             possible_datetime = DATETIME_REGEX.search(value)
@@ -791,14 +698,8 @@ class Solr(object):
         if value is None:
             return True
 
-        if IS_PY3:
-            # Python 3.X
-            if isinstance(value, str) and len(value) == 0:
-                return True
-        else:
-            # Python 2.X
-            if isinstance(value, basestring) and len(value) == 0:  # NOQA: F821
-                return True
+        if isinstance(value, str) and len(value) == 0:
+            return True
 
         # TODO: This should probably be removed when solved in core Solr level?
         return False
@@ -1484,7 +1385,7 @@ class SolrCloud(Solr):
         auth=None,
         verify=True,
         *args,
-        **kwargs
+        **kwargs,
     ):
         url = zookeeper.getRandomURL(collection)
         self.auth = auth
@@ -1502,7 +1403,7 @@ class SolrCloud(Solr):
             auth=self.auth,
             verify=self.verify,
             *args,
-            **kwargs
+            **kwargs,
         )
 
     def _send_request(self, method, path="", body=None, headers=None, files=None):
