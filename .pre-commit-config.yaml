@@ -38,7 +38,9 @@ repos:
     - repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.14.3
       hooks:
+          # Run the linter.
           - id: ruff-check
+            args: [ --fix ]
 
     - repo: https://github.com/psf/black-pre-commit-mirror
       rev: 25.9.0
