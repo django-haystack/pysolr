@@ -5,11 +5,10 @@ verify_ssl = true
 
 [dev-packages]
 coverage = "*"
-ruff = "*"
 
 [packages]
 requests = "*"
 kazoo = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.10"

@@ -2,37 +2,39 @@
 target-version = "py37"
 
 lint.select = [
-  "A",   # flake8-builtins
-  "B",   # flake8-bugbear
-  "BLE", # flake8-blind-except
-  "C4",  # flake8-comprehensions
-  "C90", # McCabe cyclomatic complexity
-  "E",   # pycodestyle
-  "ERA", # eradicate
-  "EXE", # flake8-executable
-  "F",   # Pyflakes
-  "G",   # flake8-logging-format
-  "I",   # isort
-  "ICN", # flake8-import-conventions
-  "INP", # flake8-no-pep420
-  "INT", # flake8-gettext
-  "ISC", # flake8-implicit-str-concat
-  "N",   # pep8-naming
-  "PGH", # pygrep-hooks
-  "PIE", # flake8-pie
-  "PL",  # Pylint
-  "PT",  # flake8-pytest-style
-  "PTH", # flake8-use-pathlib
-  "PYI", # flake8-pyi
-  "RET", # flake8-return
-  "RSE", # flake8-raise
-  "RUF", # Ruff-specific rules
-  "S",   # flake8-bandit
-  "T10", # flake8-debugger
-  "TCH", # flake8-type-checking
-  "TID", # flake8-tidy-imports
-  "W",   # pycodestyle
-  "YTT", # flake8-2020
+  "A",     # flake8-builtins
+  "AIR",   # Airflow
+  "ASYNC", # flake8-async
+  "B",     # flake8-bugbear
+  "BLE",   # flake8-blind-except
+  "C4",    # flake8-comprehensions
+  "C90",   # McCabe cyclomatic complexity
+  "E",     # pycodestyle
+  "ERA",   # eradicate
+  "EXE",   # flake8-executable
+  "F",     # Pyflakes
+  "G",     # flake8-logging-format
+  "I",     # isort
+  "ICN",   # flake8-import-conventions
+  "INP",   # flake8-no-pep420
+  "INT",   # flake8-gettext
+  "ISC",   # flake8-implicit-str-concat
+  "N",     # pep8-naming
+  "PGH",   # pygrep-hooks
+  "PIE",   # flake8-pie
+  "PL",    # Pylint
+  "PT",    # flake8-pytest-style
+  "PTH",   # flake8-use-pathlib
+  "PYI",   # flake8-pyi
+  "RET",   # flake8-return
+  "RSE",   # flake8-raise
+  "RUF",   # Ruff-specific rules
+  "S",     # flake8-bandit
+  "T10",   # flake8-debugger
+  "TCH",   # flake8-type-checking
+  "TID",   # flake8-tidy-imports
+  "W",     # pycodestyle
+  "YTT",   # flake8-2020
   # "ANN",  # flake8-annotations
   # "ARG",  # flake8-unused-arguments
   # "COM",  # flake8-commas
@@ -67,7 +69,6 @@ lint.ignore = [
   "RET506",
   "RUF100",
   "S113",
-  "S311",
   "S314",
   "S603",
 ]

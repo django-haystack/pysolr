@@ -2,12 +2,11 @@ ci:
   autoupdate_schedule: monthly
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v4.6.0
+      rev: v6.0.0
       hooks:
           - id: check-added-large-files
             args: ["--maxkb=128"]
           - id: check-ast
-          - id: check-byte-order-marker
           - id: check-case-conflict
           - id: check-docstring-first
           - id: check-executables-have-shebangs
@@ -22,6 +21,7 @@ repos:
             args: ["--allow-missing-credentials"]
           - id: detect-private-key
           - id: end-of-file-fixer
+          - id: fix-byte-order-marker
           - id: mixed-line-ending
             args: ["--fix=lf"]
           - id: pretty-format-json
@@ -29,28 +29,30 @@ repos:
           - id: trailing-whitespace
 
     - repo: https://github.com/codespell-project/codespell
-      rev: v2.3.0
+      rev: v2.4.1
       hooks:
           - id: codespell
             additional_dependencies:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.6.3
+      rev: v0.14.3
       hooks:
-          - id: ruff
+          # Run the linter.
+          - id: ruff-check
+            args: [ --fix ]
 
-    - repo: https://github.com/psf/black
-      rev: 24.8.0
+    - repo: https://github.com/psf/black-pre-commit-mirror
+      rev: 25.9.0
       hooks:
           - id: black
 
     - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: 2.2.1
+      rev: v2.11.0
       hooks:
           - id: pyproject-fmt
 
     - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.19
+      rev: v0.24.1
       hooks:
           - id: validate-pyproject
