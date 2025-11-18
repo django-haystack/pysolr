@@ -802,7 +802,7 @@ class Solr(object):
         # in Solr 3+ the value of terms is a dict of field name and a flat list of
         # value, count pairs: {"field_name": ["dance", 23, "dancers", 10, …]}
         if isinstance(terms, (list, tuple)):
-            terms = dict(zip(terms[0::2], terms[1::2], strict=False))
+            terms = dict(zip(terms[0::2], terms[1::2], strict=True))
 
         for field, values in terms.items():
             tmp = []
