@@ -1,6 +1,45 @@
-[tool.ruff]
-target-version = "py310"
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools" ]
 
+[project]
+name = "pysolr"
+version = "3.11.0"
+description = "Lightweight Python client for Apache Solr"
+readme = "README.rst"
+license = { text = "BSD" }
+authors = [ { name = "Daniel Lindsley", email = "daniel@toastdriven.com" } ]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = [ "requests>=2.32.5" ]
+
+optional-dependencies.solrcloud = [ "kazoo>=2.5" ]
+urls.Homepage = "https://github.com/django-haystack/pysolr/"
+
+[dependency-groups]
+dev = [
+  "coverage",
+  "pre-commit>=4.4",
+]
+
+[tool.setuptools]
+py-modules = [ "pysolr" ]
+include-package-data = false
+
+[tool.ruff]
 lint.select = [
   "A",     # flake8-builtins
   "AIR",   # Airflow
