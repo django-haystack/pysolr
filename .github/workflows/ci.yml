@@ -16,7 +16,7 @@ jobs:
       UV_LOCKED: 1
       UV_NO_DEV: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
