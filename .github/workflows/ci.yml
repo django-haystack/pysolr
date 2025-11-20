@@ -5,18 +5,30 @@ on:
   pull_request:
     branches: [master]
 jobs:
-  tox:
+  test:
     strategy:
       fail-fast: false
       matrix:
         python: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
     runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+      UV_LOCKED: 1
+      UV_NO_DEV: 1
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           allow-prereleases: true
-      - run: pip install --upgrade pip
-      - run: pip install tox
-      - run: tox -e py
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.10"
+
+      - name: Run tests
+        run: uv run --extra solrcloud -- python run-tests.py
