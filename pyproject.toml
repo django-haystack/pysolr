@@ -1,6 +1,6 @@
 [build-system]
-build-backend = "setuptools.build_meta"
-requires = [ "setuptools" ]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
 
 [project]
 name = "pysolr"
@@ -35,9 +35,8 @@ dev = [
   "pre-commit>=4.4",
 ]
 
-[tool.setuptools]
-py-modules = [ "pysolr" ]
-include-package-data = false
+[tool.hatch.build.targets.sdist]
+exclude = [ ".github" ]
 
 [tool.ruff]
 lint.select = [

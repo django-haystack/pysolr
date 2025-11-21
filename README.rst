@@ -43,7 +43,7 @@ Or if you want to install directly from the repository:
 
 .. code-block:: console
 
-    $ python setup.py install
+    $ pip install .
 
 Usage
 =====
