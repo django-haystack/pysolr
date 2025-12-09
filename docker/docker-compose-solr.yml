@@ -1,0 +1,143 @@
+services:
+  # -------------------------------------------------------------
+  # ZOOKEEPER
+  # -------------------------------------------------------------
+  zookeeper:
+    image: zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: "mntr,conf,ruok"
+    networks:
+      - search
+
+  # -------------------------------------------------------------
+  # SOLR STANDALONE
+  # -------------------------------------------------------------
+  solr-standalone:
+    image: solr:9
+    container_name: solr-standalone
+    ports:
+      - "8983:8983"
+    volumes:
+      - ./solr_configs/9.x.x:/pysolr_configset:ro
+    environment:
+      - PYSOLR_CONFIGSET=/pysolr_configset
+      - SITECORE_CONFIGSET=/var/solr/data/sitecore_configset
+      - SOLR_CORE_NAME=core0
+      - SOLR_MODULES=extraction
+      - TECHPRODUCTS_CONFIGSET=/opt/solr/server/solr/configsets/sample_techproducts_configs
+    command: |
+      bash -c "
+      # Copy tech products configset as base for sitecore_configset
+      cp -r $$TECHPRODUCTS_CONFIGSET $$SITECORE_CONFIGSET &&
+
+      # Override with pysolr-specific configset configuration
+      cp -r $$PYSOLR_CONFIGSET/. $$SITECORE_CONFIGSET/conf &&
+
+      # Create main core with sitecore configset
+      # Syntax: precreate-core <core> <configset>
+      precreate-core $$SOLR_CORE_NAME $$SITECORE_CONFIGSET &&
+
+      # Prepare demo cores instanceDirs for test cases
+      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core1 &&
+      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core2 &&
+
+      # Start Solr in foreground (PID 1)
+      exec solr-foreground
+      "
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -sf http://localhost:8983/solr/$$SOLR_CORE_NAME/admin/ping?wt=json ||
+          exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - search
+
+  # -------------------------------------------------------------
+  # SOLRCLOUD NODE 0
+  # -------------------------------------------------------------
+  solr-node0:
+    image: solr:9
+    container_name: solr-node0
+    ports:
+      - "8993:8983"
+    environment:
+      - SOLR_HOST=solr-node0
+      - ZK_HOST=zookeeper:2181
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - 'curl -sf http://localhost:8983/solr/admin/info/system?wt=json || exit 1'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - zookeeper
+    networks:
+      - search
+
+  # -------------------------------------------------------------
+  # SOLRCLOUD NODE 1
+  # -------------------------------------------------------------
+  solr-node1:
+    image: solr:9
+    container_name: solr-node1
+    ports:
+      - "8994:8983"
+    environment:
+      - SOLR_HOST=solr-node1
+      - ZK_HOST=zookeeper:2181
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'curl -sf http://localhost:8983/solr/admin/info/system?wt=json || exit 1'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - zookeeper
+    networks:
+      - search
+
+  # -------------------------------------------------------------
+  # SOLR INIT CONTAINER (Upload configset to Zookeeper + Create collection)
+  # -------------------------------------------------------------
+  solr-init:
+    image: solr:9
+    container_name: solr-init
+    depends_on:
+      solr-node0:
+        condition: service_healthy
+      solr-node1:
+        condition: service_healthy
+      solr-standalone:
+        condition: service_healthy
+    volumes:
+      - ./solr_configs/9.x.x:/pysolr_configset:ro
+      - ./scripts/solr-init.sh:/solr-init.sh:ro
+    environment:
+      - PYSOLR_CONFIGSET=/pysolr_configset
+      - SITECORE_CONFIGSET=/var/solr/data/sitecore_configset
+      - SOLR_COLLECTION_NAME=core0
+      - TECHPRODUCTS_CONFIGSET=/opt/solr/server/solr/configsets/sample_techproducts_configs
+      - ZK_HOST=zookeeper:2181
+    command:
+      - bash
+      - -c
+      - /solr-init.sh
+    networks:
+      - search
+
+networks:
+  search:
+    driver: bridge
+    name: search

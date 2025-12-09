@@ -1185,10 +1185,16 @@ class Solr(object):
             self.log.exception("Failed to load JSON response")
             raise
 
-        data["contents"] = data.pop(filename, None)
+        # Solr 8+ derives extraction output keys from the multipart form field name
+        # (here "file"), not from the uploaded filename. This produces two keys in
+        # response:
+        #   "<fieldname>"          - extracted text
+        #   "<fieldname>_metadata" - extracted metadata
+        # Ref: https://github.com/apache/solr/blob/85390422881cbf7120377767147893ac3b3b8c00/solr/modules/extraction/src/java/org/apache/solr/handler/extraction/ExtractingDocumentLoader.java#L172-L177
+        data["contents"] = data.pop("file", None)
         data["metadata"] = metadata = {}
 
-        raw_metadata = data.pop("%s_metadata" % filename, None)
+        raw_metadata = data.pop("file_metadata", None)
 
         if raw_metadata:
             # The raw format is somewhat annoying: it's a flat list of

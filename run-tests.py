@@ -1,24 +1,19 @@
 #!/usr/bin/env python
 
-import faulthandler
-import signal
+import subprocess
 import unittest
-
-from tests import utils as test_utils
 
 
 def main():
-    faulthandler.register(signal.SIGUSR1, all_threads=True)
-    print("Installed SIGUSR1 handler to print stack traces: pkill -USR1 -f run-tests")
-
-    test_utils.prepare()
-    test_utils.start_solr()
-
     try:
+        print("→ Starting unit test cases...")
+
+        subprocess.run(["./solr-docker-test-env.sh", "setup"], check=True)
         unittest.main(module="tests", verbosity=1)
+
     finally:
-        print("Tests complete; halting Solr servers…")
-        test_utils.stop_solr()
+        print("→ Unit test cases completed.")
+        subprocess.run(["./solr-docker-test-env.sh", "destroy"], check=True)
 
 
 if __name__ == "__main__":
