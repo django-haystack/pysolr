@@ -1,4 +1,7 @@
 import unittest
+from typing import ClassVar
+
+from kazoo.exceptions import KazooException
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
@@ -10,19 +13,69 @@ except ImportError:
     KazooClient = None
 
 
+class ProxyZooKeeper(ZooKeeper):
+    """
+    A ZooKeeper wrapper that rewrites SolrCloud live node URLs so they are
+    accessible from the host machine during local development and testing.
+
+    Solr nodes inside Docker register themselves using internal container
+    addresses such as:
+
+        solr-node0:8983
+        solr-node1:8983
+
+    These are not reachable from the host. We override `getHosts()` and map
+    those internal URLs to the published localhost ports:
+
+        solr-node0:8983  →  localhost:8993   (host port)
+        solr-node1:8983  →  localhost:8994   (host port)
+
+    (From docker/docker-compose-solr.yml):
+        solr-node0 -> "8993:8983"
+        solr-node1 -> "8994:8983"
+
+    With this mapping in place, all SolrCloud operations—random node selection,
+    leader routing, updates, and extraction—automatically use host-accessible URLs
+    without modifying any internals.
+    """
+
+    PORT_MAP: ClassVar[dict] = {
+        "solr-node0:8983": "localhost:8993",
+        "solr-node1:8983": "localhost:8994",
+    }
+
+    def getHosts(self, collname, only_leader=False, seen_aliases=None):
+        """
+        Return host-accessible Solr node URLs by mapping container hostnames
+        (solr-node0:8983, solr-node1:8983) to their localhost port bindings.
+        """
+        hosts = super().getHosts(collname, only_leader, seen_aliases)
+
+        mapped = []
+        for h in hosts:
+            for original, new in self.PORT_MAP.items():
+                h = h.replace(original, new)
+            mapped.append(h)
+        return mapped
+
+
 @unittest.skipUnless(
     KazooClient is not None, "kazoo is not installed; skipping SolrCloud tests"
 )
 class SolrCloudTestCase(SolrTestCase):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Initialize a shared ProxyZooKeeper instance for all test methods.
+        """
+        super().setUpClass()
+        cls.zk = ProxyZooKeeper("localhost:2181", timeout=60, max_retries=15)
+
     def assertURLStartsWith(self, url, path):
         node_urls = self.zk.getHosts("core0")
         self.assertIn(url, {"%s/%s" % (node_url, path) for node_url in node_urls})
 
     def get_solr(self, collection, timeout=60):
-        # TODO: make self.zk a memoized property:
-        if not getattr(self, "zk", None):
-            self.zk = ZooKeeper("localhost:2181", timeout=timeout, max_retries=15)
-
         return SolrCloud(self.zk, collection, timeout=timeout)
 
     def test_init(self):
@@ -66,3 +119,15 @@ class SolrCloudTestCase(SolrTestCase):
             self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
             r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/",
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Cleanly shut down the shared ProxyZooKeeper instance after all tests.
+        """
+        try:
+            cls.zk.zk.stop()
+            cls.zk.zk.close()
+        except KazooException:
+            pass
+        super().tearDownClass()

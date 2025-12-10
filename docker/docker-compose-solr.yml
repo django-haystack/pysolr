@@ -70,6 +70,7 @@ services:
       - "8993:8983"
     environment:
       - SOLR_HOST=solr-node0
+      - SOLR_MODULES=extraction
       - ZK_HOST=zookeeper:2181
     healthcheck:
       test:
@@ -94,6 +95,7 @@ services:
       - "8994:8983"
     environment:
       - SOLR_HOST=solr-node1
+      - SOLR_MODULES=extraction
       - ZK_HOST=zookeeper:2181
     healthcheck:
       test:

@@ -37,7 +37,7 @@ setup)
     echo -e "${BLUE}→ Running \`docker compose -f docker/docker-compose-solr.yml up -d\`...${NC}"
     docker compose -f docker/docker-compose-solr.yml up -d
 
-    # Wait for solr-init container with timeout (60 seconds)
+    # Wait for the solr-init container to finish (60-second timeout)
     echo -e "${BLUE}→ Waiting for solr-init container to complete (timeout: 60 seconds)...${NC}"
     if timeout 60 docker container wait solr-init; then
         # Capture the exit code of the solr-init container
