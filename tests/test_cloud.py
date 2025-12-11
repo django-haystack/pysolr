@@ -1,16 +1,15 @@
 import unittest
 from typing import ClassVar
 
-from kazoo.exceptions import KazooException
+try:
+    from kazoo.exceptions import KazooException
+except ImportError as exc:
+    raise unittest.SkipTest("kazoo is not installed; skipping SolrCloud tests") from exc
+
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
-
-try:
-    from kazoo.client import KazooClient
-except ImportError:
-    KazooClient = None
 
 
 class ProxyZooKeeper(ZooKeeper):
@@ -59,9 +58,6 @@ class ProxyZooKeeper(ZooKeeper):
         return mapped
 
 
-@unittest.skipUnless(
-    KazooClient is not None, "kazoo is not installed; skipping SolrCloud tests"
-)
 class SolrCloudTestCase(SolrTestCase):
     @classmethod
     def setUpClass(cls):
