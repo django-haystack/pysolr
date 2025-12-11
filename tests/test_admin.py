@@ -6,7 +6,6 @@ from pysolr import SolrCoreAdmin, SolrError
 
 class SolrCoreAdminTestCase(unittest.TestCase):
     def setUp(self):
-        super(SolrCoreAdminTestCase, self).setUp()
         self.solr_admin = SolrCoreAdmin("http://localhost:8983/solr/admin/cores")
 
         # Unload any leftover demo cores before each test
