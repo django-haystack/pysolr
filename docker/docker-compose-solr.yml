@@ -3,7 +3,7 @@ services:
   # ZOOKEEPER
   # -------------------------------------------------------------
   zookeeper:
-    image: zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper
     ports:
       - "2181:2181"
