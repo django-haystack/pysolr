@@ -341,15 +341,15 @@ class Solr(object):
             )
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
-            self.log.exception(error_message, url, err)  # NOQA: G200
+            self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err))
         except requests.exceptions.ConnectionError as err:
             error_message = "Failed to connect to server at %s: %s"
-            self.log.exception(error_message, url, err)  # NOQA: G200
+            self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err))
         except HTTPException as err:
             error_message = "Unhandled error: %s %s: %s"
-            self.log.exception(error_message, method, url, err)  # NOQA: G200
+            self.log.exception(error_message, method, url, err)
             raise SolrError(error_message % (method, url, err))
 
         end_time = time.time()
@@ -591,7 +591,7 @@ class Solr(object):
                 if reason is None:
                     full_html = ElementTree.tostring(dom_tree)
             except SyntaxError as err:
-                LOG.warning(  # NOQA: G200
+                LOG.warning(
                     "Unable to extract error message from invalid XML: %s",
                     err,
                     extra={"data": {"response": response}},
