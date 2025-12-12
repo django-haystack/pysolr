@@ -16,7 +16,7 @@ services:
   # SOLR STANDALONE
   # -------------------------------------------------------------
   solr-standalone:
-    image: solr:9
+    image: solr:${SOLR_VERSION:-9}
     container_name: solr-standalone
     ports:
       - "8983:8983"
@@ -64,7 +64,7 @@ services:
   # SOLRCLOUD NODE 0
   # -------------------------------------------------------------
   solr-node0:
-    image: solr:9
+    image: solr:${SOLR_VERSION:-9}
     container_name: solr-node0
     ports:
       - "8993:8983"
@@ -89,7 +89,7 @@ services:
   # SOLRCLOUD NODE 1
   # -------------------------------------------------------------
   solr-node1:
-    image: solr:9
+    image: solr:${SOLR_VERSION:-9}
     container_name: solr-node1
     ports:
       - "8994:8983"
@@ -114,7 +114,7 @@ services:
   # SOLR INIT CONTAINER (Upload configset to Zookeeper + Create collection)
   # -------------------------------------------------------------
   solr-init:
-    image: solr:9
+    image: solr:${SOLR_VERSION:-9}
     container_name: solr-init
     depends_on:
       solr-node0:
