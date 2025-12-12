@@ -1,3 +1,4 @@
+import contextlib
 import unittest
 from typing import ClassVar
 
@@ -121,9 +122,8 @@ class SolrCloudTestCase(SolrTestCase):
         """
         Cleanly shut down the shared ProxyZooKeeper instance after all tests.
         """
-        try:
+        with contextlib.suppress(KazooException):
             cls.zk.zk.stop()
             cls.zk.zk.close()
-        except KazooException:
-            pass
+
         super().tearDownClass()

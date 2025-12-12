@@ -1,3 +1,4 @@
+import contextlib
 import json
 import unittest
 
@@ -31,17 +32,15 @@ class SolrCoreAdminTestCase(unittest.TestCase):
             - Unloading a core does not remove its `instanceDir` directory.
             - Tests can reuse that same `instanceDir` to create the core again.
         """
-        demo_cores = [
+        demo_cores = (
             "demo_core1",
             "demo_core2",
-        ]
+        )
 
         for core in demo_cores:
-            try:
+            with contextlib.suppress(SolrError):
+                # Ignore Solr errors during cleanup (e.g., API failures)
                 self.solr_admin.unload(core)
-            except SolrError:
-                # Ignore any kind of errors during cleanup (e.g., API failures)
-                pass
 
     def test_status(self):
         """Test the status endpoint returns details for all cores and specific cores."""

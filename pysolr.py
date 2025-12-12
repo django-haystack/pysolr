@@ -23,6 +23,7 @@ except ImportError:
     import json
 
 
+import contextlib
 import html.entities as htmlentities
 from http.client import HTTPException
 from urllib.parse import quote, urlencode
@@ -114,10 +115,8 @@ def unescape_html(text):
                 pass
         else:
             # named entity
-            try:
+            with contextlib.suppress(KeyError):
                 text = chr(htmlentities.name2codepoint[text[1:-1]])
-            except KeyError:
-                pass
         return text  # leave as is
 
     return re.sub(r"&#?\w+;", fixup, text)
