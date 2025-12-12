@@ -30,19 +30,24 @@ services:
       - TECHPRODUCTS_CONFIGSET=/opt/solr/server/solr/configsets/sample_techproducts_configs
     command: |
       bash -c "
+      set -e
+
       # Copy tech products configset as base for sitecore_configset
-      cp -r $$TECHPRODUCTS_CONFIGSET $$SITECORE_CONFIGSET &&
+      cp -r $$TECHPRODUCTS_CONFIGSET $$SITECORE_CONFIGSET
 
       # Override with pysolr-specific configset configuration
-      cp -r $$PYSOLR_CONFIGSET/. $$SITECORE_CONFIGSET/conf &&
+      cp -r $$PYSOLR_CONFIGSET/. $$SITECORE_CONFIGSET/conf
+
+      # Rename managed-schema.xml to schema.xml
+      mv "$$SITECORE_CONFIGSET/conf/managed-schema.xml" "$$SITECORE_CONFIGSET/conf/schema.xml"
 
       # Create main core with sitecore configset
       # Syntax: precreate-core <core> <configset>
-      precreate-core $$SOLR_CORE_NAME $$SITECORE_CONFIGSET &&
+      precreate-core $$SOLR_CORE_NAME $$SITECORE_CONFIGSET
 
       # Prepare demo cores instanceDirs for test cases
-      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core1 &&
-      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core2 &&
+      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core1
+      cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core2
 
       # Start Solr in foreground (PID 1)
       exec solr-foreground

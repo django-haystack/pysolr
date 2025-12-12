@@ -7,6 +7,9 @@ echo "Preparing sitecore_configset..."
 cp -r "$TECHPRODUCTS_CONFIGSET" "$SITECORE_CONFIGSET"
 cp -r "$PYSOLR_CONFIGSET"/. "$SITECORE_CONFIGSET/conf"
 
+# Rename managed-schema.xml to schema.xml before uploading the configset to ZooKeeper
+mv "$SITECORE_CONFIGSET/conf/managed-schema.xml" "$SITECORE_CONFIGSET/conf/schema.xml"
+
 echo "Uploading sitecore_configset to Zookeeper..."
 solr zk upconfig -n sitecore_configset -d "$SITECORE_CONFIGSET"
 echo "Configset uploaded successfully."
