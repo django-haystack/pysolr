@@ -1039,14 +1039,14 @@ class Solr(object):
                 et = ElementTree.Element("delete")
                 for one_doc_id in doc_id:
                     subelem = ElementTree.SubElement(et, "id")
-                    subelem.text = one_doc_id
+                    subelem.text = str(one_doc_id)
                 m = ElementTree.tostring(et)
             else:
                 raise ValueError("The list of documents to delete was empty.")
         elif q is not None:
             et = ElementTree.Element("delete")
             subelem = ElementTree.SubElement(et, "query")
-            subelem.text = q
+            subelem.text = str(q)
             m = ElementTree.tostring(et)
 
         return self._update(
