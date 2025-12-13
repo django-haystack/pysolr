@@ -2,15 +2,14 @@ import contextlib
 import unittest
 from typing import ClassVar
 
-try:
-    from kazoo.exceptions import KazooException
-except ImportError as exc:
-    raise unittest.SkipTest("kazoo is not installed; skipping SolrCloud tests") from exc
-
-
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
+
+try:
+    from kazoo.exceptions import KazooException
+except ImportError:
+    KazooException = None
 
 
 class ProxyZooKeeper(ZooKeeper):
@@ -59,6 +58,9 @@ class ProxyZooKeeper(ZooKeeper):
         return mapped
 
 
+@unittest.skipIf(
+    KazooException is None, "kazoo is not installed; skipping SolrCloud tests"
+)
 class SolrCloudTestCase(SolrTestCase):
     @classmethod
     def setUpClass(cls):
@@ -92,10 +94,10 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertIn("response", results)
 
     def test__send_request_to_bad_path(self):
-        unittest.SkipTest("This test makes no sense in a SolrCloud world")
+        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_send_request_to_bad_core(self):
-        unittest.SkipTest("This test makes no sense in a SolrCloud world")
+        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_invalid_collection(self):
         self.assertRaises(SolrError, SolrCloud, self.zk, "core12345")
