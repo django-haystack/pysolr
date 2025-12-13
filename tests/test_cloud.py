@@ -1,28 +1,80 @@
+import contextlib
 import unittest
+from typing import ClassVar
 
 from pysolr import SolrCloud, SolrError, ZooKeeper, json
 
 from .test_client import SolrTestCase
 
 try:
-    from kazoo.client import KazooClient
+    from kazoo.exceptions import KazooException
 except ImportError:
-    KazooClient = None
+    KazooException = None
 
 
-@unittest.skipUnless(
-    KazooClient is not None, "kazoo is not installed; skipping SolrCloud tests"
+class ProxyZooKeeper(ZooKeeper):
+    """
+    A ZooKeeper wrapper that rewrites SolrCloud live node URLs so they are
+    accessible from the host machine during local development and testing.
+
+    Solr nodes inside Docker register themselves using internal container
+    addresses such as:
+
+        solr-node0:8983
+        solr-node1:8983
+
+    These are not reachable from the host. We override `getHosts()` and map
+    those internal URLs to the published localhost ports:
+
+        solr-node0:8983  →  localhost:8993   (host port)
+        solr-node1:8983  →  localhost:8994   (host port)
+
+    (From docker/docker-compose-solr.yml):
+        solr-node0 -> "8993:8983"
+        solr-node1 -> "8994:8983"
+
+    With this mapping in place, all SolrCloud operations—random node selection,
+    leader routing, updates, and extraction—automatically use host-accessible URLs
+    without modifying any internals.
+    """
+
+    PORT_MAP: ClassVar[dict] = {
+        "solr-node0:8983": "localhost:8993",
+        "solr-node1:8983": "localhost:8994",
+    }
+
+    def getHosts(self, collname, only_leader=False, seen_aliases=None):
+        """
+        Return host-accessible Solr node URLs by mapping container hostnames
+        (solr-node0:8983, solr-node1:8983) to their localhost port bindings.
+        """
+        hosts = super().getHosts(collname, only_leader, seen_aliases)
+
+        mapped = []
+        for h in hosts:
+            for original, new in self.PORT_MAP.items():
+                h = h.replace(original, new)
+            mapped.append(h)
+        return mapped
+
+
+@unittest.skipIf(
+    KazooException is None, "kazoo is not installed; skipping SolrCloud tests"
 )
 class SolrCloudTestCase(SolrTestCase):
+    @classmethod
+    def setUpClass(cls):
+        """
+        Initialize a shared ProxyZooKeeper instance for all test methods.
+        """
+        super().setUpClass()
+        cls.zk = ProxyZooKeeper("localhost:2181", timeout=60, max_retries=15)
+
     def assertURLStartsWith(self, url, path):
         node_urls = self.zk.getHosts("core0")
         self.assertIn(url, {"%s/%s" % (node_url, path) for node_url in node_urls})
 
     def get_solr(self, collection, timeout=60):
-        # TODO: make self.zk a memoized property:
-        if not getattr(self, "zk", None):
-            self.zk = ZooKeeper("localhost:9992", timeout=timeout, max_retries=15)
-
         return SolrCloud(self.zk, collection, timeout=timeout)
 
     def test_init(self):
@@ -42,10 +94,10 @@ class SolrCloudTestCase(SolrTestCase):
         self.assertIn("response", results)
 
     def test__send_request_to_bad_path(self):
-        unittest.SkipTest("This test makes no sense in a SolrCloud world")
+        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_send_request_to_bad_core(self):
-        unittest.SkipTest("This test makes no sense in a SolrCloud world")
+        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
 
     def test_invalid_collection(self):
         self.assertRaises(SolrError, SolrCloud, self.zk, "core12345")
@@ -66,3 +118,14 @@ class SolrCloudTestCase(SolrTestCase):
             self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
             r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/",
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Cleanly shut down the shared ProxyZooKeeper instance after all tests.
+        """
+        with contextlib.suppress(KazooException):
+            cls.zk.zk.stop()
+            cls.zk.zk.close()
+
+        super().tearDownClass()

@@ -23,6 +23,7 @@ except ImportError:
     import json
 
 
+import contextlib
 import html.entities as htmlentities
 from http.client import HTTPException
 from urllib.parse import quote, urlencode
@@ -114,10 +115,8 @@ def unescape_html(text):
                 pass
         else:
             # named entity
-            try:
+            with contextlib.suppress(KeyError):
                 text = chr(htmlentities.name2codepoint[text[1:-1]])
-            except KeyError:
-                pass
         return text  # leave as is
 
     return re.sub(r"&#?\w+;", fixup, text)
@@ -341,15 +340,15 @@ class Solr(object):
             )
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
-            self.log.exception(error_message, url, err)  # NOQA: G200
+            self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err))
         except requests.exceptions.ConnectionError as err:
             error_message = "Failed to connect to server at %s: %s"
-            self.log.exception(error_message, url, err)  # NOQA: G200
+            self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err))
         except HTTPException as err:
             error_message = "Unhandled error: %s %s: %s"
-            self.log.exception(error_message, method, url, err)  # NOQA: G200
+            self.log.exception(error_message, method, url, err)
             raise SolrError(error_message % (method, url, err))
 
         end_time = time.time()
@@ -591,7 +590,7 @@ class Solr(object):
                 if reason is None:
                     full_html = ElementTree.tostring(dom_tree)
             except SyntaxError as err:
-                LOG.warning(  # NOQA: G200
+                LOG.warning(
                     "Unable to extract error message from invalid XML: %s",
                     err,
                     extra={"data": {"response": response}},
@@ -1185,10 +1184,16 @@ class Solr(object):
             self.log.exception("Failed to load JSON response")
             raise
 
-        data["contents"] = data.pop(filename, None)
+        # Solr 8+ derives extraction output keys from the multipart form field name
+        # (here "file"), not from the uploaded filename. This produces two keys in
+        # response:
+        #   "<fieldname>"          - extracted text
+        #   "<fieldname>_metadata" - extracted metadata
+        # Ref: https://github.com/apache/solr/blob/85390422881cbf7120377767147893ac3b3b8c00/solr/modules/extraction/src/java/org/apache/solr/handler/extraction/ExtractingDocumentLoader.java#L172-L177
+        data["contents"] = data.pop("file", None)
         data["metadata"] = metadata = {}
 
-        raw_metadata = data.pop("%s_metadata" % filename, None)
+        raw_metadata = data.pop("file_metadata", None)
 
         if raw_metadata:
             # The raw format is somewhat annoying: it's a flat list of
