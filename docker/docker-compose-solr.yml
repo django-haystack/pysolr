@@ -36,7 +36,7 @@ services:
       cp -r $$TECHPRODUCTS_CONFIGSET $$SITECORE_CONFIGSET
 
       # Override with pysolr-specific configset configuration
-      cp -r $$PYSOLR_CONFIGSET/. $$SITECORE_CONFIGSET/conf
+      cp $$PYSOLR_CONFIGSET/solrconfig.xml $$SITECORE_CONFIGSET/conf/solrconfig.xml
 
       # Rename managed-schema.xml to schema.xml
       mv "$$SITECORE_CONFIGSET/conf/managed-schema.xml" "$$SITECORE_CONFIGSET/conf/schema.xml"
