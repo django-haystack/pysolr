@@ -93,7 +93,7 @@ Basic usage looks like:
 
     # Create a client instance. The timeout and authentication options are not required.
     # Solr URL format: http://host:port/solr/<CORE_NAME>
-    solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, [timeout=10], [auth=<type of authentication>])
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, timeout=10, auth=<type of authentication>)
 
     # Note that auto_commit defaults to False for performance. You can set
     # `auto_commit=True` to have commands always update the index immediately, make
