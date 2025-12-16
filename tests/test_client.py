@@ -993,6 +993,36 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         args, _kwargs = self.solr._send_request.call_args
         self.assertTrue(args[1].startswith("fakehandler"))
 
+    def test_delete__accepts_string_and_integer_values(self):
+        """
+        Ensure self.solr.delete() accepts both string and integer values for `id`
+        and `q` parameters without raising XML serialization errors.
+
+        Previously, passing an integer value caused a TypeError because
+        `xml.etree.ElementTree` requires element.text to be a string. This test
+        verifies that integer inputs are correctly cast to strings before
+        building the delete XML payload.
+
+        Regression test for:
+        https://github.com/django-haystack/pysolr/issues/489
+        """
+        self.solr.add([{"id": "101", "title": "Sample doc 101"}], commit=True)
+        self.solr.add([{"id": "102", "title": "Sample doc 102"}], commit=True)
+        self.solr.add([{"id": "103", "title": "Sample doc 103"}], commit=True)
+        self.solr.add([{"id": "104", "title": "Sample doc 104"}], commit=True)
+
+        # Delete using string ID
+        self.solr.delete(id="101", commit=True)
+
+        # Delete using integer ID (should not raise TypeError)
+        self.solr.delete(id=102, commit=True)
+
+        # Delete using string value with `q`
+        self.solr.delete(q="103", commit=True)
+
+        # Delete using integer value with `q` (should not raise TypeError)
+        self.solr.delete(q=104, commit=True)
+
     def test_commit(self):
         self.assertEqual(len(self.solr.search("doc")), 3)
         self.solr.add([{"id": "doc_6", "title": "Newly added doc"}])
