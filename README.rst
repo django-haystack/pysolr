@@ -8,39 +8,31 @@ interface that queries the server and returns results based on the query.
 .. _`Apache Solr`: https://solr.apache.org/
 
 
-|PyPI version| |Python versions| |Solr versions| |CI Status| |Ruff| |uv| |PyPI downloads| |GitHub stars|
+|PyPI| |Python| |Solr| |CI| |PyPI downloads| |GitHub Stars|
 
-.. |PyPI version| image:: https://img.shields.io/pypi/v/pysolr.svg
+.. |PyPI| image:: https://img.shields.io/pypi/v/pysolr.svg
    :target: https://pypi.org/project/pysolr/
-   :alt: PyPI version
+   :alt: PyPI
 
-.. |Python versions| image:: https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.14t-3776AB?logo=python&logoColor=white
+.. |Python| image:: https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.14t-3776AB?logo=python&logoColor=white
    :target: https://www.python.org/downloads/
    :alt: Python 3.10+
 
-.. |Solr versions| image:: https://img.shields.io/badge/Solr-9+-d9411e?logo=apache&logoColor=white
+.. |Solr| image:: https://img.shields.io/badge/Solr-9+-d9411e?logo=apache&logoColor=white
    :target: https://solr.apache.org/
    :alt: Solr 9+
 
-.. |CI Status| image:: https://github.com/django-haystack/pysolr/actions/workflows/ci.yml/badge.svg
+.. |CI| image:: https://github.com/django-haystack/pysolr/actions/workflows/ci.yml/badge.svg
    :target: https://github.com/django-haystack/pysolr/actions
    :alt: CI Status
-
-.. |Ruff| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json
-   :target: https://github.com/astral-sh/ruff
-   :alt: Ruff
-
-.. |uv| image:: https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json
-   :target: https://github.com/astral-sh/uv
-   :alt: uv
 
 .. |PyPI downloads| image:: https://img.shields.io/pypi/dm/pysolr.svg
    :target: https://pypi.org/project/pysolr/
    :alt: PyPI downloads
 
-.. |GitHub stars| image:: https://img.shields.io/github/stars/django-haystack/pysolr.svg?style=social
+.. |GitHub Stars| image:: https://img.shields.io/github/stars/django-haystack/pysolr.svg?style=social
    :target: https://github.com/django-haystack/pysolr/stargazers
-   :alt: GitHub stars
+   :alt: GitHub Stars
 
 ----
 
@@ -93,7 +85,7 @@ Basic usage looks like:
 
     # Create a client instance. The timeout and authentication options are not required.
     # Solr URL format: http://host:port/solr/<CORE_NAME>
-    solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, timeout=10, auth=<type of authentication>)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, [timeout=10], [auth=<type of authentication>])
 
     # Note that auto_commit defaults to False for performance. You can set
     # `auto_commit=True` to have commands always update the index immediately, make
