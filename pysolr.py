@@ -1312,6 +1312,7 @@ class SolrCoreAdmin(object):
                 headers=headers,
                 auth=self.auth,
             )
+            resp.raise_for_status()
             return resp.json()
         except requests.exceptions.JSONDecodeError as e:
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
