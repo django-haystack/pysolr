@@ -7,6 +7,35 @@ interface that queries the server and returns results based on the query.
 
 .. _`Apache Solr`: https://solr.apache.org/
 
+
+|PyPI| |Python| |Solr| |CI| |PyPI downloads| |GitHub Stars|
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/pysolr.svg
+   :target: https://pypi.org/project/pysolr/
+   :alt: PyPI
+
+.. |Python| image:: https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.14t-3776AB?logo=python&logoColor=white
+   :target: https://www.python.org/downloads/
+   :alt: Python 3.10+
+
+.. |Solr| image:: https://img.shields.io/badge/Solr-9+-d9411e?logo=apache&logoColor=white
+   :target: https://solr.apache.org/
+   :alt: Solr 9+
+
+.. |CI| image:: https://github.com/django-haystack/pysolr/actions/workflows/ci.yml/badge.svg
+   :target: https://github.com/django-haystack/pysolr/actions
+   :alt: CI Status
+
+.. |PyPI downloads| image:: https://img.shields.io/pypi/dm/pysolr.svg
+   :target: https://pypi.org/project/pysolr/
+   :alt: PyPI downloads
+
+.. |GitHub Stars| image:: https://img.shields.io/github/stars/django-haystack/pysolr.svg?style=social
+   :target: https://github.com/django-haystack/pysolr/stargazers
+   :alt: GitHub Stars
+
+----
+
 Status
 ======
 
@@ -55,7 +84,8 @@ Basic usage looks like:
     import pysolr
 
     # Create a client instance. The timeout and authentication options are not required.
-    solr = pysolr.Solr('http://localhost:8983/solr/', always_commit=True, [timeout=10], [auth=<type of authentication>])
+    # Solr URL format: http://host:port/solr/<CORE_NAME>
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, [timeout=10], [auth=<type of authentication>])
 
     # Note that auto_commit defaults to False for performance. You can set
     # `auto_commit=True` to have commands always update the index immediately, make
@@ -139,7 +169,7 @@ Simply point the URL to the index core:
 .. code-block:: python
 
     # Setup a Solr instance. The timeout is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', timeout=10)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", timeout=10)
 
 
 Custom Request Handlers
@@ -148,7 +178,7 @@ Custom Request Handlers
 .. code-block:: python
 
     # Setup a Solr instance. The trailing slash is optional.
-    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', use_qt_param=False)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", search_handler="/autocomplete", use_qt_param=False)
 
 
 If ``use_qt_param`` is ``True`` it is essential that the name of the handler is
@@ -175,7 +205,7 @@ Custom Authentication
     from requests_kerberos import HTTPKerberosAuth, OPTIONAL
     kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
 
-    solr = pysolr.Solr('http://localhost:8983/solr/', auth=kerberos_auth)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", auth=kerberos_auth)
 
 .. code-block:: python
 
@@ -193,14 +223,14 @@ If your Solr servers run off https
 .. code-block:: python
 
     # Setup a Solr instance in an https environment
-    solr = pysolr.Solr('http://localhost:8983/solr/', verify=path/to/cert.pem)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", verify="path/to/cert.pem")
 
 .. code-block:: python
 
     # Setup a CloudSolr instance in a kerborized environment
 
     zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
-    solr = pysolr.SolrCloud(zookeeper, "collection", verify=path/to/cert.perm)
+    solr = pysolr.SolrCloud(zookeeper, "collection", verify="path/to/cert.perm")
 
 
 Custom Commit Policy
@@ -210,7 +240,7 @@ Custom Commit Policy
 
     # Setup a Solr instance. The trailing slash is optional.
     # All requests to Solr will be immediately committed because `always_commit=True`:
-    solr = pysolr.Solr('http://localhost:8983/solr/core_0/', search_handler='/autocomplete', always_commit=True)
+    solr = pysolr.Solr("http://localhost:8983/solr/my_core", search_handler="/autocomplete", always_commit=True)
 
 ``always_commit`` signals to the Solr object to either commit or not commit by
 default for any solr request. Be sure to change this to ``True`` if you are
@@ -255,9 +285,18 @@ recommended for testing by default unless you need more control.
 Running a test Solr instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Downloading, configuring and running Solr 4 looks like this::
+Downloading, configuring and running Solr 9 looks like this::
 
-    ./start-solr-test-server.sh
+    ./solr-docker-test-env.sh setup
+
+To specify a different Solr version::
+
+    export SOLR_VERSION=9.8.0
+    ./solr-docker-test-env.sh setup
+
+To stop and remove the Solr test environment::
+
+    ./solr-docker-test-env.sh destroy
 
 Running the tests
 ~~~~~~~~~~~~~~~~~
