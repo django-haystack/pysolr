@@ -6,6 +6,8 @@ jobs:
     build_distributions:
         name: Build distributions
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
         steps:
             - uses: actions/checkout@v6
 
