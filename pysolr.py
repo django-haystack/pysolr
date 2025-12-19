@@ -1314,6 +1314,19 @@ class SolrCoreAdmin(object):
             )
             resp.raise_for_status()
             return resp.json()
+
+        except requests.exceptions.HTTPError as e:
+            error_url = e.response.url
+            error_msg = e.response.text
+            error_code = e.response.status_code
+
+            self.log.exception(
+                "Solr returned HTTP error %s for URL %s", error_code, error_url
+            )
+            raise SolrError(
+                f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
+            )
+
         except requests.exceptions.JSONDecodeError as e:
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(

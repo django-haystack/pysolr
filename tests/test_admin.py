@@ -128,27 +128,30 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         self.assertNotIn("instanceDir", result["status"]["not_exists"])
 
     def test_create__existing_core_raises_error(self):
-        """Test creating a core that already exists returns a 500 error."""
+        """Test creating a core that already exists raises SolrError."""
 
         # First create succeeds
         self.solr_admin.create("demo_core1")
 
-        # Creating the same core again should return a 500 error response
-        result = self.solr_admin.create("demo_core1")
+        # Second create should raise SolrError
+        with self.assertRaises(SolrError) as ctx:
+            self.solr_admin.create("demo_core1")
 
-        self.assertEqual(result["responseHeader"]["status"], 500)
-        self.assertEqual(
-            result["error"]["msg"], "Core with name 'demo_core1' already exists."
+        self.assertIn("Solr returned HTTP error 500", str(ctx.exception))
+        self.assertIn(
+            "Core with name 'demo_core1' already exists",
+            str(ctx.exception),
         )
 
     def test_reload__nonexistent_core_raises_error(self):
-        """Test that reloading a non-existent core returns a 400 error."""
-        result = self.solr_admin.reload("not_exists")
+        """Test that reloading a non-existent core raises SolrError."""
 
-        # Solr returns a 400 error for missing cores
-        self.assertEqual(result["responseHeader"]["status"], 400)
-        self.assertIn("No such core", result["error"]["msg"])
-        self.assertIn("not_exists", result["error"]["msg"])
+        with self.assertRaises(SolrError) as ctx:
+            self.solr_admin.reload("not_exists")
+
+        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
+        self.assertIn("No such core", str(ctx.exception))
+        self.assertIn("not_exists", str(ctx.exception))
 
     def test_rename__nonexistent_core_no_effect(self):
         """
@@ -170,40 +173,37 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         self.assertNotIn("instanceDir", result["status"]["demo_core99"])
 
     def test_swap__missing_source_core_returns_error(self):
-        """Test swapping when the source core is missing returns a 400 error."""
+        """Test swapping when the source core is missing raises SolrError."""
 
         # Create only the target core
         self.solr_admin.create("demo_core2")
 
-        # Attempt to swap a missing source core with an existing target core
-        result = self.solr_admin.swap("not_exists", "demo_core2")
+        with self.assertRaises(SolrError) as ctx:
+            self.solr_admin.swap("not_exists", "demo_core2")
 
-        # Solr returns a 400 error when the source core does not exist
-        self.assertEqual(result["responseHeader"]["status"], 400)
-        self.assertIn("No such core", result["error"]["msg"])
-        self.assertIn("not_exists", result["error"]["msg"])
+        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
+        self.assertIn("No such core", str(ctx.exception))
+        self.assertIn("not_exists", str(ctx.exception))
 
     def test_swap__missing_target_core_returns_error(self):
-        """Test swapping when the target core is missing returns a 400 error."""
+        """Test swapping when the target core is missing raises SolrError."""
 
         # Create only the source core
         self.solr_admin.create("demo_core1")
 
-        # Attempt to swap with a missing target core
-        result = self.solr_admin.swap("demo_core1", "not_exists")
+        with self.assertRaises(SolrError) as ctx:
+            self.solr_admin.swap("demo_core1", "not_exists")
 
-        # Solr returns a 400 error when the target core does not exist
-        self.assertEqual(result["responseHeader"]["status"], 400)
-        self.assertIn("No such core", result["error"]["msg"])
-        self.assertIn("not_exists", result["error"]["msg"])
+        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
+        self.assertIn("No such core", str(ctx.exception))
+        self.assertIn("not_exists", str(ctx.exception))
 
     def test_unload__nonexistent_core_returns_error(self):
-        """Test unloading a non-existent core returns a 400 error response."""
+        """Test unloading a non-existent core raises SolrError."""
 
-        # Attempt to unload a core that does not exist
-        result = self.solr_admin.unload("not_exists")
+        with self.assertRaises(SolrError) as ctx:
+            self.solr_admin.unload("not_exists")
 
-        # Solr returns a 400 error for unloading a missing core
-        self.assertEqual(result["responseHeader"]["status"], 400)
-        self.assertIn("Cannot unload non-existent core", result["error"]["msg"])
-        self.assertIn("not_exists", result["error"]["msg"])
+        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
+        self.assertIn("Cannot unload non-existent core", str(ctx.exception))
+        self.assertIn("not_exists", str(ctx.exception))
