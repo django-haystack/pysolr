@@ -33,6 +33,7 @@ urls.Homepage = "https://github.com/django-haystack/pysolr/"
 dev = [
   "coverage",
   "pre-commit>=4.4",
+  "pytest",
 ]
 
 [tool.hatch.build.targets.sdist]
@@ -100,8 +101,6 @@ lint.ignore = [
   "PGH004",
   "PLR5501",
   "PLW2901",
-  "PT009",
-  "PT027",
   "PTH123",
   "RET505",
   "RET506",
@@ -115,6 +114,8 @@ lint.per-file-ignores."tests/*" = [
 ]
 lint.mccabe.max-complexity = 16
 lint.pylint.allow-magic-value-types = [
+  "bytes",
+  "float",
   "int",
   "str",
 ]
