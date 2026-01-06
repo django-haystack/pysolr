@@ -36,7 +36,7 @@ repos:
                 - tomli
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.14.7
+      rev: v0.14.10
       hooks:
           - id: ruff-check
             args: [ --fix ]
@@ -53,6 +53,6 @@ repos:
           - id: validate-pyproject
 
     - repo: https://github.com/astral-sh/uv-pre-commit
-      rev: 0.9.14
+      rev: 0.9.21
       hooks:
         - id: uv-lock
