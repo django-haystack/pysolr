@@ -1325,16 +1325,16 @@ class SolrCoreAdmin(object):
             )
             raise SolrError(
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
-            )
+            ) from e
 
         except requests.exceptions.JSONDecodeError as e:
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
-            )
+            ) from e
         except requests.exceptions.RequestException as e:
             self.log.exception("Request to Solr failed for URL %s", url)
-            raise SolrError(f"Request failed: {e}")
+            raise SolrError(f"Request failed: {e}") from e
 
     def status(self, core=None):
         """
