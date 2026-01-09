@@ -279,9 +279,16 @@ class Solr(object):
         self.always_commit = always_commit
 
     def get_session(self):
+        """
+        Returns a requests Session object to use for sending requests to Solr.
+
+        The session is created lazily on first call to this method, and is
+        reused for all subsequent requests.
+
+        :return: requests.Session instance
+        """
         if self.session is None:
             self.session = requests.Session()
-            self.session.stream = False
             self.session.verify = self.verify
         return self.session
 
@@ -1250,18 +1257,84 @@ class SolrCoreAdmin(object):
        8. LOAD (not currently implemented)
     """
 
-    def __init__(self, url, *args, **kwargs):
-        super(SolrCoreAdmin, self).__init__(*args, **kwargs)
+    def __init__(self, url, timeout=60, auth=None, verify=True, session=None):
         self.url = url
+        self.timeout = timeout
+        self.log = self._get_log()
+        self.auth = auth
+        self.verify = verify
+        self.session = session
 
-    def _get_url(self, url, params=None, headers=None):
+    def get_session(self):
+        """
+        Returns a requests Session object to use for sending requests to Solr.
+
+        The session is created lazily on first call to this method, and is
+        reused for all subsequent requests.
+
+        :return: requests.Session instance
+        """
+        if self.session is None:
+            self.session = requests.Session()
+            self.session.verify = self.verify
+        return self.session
+
+    def _get_log(self):
+        return LOG
+
+    def _send_request(self, url, params=None, headers=None):
+        """
+        Internal method to send a GET request to Solr.
+
+        :param url: Full URL to query
+        :param params: Dictionary of query parameters
+        :param headers: Dictionary of HTTP headers
+        :return: JSON response from Solr
+        :raises SolrError: if the request fails or the JSON response cannot be decoded
+        """
         if params is None:
             params = {}
         if headers is None:
-            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            headers = {}
 
-        resp = requests.get(url, data=safe_urlencode(params), headers=headers)
-        return force_unicode(resp.content)
+        session = self.get_session()
+
+        self.log.debug(
+            "Starting Solr admin request to '%s' with params %s",
+            url,
+            params,
+        )
+
+        try:
+            resp = session.get(
+                url,
+                params=params,
+                headers=headers,
+                auth=self.auth,
+            )
+            resp.raise_for_status()
+            return resp.json()
+
+        except requests.exceptions.HTTPError as e:
+            error_url = e.response.url
+            error_msg = e.response.text
+            error_code = e.response.status_code
+
+            self.log.exception(
+                "Solr returned HTTP error %s for URL %s", error_code, error_url
+            )
+            raise SolrError(
+                f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
+            ) from e
+
+        except requests.exceptions.JSONDecodeError as e:
+            self.log.exception("Failed to decode JSON response from Solr at %s", url)
+            raise SolrError(
+                f"Failed to decode JSON response: {e}. Response text: {resp.text}"
+            ) from e
+        except requests.exceptions.RequestException as e:
+            self.log.exception("Request to Solr failed for URL %s", url)
+            raise SolrError(f"Request failed: {e}") from e
 
     def status(self, core=None):
         """
@@ -1274,7 +1347,7 @@ class SolrCoreAdmin(object):
         if core is not None:
             params.update(core=core)
 
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def create(
         self, name, instance_dir=None, config="solrconfig.xml", schema="schema.xml"
@@ -1291,7 +1364,7 @@ class SolrCoreAdmin(object):
         else:
             params.update(instanceDir=instance_dir)
 
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def reload(self, core):  # NOQA: A003
         """
@@ -1300,7 +1373,7 @@ class SolrCoreAdmin(object):
         See https://wiki.apache.org/solr/CoreAdmin#RELOAD
         """
         params = {"action": "RELOAD", "core": core}
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def rename(self, core, other):
         """
@@ -1309,7 +1382,7 @@ class SolrCoreAdmin(object):
         See http://wiki.apache.org/solr/CoreAdmin#RENAME
         """
         params = {"action": "RENAME", "core": core, "other": other}
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def swap(self, core, other):
         """
@@ -1318,7 +1391,7 @@ class SolrCoreAdmin(object):
         See http://wiki.apache.org/solr/CoreAdmin#SWAP
         """
         params = {"action": "SWAP", "core": core, "other": other}
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def unload(self, core):
         """
@@ -1327,7 +1400,7 @@ class SolrCoreAdmin(object):
         See http://wiki.apache.org/solr/CoreAdmin#UNLOAD
         """
         params = {"action": "UNLOAD", "core": core}
-        return self._get_url(self.url, params=params)
+        return self._send_request(self.url, params=params)
 
     def load(self, core):
         raise NotImplementedError("Solr 1.4 and below do not support this operation.")
