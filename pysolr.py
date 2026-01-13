@@ -147,7 +147,7 @@ class SolrError(Exception):
     pass
 
 
-class Results(object):
+class Results:
     """
     Default results class for wrapping decoded (from JSON) solr responses.
 
@@ -223,7 +223,7 @@ class Results(object):
             result = result._next_page_query and result._next_page_query()
 
 
-class Solr(object):
+class Solr:
     """
     The main object for working with Solr.
 
@@ -1237,7 +1237,7 @@ class Solr(object):
             )
 
 
-class SolrCoreAdmin(object):
+class SolrCoreAdmin:
     """
     Handles core admin operations: see http://wiki.apache.org/solr/CoreAdmin
 
@@ -1509,7 +1509,7 @@ class SolrCloud(Solr):
         return Solr._update(self, *args, **kwargs)
 
 
-class ZooKeeper(object):
+class ZooKeeper:
     # Constants used by the REST API:
     LIVE_NODES_ZKNODE = "/live_nodes"
     ALIASES = "/aliases.json"
