@@ -149,7 +149,7 @@ class ResultsTestCase(unittest.TestCase):
         self.assertEqual(to_iter[2], {"id": 3})
 
 
-class SolrTestCaseMixin(object):
+class SolrTestCaseMixin:
     def get_solr(self, collection, timeout=60, always_commit=False):
         return Solr(
             "http://localhost:8983/solr/%s" % collection,
@@ -369,7 +369,7 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn('<int name="status">0</int>', resp_body)
 
     def test__extract_error(self):
-        class RubbishResponse(object):
+        class RubbishResponse:
             def __init__(self, content, headers=None):
                 if isinstance(content, bytes):
                     content = content.decode("utf-8")
