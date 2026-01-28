@@ -327,8 +327,8 @@ class Solr:
 
         try:
             requests_method = getattr(session, method)
-        except AttributeError:
-            raise SolrError("Unable to use unknown HTTP method '{0}.".format(method))
+        except AttributeError as e:
+            raise SolrError(f"Unable to use unknown HTTP method '{method}'.") from e
 
         # Everything except the body can be Unicode. The body must be
         # encoded to bytes to work properly on Py3.
@@ -348,15 +348,15 @@ class Solr:
         except requests.exceptions.Timeout as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.exception(error_message, url, err)
-            raise SolrError(error_message % (url, err))
+            raise SolrError(error_message % (url, err)) from err
         except requests.exceptions.ConnectionError as err:
             error_message = "Failed to connect to server at %s: %s"
             self.log.exception(error_message, url, err)
-            raise SolrError(error_message % (url, err))
+            raise SolrError(error_message % (url, err)) from err
         except HTTPException as err:
             error_message = "Unhandled error: %s %s: %s"
             self.log.exception(error_message, method, url, err)
-            raise SolrError(error_message % (method, url, err))
+            raise SolrError(error_message % (method, url, err)) from err
 
         end_time = time.time()
         self.log.info(

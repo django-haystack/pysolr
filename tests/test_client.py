@@ -7,6 +7,8 @@ from unittest.mock import Mock
 from urllib.parse import unquote_plus
 from xml.etree import ElementTree  # noqa: ICN001
 
+import requests
+
 from pysolr import (
     NESTED_DOC_KEY,
     Results,
@@ -310,10 +312,22 @@ class SolrTestCase(unittest.TestCase, SolrTestCaseMixin):
         self.assertIn('"status":0', resp_body)
 
     def test__send_request_to_bad_path(self):
+        """
+        Verify that a connection failure to an unreachable Solr URL raises
+        SolrError and preserves the original requests.exceptions.ConnectionError
+        as the chained cause.
+        """
         # Test a non-existent URL:
         self.solr.url = "http://127.0.0.1:56789/whatever"
-        self.assertRaises(
-            SolrError, self.solr._send_request, "get", "select/?q=doc&wt=json"
+
+        with self.assertRaises(SolrError) as ctx:
+            self.solr._send_request("get", "select/?q=doc&wt=json")
+
+        # The raised SolrError should preserve the original
+        # requests ConnectionError as its cause
+        self.assertIsNotNone(ctx.exception.__cause__)
+        self.assertIsInstance(
+            ctx.exception.__cause__, requests.exceptions.ConnectionError
         )
 
     def test_send_request_to_bad_core(self):
