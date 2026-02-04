@@ -31,7 +31,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          version: "0.9.10"
+          version: "0.9.29"
 
       - name: Run tests
-        run: uv run --extra solrcloud -- python run-tests.py
+        run: uv run --extra=solrcloud --with=pytest -- python run-tests.py

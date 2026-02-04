@@ -1,10 +1,11 @@
 import contextlib
-import unittest
+import re
 from typing import ClassVar
 
-from pysolr import SolrCloud, SolrError, ZooKeeper, json
+import pytest
 
-from .test_client import SolrTestCase
+from pysolr import SolrCloud, SolrError, ZooKeeper, json
+from tests.base import BaseSolrClientTests, SolrTestCaseMixin
 
 try:
     from kazoo.exceptions import KazooException
@@ -58,74 +59,68 @@ class ProxyZooKeeper(ZooKeeper):
         return mapped
 
 
-@unittest.skipIf(
-    KazooException is None, "kazoo is not installed; skipping SolrCloud tests"
+@pytest.mark.skipif(
+    KazooException is None,
+    reason="kazoo is not installed; skipping SolrCloud tests",
 )
-class SolrCloudTestCase(SolrTestCase):
+class TestSolrCloud(SolrTestCaseMixin, BaseSolrClientTests):
+    """Runs the full Test suite against Solr cloud mode."""
+
     @classmethod
-    def setUpClass(cls):
+    def setup_class(cls):
         """
         Initialize a shared ProxyZooKeeper instance for all test methods.
         """
-        super().setUpClass()
         cls.zk = ProxyZooKeeper("localhost:2181", timeout=60, max_retries=15)
 
     def assertURLStartsWith(self, url, path):
         node_urls = self.zk.getHosts("core0")
-        self.assertIn(url, {"%s/%s" % (node_url, path) for node_url in node_urls})
+        assert url in {"%s/%s" % (node_url, path) for node_url in node_urls}
 
     def get_solr(self, collection, timeout=60):
         return SolrCloud(self.zk, collection, timeout=timeout)
 
     def test_init(self):
-        self.assertTrue(self.solr.url.endswith("/solr/core0"))
-        self.assertIsInstance(self.solr.decoder, json.JSONDecoder)
-        self.assertEqual(self.solr.timeout, 60)
+        assert self.solr.url.endswith("/solr/core0")
+        assert isinstance(self.solr.decoder, json.JSONDecoder)
+        assert self.solr.timeout == 60
 
         custom_solr = self.get_solr("core0", timeout=17)
-        self.assertEqual(custom_solr.timeout, 17)
+        assert custom_solr.timeout == 17
 
     def test_custom_results_class(self):
         solr = SolrCloud(self.zk, "core0", results_cls=dict)
 
         results = solr.search(q="*:*")
-        self.assertIsInstance(results, dict)
-        self.assertIn("responseHeader", results)
-        self.assertIn("response", results)
-
-    def test__send_request_to_bad_path(self):
-        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
-
-    def test_send_request_to_bad_core(self):
-        raise unittest.SkipTest("This test makes no sense in a SolrCloud world")
+        assert isinstance(results, dict)
+        assert "responseHeader" in results
+        assert "response" in results
 
     def test_invalid_collection(self):
-        self.assertRaises(SolrError, SolrCloud, self.zk, "core12345")
+        with pytest.raises(SolrError):
+            SolrCloud(self.zk, "core12345")
 
     def test__create_full_url(self):
         # Nada.
-        self.assertRegex(
-            self.solr._create_full_url(path=""),
-            r"http://localhost:89../solr/core0$",
+        assert re.search(
+            r"http://localhost:89../solr/core0$", self.solr._create_full_url(path="")
         )
         # Basic path.
-        self.assertRegex(
-            self.solr._create_full_url(path="pysolr_tests"),
+        assert re.search(
             r"http://localhost:89../solr/core0/pysolr_tests$",
+            self.solr._create_full_url(path="pysolr_tests"),
         )
         # Leading slash (& making sure we don't touch the trailing slash).
-        self.assertRegex(
-            self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
+        assert re.search(
             r"http://localhost:89../solr/core0/pysolr_tests/select/\?whatever=/",
+            self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
         )
 
     @classmethod
-    def tearDownClass(cls):
+    def teardown_class(cls):
         """
         Cleanly shut down the shared ProxyZooKeeper instance after all tests.
         """
         with contextlib.suppress(KazooException):
             cls.zk.zk.stop()
             cls.zk.zk.close()
-
-        super().tearDownClass()

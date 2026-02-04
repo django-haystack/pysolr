@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import subprocess
-import unittest
 
 
 def main():
@@ -9,11 +8,11 @@ def main():
         print("→ Starting Solr containers...")
         subprocess.run(["./solr-docker-test-env.sh", "setup"], check=True)
 
-        print("→ Running unit test suite...")
-        unittest.main(module="tests", verbosity=1)
+        print("→ Running pytest...")
+        subprocess.run(["pytest"], check=True)  # noqa: S607
 
     finally:
-        print("→ Unit test suite completed.")
+        print("→ Pytest completed.")
         subprocess.run(["./solr-docker-test-env.sh", "destroy"], check=True)
 
 
