@@ -1,11 +1,12 @@
 import contextlib
-import unittest
+
+import pytest
 
 from pysolr import SolrCoreAdmin, SolrError
 
 
-class SolrCoreAdminTestCase(unittest.TestCase):
-    def setUp(self):
+class TestSolrCoreAdmin:
+    def setup_method(self):
         self.solr_admin = SolrCoreAdmin("http://localhost:8983/solr/admin/cores")
 
         # Unload any leftover demo cores before each test
@@ -47,25 +48,25 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         # Status of all cores
         result = self.solr_admin.status()
 
-        self.assertIn("core0", result["status"])
+        assert "core0" in result["status"]
 
         # Status of a specific core
         result = self.solr_admin.status(core="core0")
 
-        self.assertEqual(result["status"]["core0"]["name"], "core0")
+        assert result["status"]["core0"]["name"] == "core0"
 
     def test_create(self):
         """Test creating a core returns a successful response."""
         result = self.solr_admin.create("demo_core1")
 
-        self.assertEqual(result["responseHeader"]["status"], 0)
-        self.assertEqual(result["core"], "demo_core1")
+        assert result["responseHeader"]["status"] == 0
+        assert result["core"] == "demo_core1"
 
     def test_reload(self):
         """Test reloading a core returns a successful response."""
         result = self.solr_admin.reload("core0")
 
-        self.assertEqual(result["responseHeader"]["status"], 0)
+        assert result["responseHeader"]["status"] == 0
 
     def test_rename(self):
         """Test renaming a core succeeds and the new name appears in the status."""
@@ -76,12 +77,12 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         # Rename the core to a new name
         result = self.solr_admin.rename("demo_core1", "demo_core2")
 
-        self.assertEqual(result["responseHeader"]["status"], 0)
+        assert result["responseHeader"]["status"] == 0
 
         # Verify that the renamed core appears in the status response
         result_2 = self.solr_admin.status(core="demo_core2")
 
-        self.assertEqual(result_2["status"]["demo_core2"]["name"], "demo_core2")
+        assert result_2["status"]["demo_core2"]["name"] == "demo_core2"
 
     def test_swap(self):
         """
@@ -102,7 +103,7 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         # Perform swap
         result = self.solr_admin.swap("demo_core1", "demo_core2")
 
-        self.assertEqual(result["responseHeader"]["status"], 0)
+        assert result["responseHeader"]["status"] == 0
 
     def test_unload(self):
         """
@@ -115,17 +116,18 @@ class SolrCoreAdminTestCase(unittest.TestCase):
 
         result = self.solr_admin.unload("demo_core1")
 
-        self.assertEqual(result["responseHeader"]["status"], 0)
+        assert result["responseHeader"]["status"] == 0
 
     def test_load(self):
-        self.assertRaises(NotImplementedError, self.solr_admin.load, "wheatley")
+        with pytest.raises(NotImplementedError):
+            self.solr_admin.load("wheatley")
 
     def test_status__nonexistent_core_returns_empty_response(self):
         """Test that requesting status for a missing core returns an empty response."""
         result = self.solr_admin.status(core="not_exists")
 
-        self.assertNotIn("name", result["status"]["not_exists"])
-        self.assertNotIn("instanceDir", result["status"]["not_exists"])
+        assert "name" not in result["status"]["not_exists"]
+        assert "instanceDir" not in result["status"]["not_exists"]
 
     def test_create__existing_core_raises_error(self):
         """Test creating a core that already exists raises SolrError."""
@@ -134,24 +136,24 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         self.solr_admin.create("demo_core1")
 
         # Second create should raise SolrError
-        with self.assertRaises(SolrError) as ctx:
+        with pytest.raises(SolrError) as exc_info:
             self.solr_admin.create("demo_core1")
 
-        self.assertIn("Solr returned HTTP error 500", str(ctx.exception))
-        self.assertIn(
-            "Core with name 'demo_core1' already exists",
-            str(ctx.exception),
-        )
+        # Check error message contents
+        message = str(exc_info.value)
+        assert "Solr returned HTTP error 500" in message
+        assert "Core with name 'demo_core1' already exists" in message
 
     def test_reload__nonexistent_core_raises_error(self):
         """Test that reloading a non-existent core raises SolrError."""
 
-        with self.assertRaises(SolrError) as ctx:
+        with pytest.raises(SolrError) as exc_info:
             self.solr_admin.reload("not_exists")
 
-        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
-        self.assertIn("No such core", str(ctx.exception))
-        self.assertIn("not_exists", str(ctx.exception))
+        message = str(exc_info.value)
+        assert "Solr returned HTTP error 400" in message
+        assert "No such core" in message
+        assert "not_exists" in message
 
     def test_rename__nonexistent_core_no_effect(self):
         """
@@ -169,8 +171,8 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         result = self.solr_admin.status(core="demo_core99")
 
         # The target core should not exist because the rename operation was ignored
-        self.assertNotIn("name", result["status"]["demo_core99"])
-        self.assertNotIn("instanceDir", result["status"]["demo_core99"])
+        assert "name" not in result["status"]["demo_core99"]
+        assert "instanceDir" not in result["status"]["demo_core99"]
 
     def test_swap__missing_source_core_returns_error(self):
         """Test swapping when the source core is missing raises SolrError."""
@@ -178,12 +180,12 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         # Create only the target core
         self.solr_admin.create("demo_core2")
 
-        with self.assertRaises(SolrError) as ctx:
+        with pytest.raises(SolrError) as ctx:
             self.solr_admin.swap("not_exists", "demo_core2")
 
-        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
-        self.assertIn("No such core", str(ctx.exception))
-        self.assertIn("not_exists", str(ctx.exception))
+        assert "Solr returned HTTP error 400" in str(ctx.value)
+        assert "No such core" in str(ctx.value)
+        assert "not_exists" in str(ctx.value)
 
     def test_swap__missing_target_core_returns_error(self):
         """Test swapping when the target core is missing raises SolrError."""
@@ -191,19 +193,20 @@ class SolrCoreAdminTestCase(unittest.TestCase):
         # Create only the source core
         self.solr_admin.create("demo_core1")
 
-        with self.assertRaises(SolrError) as ctx:
+        with pytest.raises(SolrError) as ctx:
             self.solr_admin.swap("demo_core1", "not_exists")
 
-        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
-        self.assertIn("No such core", str(ctx.exception))
-        self.assertIn("not_exists", str(ctx.exception))
+        assert "Solr returned HTTP error 400" in str(ctx.value)
+        assert "No such core" in str(ctx.value)
+        assert "not_exists" in str(ctx.value)
 
     def test_unload__nonexistent_core_returns_error(self):
         """Test unloading a non-existent core raises SolrError."""
 
-        with self.assertRaises(SolrError) as ctx:
+        with pytest.raises(SolrError) as exc_info:
             self.solr_admin.unload("not_exists")
 
-        self.assertIn("Solr returned HTTP error 400", str(ctx.exception))
-        self.assertIn("Cannot unload non-existent core", str(ctx.exception))
-        self.assertIn("not_exists", str(ctx.exception))
+        message = str(exc_info.value)
+        assert "Solr returned HTTP error 400" in message
+        assert "Cannot unload non-existent core" in message
+        assert "not_exists" in message
