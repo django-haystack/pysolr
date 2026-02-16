@@ -1513,7 +1513,6 @@ class ZooKeeper:
     # Constants used by the REST API:
     LIVE_NODES_ZKNODE = "/live_nodes"
     ALIASES = "/aliases.json"
-    CLUSTER_STATE = "/clusterstate.json"
     COLLECTION_STATUS = "/collections"
     COLLECTION_STATE = "/collections/%s/state.json"
     SHARDS = "shards"
@@ -1556,14 +1555,6 @@ class ZooKeeper:
                 self.state = state
 
         self.zk.add_listener(connectionListener)
-
-        @self.zk.DataWatch(ZooKeeper.CLUSTER_STATE)
-        def watchClusterState(data, *args, **kwargs):
-            if not data:
-                LOG.warning("No cluster state available: no collections defined?")
-            else:
-                self.collections = json.loads(data.decode("utf-8"))
-                LOG.info("Updated collections: %s", self.collections)
 
         @self.zk.ChildrenWatch(ZooKeeper.LIVE_NODES_ZKNODE)
         def watchLiveNodes(children):
