@@ -1,27 +1,19 @@
 #!/usr/bin/env python
-# encoding: utf-8
 
-from __future__ import absolute_import, print_function, unicode_literals
-
-import faulthandler
-import signal
-import unittest
-
-from tests import utils as test_utils
+import subprocess
 
 
 def main():
-    faulthandler.register(signal.SIGUSR1, all_threads=True)
-    print("Installed SIGUSR1 handler to print stack traces: pkill -USR1 -f run-tests")
-
-    test_utils.prepare()
-    test_utils.start_solr()
-
     try:
-        unittest.main(module="tests", verbosity=1)
+        print("→ Starting Solr containers...")
+        subprocess.run(["./solr-docker-test-env.sh", "setup"], check=True)
+
+        print("→ Running pytest...")
+        subprocess.run(["pytest"], check=True)  # noqa: S607
+
     finally:
-        print("Tests complete; halting Solr servers…")
-        test_utils.stop_solr()
+        print("→ Pytest completed.")
+        subprocess.run(["./solr-docker-test-env.sh", "destroy"], check=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,131 @@
+[build-system]
+build-backend = "hatchling.build"
+requires = [ "hatchling" ]
+
+[project]
+name = "pysolr"
+version = "3.11.0"
+description = "Lightweight Python client for Apache Solr"
+readme = "README.rst"
+license = { text = "BSD" }
+authors = [ { name = "Daniel Lindsley", email = "daniel@toastdriven.com" } ]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+]
+dependencies = [ "requests>=2.32.5" ]
+
+optional-dependencies.solrcloud = [ "kazoo>=2.5" ]
+urls.Homepage = "https://github.com/django-haystack/pysolr/"
+
+[dependency-groups]
+dev = [
+  "coverage",
+  "pre-commit>=4.4",
+  "pytest",
+]
+
+[tool.hatch.build.targets.sdist]
+exclude = [ ".github" ]
+
+[tool.ruff]
+lint.select = [
+  "A",     # flake8-builtins
+  "AIR",   # Airflow
+  "ASYNC", # flake8-async
+  "B",     # flake8-bugbear
+  "BLE",   # flake8-blind-except
+  "C4",    # flake8-comprehensions
+  "C90",   # McCabe cyclomatic complexity
+  "E",     # pycodestyle
+  "ERA",   # eradicate
+  "EXE",   # flake8-executable
+  "F",     # Pyflakes
+  "G",     # flake8-logging-format
+  "I",     # isort
+  "ICN",   # flake8-import-conventions
+  "INP",   # flake8-no-pep420
+  "INT",   # flake8-gettext
+  "ISC",   # flake8-implicit-str-concat
+  "N",     # pep8-naming
+  "PGH",   # pygrep-hooks
+  "PIE",   # flake8-pie
+  "PL",    # Pylint
+  "PT",    # flake8-pytest-style
+  "PTH",   # flake8-use-pathlib
+  "PYI",   # flake8-pyi
+  "RET",   # flake8-return
+  "RSE",   # flake8-raise
+  "RUF",   # Ruff-specific rules
+  "S",     # flake8-bandit
+  "T10",   # flake8-debugger
+  "TCH",   # flake8-type-checking
+  "TID",   # flake8-tidy-imports
+  "W",     # pycodestyle
+  "YTT",   # flake8-2020
+  # "ANN",  # flake8-annotations
+  # "ARG",  # flake8-unused-arguments
+  # "COM",  # flake8-commas
+  # "D",    # pydocstyle
+  # "DJ",   # flake8-django
+  # "DTZ",  # flake8-datetimez
+  # "EM",   # flake8-errmsg
+  # "FBT",  # flake8-boolean-trap
+  # "NPY",  # NumPy-specific rules
+  # "PD",   # pandas-vet
+  # "Q",    # flake8-quotes
+  # "SIM",  # flake8-simplify
+  # "SLF",  # flake8-self
+  # "T20",  # flake8-print
+  # "TRY",  # tryceratops
+  # "UP",   # pyupgrade
+]
+lint.ignore = [
+  "B018",
+  "B026",
+  "B904",
+  "N802",
+  "N803",
+  "N806",
+  "PGH004",
+  "PLR5501",
+  "PLW2901",
+  "PT009",
+  "PT027",
+  "PTH123",
+  "RET505",
+  "RET506",
+  "RUF100",
+  "S113",
+  "S314",
+  "S603",
+]
+lint.per-file-ignores."tests/*" = [
+  "S101",
+]
+lint.mccabe.max-complexity = 16
+lint.pylint.allow-magic-value-types = [
+  "bytes",
+  "float",
+  "int",
+  "str",
+]
+lint.pylint.max-args = 12
+lint.pylint.max-branches = 20
+lint.pylint.max-returns = 7
+lint.pylint.max-statements = 54
+
+[tool.codespell]
+ignore-words-list = "dekstop,assertin,nwe,wahtever,yello"
+skip = "./.*"

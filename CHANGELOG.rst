@@ -61,6 +61,10 @@ Changes
   IMPORTANT: If you are upgrading to this version and need to keep committing by default,
   change the Solr objects to have ``always_commit=True``.
 
+- `pysolr.version_info` and `pysolr.pkg_distribution` have been removed. [Craig de Stigter]
+
+- Added dependency on `importlib_metadata` for Python < 3.8 [Craig de Stigter]
+
 Fix
 ~~~
 
@@ -119,6 +123,10 @@ Other
 - Tox: run SolrCloud tests (parity with Travis CI) [Chris Adams]
 
 - Update project URL. [Chris Adams]
+
+- Fixed DeprecationWarning from `pkg_resources` on Python 3.10+ [Craig de Stigter]
+
+  Closes #464
 
 v3.5.0 (2016-05-24)
 -------------------
@@ -274,7 +282,7 @@ v3.4.0 (2016-02-02)
   This change uses 'non-mutable' message that is complemented
   with extracted data that using string formatting option supplied
   by Python logging. Thanks to this, Sentry and other solutions
-  can perform better grouping of loging messages (by status code).
+  can perform better grouping of logging messages (by status code).
 
   This is approach that is already used in handling other errors.
 
@@ -613,7 +621,7 @@ v3.0.6 (2013-04-13)
 
 - Merge pull request #71 from mjumbewu/master. [Daniel Lindsley]
 
-  Trailing slash in the base URL will break reqeusts
+  Trailing slash in the base URL will break requests
 
 - Make sure trailing and leading slashes do not collide. [Mjumbe Wawatu
   Ukweli]
