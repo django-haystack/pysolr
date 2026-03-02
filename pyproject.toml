@@ -25,7 +25,6 @@ classifiers = [
   "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
 ]
 dependencies = [ "requests>=2.32.5" ]
-
 optional-dependencies.solrcloud = [ "kazoo>=2.5" ]
 urls.Homepage = "https://github.com/django-haystack/pysolr/"
 
@@ -36,8 +35,8 @@ dev = [
   "pytest",
 ]
 
-[tool.hatch.build.targets.sdist]
-exclude = [ ".github" ]
+[tool.hatch]
+build.targets.sdist.exclude = [ ".github" ]
 
 [tool.ruff]
 lint.select = [
