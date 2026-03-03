@@ -384,7 +384,7 @@ class BaseSolrClientTests:
         assert len(results) == 3
         # search should default to 'select' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("select/?")
+        assert args[1].startswith("select?")
 
         results = self.solr.search("example")
         assert len(results) == 2
@@ -447,7 +447,7 @@ class BaseSolrClientTests:
         assert len(results) == 0
         # more_like_this should default to 'mlt' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("mlt/?")
+        assert args[1].startswith("mlt?")
 
         # more_like_this should support custom handlers
         with pytest.raises(SolrError):
@@ -473,7 +473,7 @@ class BaseSolrClientTests:
         }
         # suggest_terms should default to 'mlt' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("terms/?")
+        assert args[1].startswith("terms?")
 
         # suggest_terms should support custom handlers
         with pytest.raises(SolrError):
@@ -614,7 +614,7 @@ class BaseSolrClientTests:
         )
         # add should default to 'update' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("update/?")
+        assert args[1].startswith("update?")
 
         assert len(self.solr.search("doc")) == 5
         assert len(self.solr.search("example")) == 3
@@ -749,7 +749,7 @@ class BaseSolrClientTests:
         self.solr.delete(id="doc_1", commit=True)
         # delete should default to 'update' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("update/?")
+        assert args[1].startswith("update?")
 
         assert len(self.solr.search("doc")) == 2
         assert len(self.solr.search("type_s:parent")) == 2
@@ -861,7 +861,7 @@ class BaseSolrClientTests:
         self.solr.commit()
         # commit should default to 'update' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("update/?")
+        assert args[1].startswith("update?")
         assert len(self.solr.search("doc")) == 4
 
     def test_can_handles_default_commit_policy(self):
@@ -900,7 +900,7 @@ class BaseSolrClientTests:
         self.solr.optimize()
         # optimize should default to 'update' handler
         args, _kwargs = self.solr._send_request.call_args
-        assert args[1].startswith("update/?")
+        assert args[1].startswith("update?")
         assert len(self.solr.search("doc")) == 4
 
         # optimize should support custom handlers
