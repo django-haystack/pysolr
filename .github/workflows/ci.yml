@@ -8,6 +8,7 @@ on:
     branches: [master]
 jobs:
   test:
+    name: Test (Python ${{ matrix.python }}, Solr ${{ matrix.solr }})
     strategy:
       fail-fast: false
       matrix:
