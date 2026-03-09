@@ -13,6 +13,17 @@ services:
       - search
 
   # -------------------------------------------------------------
+  # APACHE TIKA SERVER
+  # -------------------------------------------------------------
+  tika:
+    image: apache/tika:3.2.3.0
+    container_name: tika
+    ports:
+      - "9998:9998"
+    networks:
+      - search
+
+  # -------------------------------------------------------------
   # SOLR STANDALONE
   # -------------------------------------------------------------
   solr-standalone:
@@ -21,7 +32,7 @@ services:
     ports:
       - "8983:8983"
     volumes:
-      - ./solr_configs/9.x.x:/pysolr_configset:ro
+      - ./solr_configs/${SOLR_VERSION:-9}.x.x:/pysolr_configset:ro
     environment:
       - PYSOLR_CONFIGSET=/pysolr_configset
       - SITECORE_CONFIGSET=/var/solr/data/sitecore_configset
@@ -50,7 +61,8 @@ services:
       cp -r $$SITECORE_CONFIGSET $$SOLR_HOME/demo_core2
 
       # Start Solr in foreground (PID 1)
-      exec solr-foreground
+      # --user-managed works in Solr 9 & 10 (forces standalone in 10; default in 9)
+      exec solr-foreground --user-managed
       "
     healthcheck:
       test:
@@ -62,6 +74,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    depends_on:
+      - tika
     networks:
       - search
 
@@ -75,6 +89,7 @@ services:
       - "8993:8983"
     environment:
       - SOLR_HOST=solr-node0
+      - SOLR_HOST_ADVERTISE=solr-node0
       - SOLR_MODULES=extraction
       - ZK_HOST=zookeeper:2181
     healthcheck:
@@ -87,6 +102,7 @@ services:
       start_period: 10s
     depends_on:
       - zookeeper
+      - tika
     networks:
       - search
 
@@ -100,6 +116,7 @@ services:
       - "8994:8983"
     environment:
       - SOLR_HOST=solr-node1
+      - SOLR_HOST_ADVERTISE=solr-node1
       - SOLR_MODULES=extraction
       - ZK_HOST=zookeeper:2181
     healthcheck:
@@ -112,6 +129,7 @@ services:
       start_period: 10s
     depends_on:
       - zookeeper
+      - tika
     networks:
       - search
 
@@ -129,7 +147,7 @@ services:
       solr-standalone:
         condition: service_healthy
     volumes:
-      - ./solr_configs/9.x.x:/pysolr_configset:ro
+      - ./solr_configs/${SOLR_VERSION:-9}.x.x:/pysolr_configset:ro
       - ./scripts/solr-init.sh:/solr-init.sh:ro
     environment:
       - PYSOLR_CONFIGSET=/pysolr_configset

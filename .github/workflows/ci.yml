@@ -12,9 +12,11 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
+        solr: ["9", "10"]
     runs-on: ubuntu-latest
     env:
       UV_PYTHON: ${{ matrix.python }}
+      SOLR_VERSION: ${{ matrix.solr }}
       UV_LOCKED: 1
       UV_NO_DEV: 1
       PYTHONUNBUFFERED: 1
@@ -34,4 +36,4 @@ jobs:
           version: "0.9.29"
 
       - name: Run tests
-        run: uv run --extra=solrcloud --with=pytest -- python run-tests.py
+        run: uv run --extra=solrcloud run-tests.py

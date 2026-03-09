@@ -950,7 +950,7 @@ class BaseSolrClientTests:
         # Note the underhanded use of a double snowman to verify both that Tika
         # correctly decoded entities and that our UTF-8 characters survived the
         # round-trip:
-        assert ["Test Title ☃☃"] == m["title"]
+        assert ["Test Title ☃☃"] == m["dc:title"]
 
     def test_extract_special_char_in_filename(self):
         fake_f = StringIO(
@@ -993,7 +993,7 @@ class BaseSolrClientTests:
         # Note the underhanded use of a double snowman to verify both that Tika
         # correctly decoded entities and that our UTF-8 characters survived the
         # round-trip:
-        assert ["Test Title ☃☃"] == m["title"]
+        assert ["Test Title ☃☃"] == m["dc:title"]
 
     def test_full_url(self):
         self.solr.url = "http://localhost:8983/solr/core0"

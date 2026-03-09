@@ -361,6 +361,8 @@ solrcloud = [
 dev = [
     { name = "coverage" },
     { name = "pre-commit" },
+]
+test = [
     { name = "pytest" },
 ]
 
@@ -375,8 +377,8 @@ provides-extras = ["solrcloud"]
 dev = [
     { name = "coverage" },
     { name = "pre-commit", specifier = ">=4.4" },
-    { name = "pytest" },
 ]
+test = [{ name = "pytest", specifier = ">=9.0.2" }]
 
 [[package]]
 name = "pytest"

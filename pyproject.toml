@@ -32,11 +32,16 @@ urls.Homepage = "https://github.com/django-haystack/pysolr/"
 dev = [
   "coverage",
   "pre-commit>=4.4",
-  "pytest",
+]
+test = [
+  "pytest>=9.0.2",
 ]
 
 [tool.hatch]
 build.targets.sdist.exclude = [ ".github" ]
+
+[tool.uv]
+default-groups = [ "dev", "test" ]
 
 [tool.ruff]
 lint.select = [
