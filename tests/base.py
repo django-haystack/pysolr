@@ -145,20 +145,20 @@ class BaseSolrClientTests:
         # Note the use of a querystring parameter including a trailing slash to
         # catch sloppy trimming:
         self.assertURLStartsWith(
-            self.solr._create_full_url(path="/pysolr_tests/select/?whatever=/"),
-            "core0/pysolr_tests/select/?whatever=/",
+            self.solr._create_full_url(path="/pysolr_tests/select?whatever=/"),
+            "core0/pysolr_tests/select?whatever=/",
         )
 
     def test__send_request(self):
         # Test a valid request.
-        resp_body = self.solr._send_request("GET", "select/?q=doc&wt=json")
+        resp_body = self.solr._send_request("GET", "select?q=doc&wt=json")
         assert '"numFound":3' in resp_body
 
         # Test a lowercase method & a body.
         xml_body = '<add><doc><field name="id">doc_12</field><field name="title">Whee! ☃</field></doc></add>'  # NOQA: E501
         resp_body = self.solr._send_request(
             "POST",
-            "update/?commit=true",
+            "update?commit=true",
             body=xml_body,
             headers={"Content-type": "text/xml; charset=utf-8"},
         )
@@ -168,7 +168,7 @@ class BaseSolrClientTests:
         json_body = '[{"id":"doc_13","title":"Whee hoo! ☃"}]'
         resp_body = self.solr._send_request(
             "POST",
-            "update/?commit=true",
+            "update?commit=true",
             body=json_body,
             headers={"Content-type": "application/json; charset=utf-8"},
         )

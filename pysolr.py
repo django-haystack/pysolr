@@ -412,7 +412,7 @@ class Solr:
             return self._send_request("get", path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = "%s" % handler
+            path = handler
             headers = {
                 "Content-type": "application/x-www-form-urlencoded; charset=utf-8"
             }
@@ -460,7 +460,7 @@ class Solr:
             path_handler = "select"
             query_vars.append("qt=%s" % safe_urlencode(handler, True))
 
-        path = "%s" % path_handler
+        path = path_handler
 
         if commit is None:
             commit = self.always_commit
@@ -1228,7 +1228,7 @@ class Solr:
             return self._send_request("get", path)
         else:
             # Handles very long queries by submitting as a POST.
-            path = "%s" % handler
+            path = handler
             headers = {
                 "Content-type": "application/x-www-form-urlencoded; charset=utf-8"
             }
