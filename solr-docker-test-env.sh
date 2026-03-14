@@ -18,6 +18,13 @@ usage() {
     exit 1
 }
 
+# Function to get running Solr version
+get_solr_version() {
+    local version
+    version=$(docker compose -f docker/docker-compose-solr.yml exec -T solr-standalone solr --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+    echo "${version:-unknown}"
+}
+
 # Check if exactly one argument is provided
 if [ $# -ne 1 ]; then
     echo -e "${YELLOW}Warning: Exactly one flag is required${NC}"
@@ -33,6 +40,8 @@ help | --help | -h)
 setup)
     echo -e "${CYAN}=== Starting Solr Docker Test Environment Setup ===${NC}"
 
+    echo -e "${BLUE}→ SOLR_VERSION environment variable: ${SOLR_VERSION:-not set (default: 9 will be used)}${NC}"
+
     # Start docker compose in detached mode
     echo -e "${BLUE}→ Running \`docker compose -f docker/docker-compose-solr.yml up -d --quiet-pull\`...${NC}"
     docker compose -f docker/docker-compose-solr.yml up -d --quiet-pull
@@ -46,7 +55,10 @@ setup)
 
         if [ "$EXIT_CODE" -eq 0 ]; then
             echo -e "${GREEN}✓ Setup completed successfully!${NC}"
-            echo -e "${GREEN}✓ Solr test server is ready${NC}"
+
+            SOLR_VERSION_RUNNING=$(get_solr_version)
+
+            echo -e "${GREEN}✓ Solr test server is ready (Solr version: ${SOLR_VERSION_RUNNING})${NC}"
             exit 0
         else
             echo -e "${RED}✗ Error: solr-init container failed with exit code ${EXIT_CODE}${NC}"
