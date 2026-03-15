@@ -291,7 +291,7 @@ Downloading, configuring and running Solr 9 looks like this::
 
 To specify a different Solr version::
 
-    export SOLR_VERSION=9.8.0
+    export SOLR_VERSION=10
     ./solr-docker-test-env.sh setup
 
 To stop and remove the Solr test environment::
