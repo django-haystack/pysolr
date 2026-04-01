@@ -279,8 +279,20 @@ For consistency, this project uses `pre-commit <https://pre-commit.com/>`_ to ma
 Running Tests
 =============
 
-The ``run-tests.py`` script will automatically perform the steps below and is
-recommended for testing by default unless you need more control.
+This project uses ``pytest`` and is typically run via ``uv``.
+
+First, install ``uv`` by following the official installation guide:
+
+https://docs.astral.sh/uv/getting-started/installation/
+
+The ``run-tests.py`` script automatically performs the steps below and is
+recommended for running the tests unless you need more control.
+
+You can run it with:
+
+.. code-block:: console
+
+    $ uv run --extra=solrcloud run-tests.py
 
 Running a test Solr instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -301,6 +313,14 @@ To stop and remove the Solr test environment::
 Running the tests
 ~~~~~~~~~~~~~~~~~
 
+Run the standard test suite with:
+
 .. code-block:: console
 
-    $ python -m unittest tests
+    $ uv run pytest
+
+To run the SolrCloud tests in addition to the standard test suite, enable the `solrcloud` extra:
+
+.. code-block:: console
+
+    $ uv run --extra=solrcloud pytest
