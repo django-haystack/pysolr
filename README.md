@@ -11,7 +11,7 @@ the server and returns results based on the query.
 [![PyPI downloads](https://img.shields.io/pypi/dm/pysolr.svg)](https://pypi.org/project/pysolr/)
 [![GitHub Stars](https://img.shields.io/github/stars/django-haystack/pysolr.svg?style=social)](https://github.com/django-haystack/pysolr/stargazers)
 
----
+______________________________________________________________________
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ the server and returns results based on the query.
   - [Running a test Solr instance](#running-a-test-solr-instance)
   - [Running the tests](#running-the-tests)
 
----
+______________________________________________________________________
 
 ## Status
 

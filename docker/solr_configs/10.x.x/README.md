@@ -10,7 +10,7 @@ changes. If this configuration needs to be updated for a future Solr version
 (e.g. Solr 11), please make sure the customizations documented below are
 preserved.
 
----
+______________________________________________________________________
 
 ## schema.xml
 
@@ -25,7 +25,7 @@ Instead of duplicating it, the Docker/compose scripts now **rename**
 This avoids maintaining two equivalent schema files and keeps the source of
 truth aligned with upstream Solr defaults.
 
----
+______________________________________________________________________
 
 ## solrconfig.xml
 
@@ -46,7 +46,7 @@ Using `schema.xml` is preferred because it is **immutable at runtime**.
 **Solr documentation:**
 [Solr 10 Schema Factories – ClassicIndexSchemaFactory](https://solr.apache.org/guide/solr/latest/configuration-guide/schema-factory.html#schema-factories)
 
----
+______________________________________________________________________
 
 ### 2. MoreLikeThis request handler
 
@@ -63,7 +63,7 @@ test cases depend on it.
 **Solr documentation:**
 [Solr 10 MoreLikeThis query handler](https://solr.apache.org/guide/solr/latest/query-guide/morelikethis.html)
 
----
+______________________________________________________________________
 
 ### 3. External Apache Tika server
 
@@ -103,7 +103,7 @@ container from the Solr container.
 **Solr documentation:**
 [Solr 10 Apache tika server](https://solr.apache.org/guide/solr/latest/indexing-guide/indexing-with-tika.html)
 
----
+______________________________________________________________________
 
 ## Notes for Future Solr Versions
 

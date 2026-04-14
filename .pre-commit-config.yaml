@@ -1,5 +1,5 @@
 ci:
-  autoupdate_schedule: monthly
+    autoupdate_schedule: monthly
 repos:
     - repo: https://github.com/pre-commit/pre-commit-hooks
       rev: v6.0.0
@@ -39,7 +39,7 @@ repos:
       rev: v0.15.9
       hooks:
           - id: ruff-check
-            args: [ --fix ]
+            args: [--fix]
           - id: ruff-format
 
     - repo: https://github.com/tox-dev/pyproject-fmt
@@ -55,4 +55,11 @@ repos:
     - repo: https://github.com/astral-sh/uv-pre-commit
       rev: 0.11.3
       hooks:
-        - id: uv-lock
+          - id: uv-lock
+
+    - repo: https://github.com/executablebooks/mdformat
+      rev: 1.0.0
+      hooks:
+          - id: mdformat
+            additional_dependencies:
+                - mdformat-gfm
