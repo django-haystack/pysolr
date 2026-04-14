@@ -10,7 +10,7 @@ changes. If this configuration needs to be updated for a future Solr version
 (e.g. Solr 10), please make sure the customizations documented below are
 preserved.
 
----
+______________________________________________________________________
 
 ## schema.xml
 
@@ -25,7 +25,7 @@ Instead of duplicating it, the Docker/compose scripts now **rename**
 This avoids maintaining two equivalent schema files and keeps the source of
 truth aligned with upstream Solr defaults.
 
----
+______________________________________________________________________
 
 ## solrconfig.xml
 
@@ -46,7 +46,7 @@ Using `schema.xml` is preferred because it is **immutable at runtime**.
 **Solr documentation:**
 [Solr 9 Schema Factories – ClassicIndexSchemaFactory](https://solr.apache.org/guide/solr/9_9/configuration-guide/schema-factory.html#schema-factories)
 
----
+______________________________________________________________________
 
 ### 2. MoreLikeThis request handler
 
@@ -63,7 +63,7 @@ test cases depend on it.
 **Solr documentation:**
 [Solr 9 MoreLikeThis query handler](https://solr.apache.org/guide/solr/9_9/query-guide/morelikethis.html)
 
----
+______________________________________________________________________
 
 ## Notes for Future Solr Versions
 

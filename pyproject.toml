@@ -6,7 +6,7 @@ requires = [ "hatchling" ]
 name = "pysolr"
 version = "3.11.0"
 description = "Lightweight Python client for Apache Solr"
-readme = "README.rst"
+readme = "README.md"
 license = { text = "BSD" }
 authors = [ { name = "Daniel Lindsley", email = "daniel@toastdriven.com" } ]
 requires-python = ">=3.10"
