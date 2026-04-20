@@ -359,10 +359,10 @@ solrcloud = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "coverage" },
     { name = "pre-commit" },
 ]
 test = [
+    { name = "coverage" },
     { name = "pytest" },
 ]
 
@@ -374,11 +374,11 @@ requires-dist = [
 provides-extras = ["solrcloud"]
 
 [package.metadata.requires-dev]
-dev = [
+dev = [{ name = "pre-commit", specifier = ">=4.4" }]
+test = [
     { name = "coverage" },
-    { name = "pre-commit", specifier = ">=4.4" },
+    { name = "pytest", specifier = ">=9.0.2" },
 ]
-test = [{ name = "pytest", specifier = ">=9.0.2" }]
 
 [[package]]
 name = "pytest"

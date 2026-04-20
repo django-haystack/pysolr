@@ -8,7 +8,12 @@ version = "3.11.0"
 description = "Lightweight Python client for Apache Solr"
 readme = "README.md"
 license = { text = "BSD" }
-authors = [ { name = "Daniel Lindsley", email = "daniel@toastdriven.com" } ]
+authors = [
+  { name = "Daniel Lindsley", email = "daniel@toastdriven.com" },
+  { name = "Joseph Kocherhans" },
+  { name = "Jacob Kaplan-Moss" },
+  { name = "Thomas Rieder" }
+]
 requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -30,10 +35,10 @@ urls.Homepage = "https://github.com/django-haystack/pysolr/"
 
 [dependency-groups]
 dev = [
-  "coverage",
   "pre-commit>=4.4",
 ]
 test = [
+  "coverage",
   "pytest>=9.0.2",
 ]
 

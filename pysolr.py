@@ -5,8 +5,6 @@ import os
 import random
 import re
 import time
-from importlib.metadata import PackageNotFoundError
-from importlib.metadata import version as _get_version
 from xml.etree import ElementTree  # noqa: ICN001
 
 import requests
@@ -28,17 +26,7 @@ import html.entities as htmlentities
 from http.client import HTTPException
 from urllib.parse import quote, urlencode
 
-__author__ = "Daniel Lindsley, Joseph Kocherhans, Jacob Kaplan-Moss, Thomas Rieder"
 __all__ = ["Solr"]
-
-try:
-    __version__ = _get_version(__name__)
-except PackageNotFoundError:
-    __version__ = "0.0.dev0"
-
-
-def get_version():
-    return __version__
 
 
 DATETIME_REGEX = re.compile(
