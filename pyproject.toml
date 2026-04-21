@@ -9,10 +9,10 @@ description = "Lightweight Python client for Apache Solr"
 readme = "README.md"
 license = { text = "BSD" }
 authors = [
+  { name = "Chris Adams", email = "chris@improbable.org" },
+  { name = "Christian Clauss", email = "cclauss@me.com" },
   { name = "Daniel Lindsley", email = "daniel@toastdriven.com" },
-  { name = "Joseph Kocherhans" },
-  { name = "Jacob Kaplan-Moss" },
-  { name = "Thomas Rieder" }
+  { name = "Dhaval Gojiya", email = "dhavalgojiya10@gmail.com" },
 ]
 requires-python = ">=3.10"
 classifiers = [
