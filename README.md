@@ -79,7 +79,7 @@ Basic usage looks like:
 import pysolr
 
 # Create a client instance. The timeout and authentication options are not required.
-# Solr URL format: http://host:port/solr/<CORE_NAME>
+# Solr URL format: http://host:port/solr/<core_name>
 solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, [timeout=10], [auth=<type of authentication>])
 
 # Note that auto_commit defaults to False for performance. You can set
