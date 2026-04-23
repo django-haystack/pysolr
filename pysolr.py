@@ -1242,7 +1242,6 @@ class SolrCoreAdmin:
        5. ALIAS
        6. SWAP
        7. UNLOAD
-       8. LOAD (not currently implemented)
     """
 
     def __init__(self, url, timeout=60, auth=None, verify=True, session=None):
@@ -1389,9 +1388,6 @@ class SolrCoreAdmin:
         """
         params = {"action": "UNLOAD", "core": core}
         return self._send_request(self.url, params=params)
-
-    def load(self, core):
-        raise NotImplementedError("Solr 1.4 and below do not support this operation.")
 
 
 # Using two-tuples to preserve order.
