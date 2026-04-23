@@ -40,19 +40,17 @@ VALID_XML_CHARS_REGEX = re.compile(
 )
 
 
-class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-
-
-# Add the ``NullHandler`` to avoid logging by default while still allowing
-# others to attach their own handlers.
+# ---------------------------
+# Logging
+# ---------------------------
 LOG = logging.getLogger("pysolr")
-h = NullHandler()
-LOG.addHandler(h)
+
+# Add a ``NullHandler`` to avoid logging by default.
+# Users can configure logging or enable debug output via `DEBUG_PYSOLR`.
+LOG.addHandler(logging.NullHandler())
 
 # For debugging...
-if os.environ.get("DEBUG_PYSOLR", "").lower() in ("true", "1"):
+if os.environ.get("DEBUG_PYSOLR", "").lower() in {"true", "1"}:
     LOG.setLevel(logging.DEBUG)
     stream = logging.StreamHandler()
     LOG.addHandler(stream)
