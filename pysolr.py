@@ -220,12 +220,12 @@ class Solr:
 
     Usage::
 
-        solr = pysolr.Solr('http://localhost:8983/solr/my_core')
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>')
         # With a 10 second timeout.
-        solr = pysolr.Solr('http://localhost:8983/solr/my_core', timeout=10)
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>', timeout=10)
 
         # with a dict as a default results class instead of pysolr.Results
-        solr = pysolr.Solr('http://localhost:8983/solr/my_core', results_cls=dict)
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>', results_cls=dict)
 
     """
 
