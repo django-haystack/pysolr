@@ -110,16 +110,6 @@ def unescape_html(text):
     return re.sub(r"&#?\w+;", fixup, text)
 
 
-def safe_urlencode(params, doseq=False):
-    """
-    URL-encode parameters using UTF-8 encoding.
-
-    This is a wrapper around `urllib.parse.urlencode` that ensures
-    consistent UTF-8 handling for all parameter values.
-    """
-    return urlencode(params, doseq)
-
-
 def clean_xml_string(s):
     """
     Cleans string from invalid xml chars
@@ -230,12 +220,12 @@ class Solr:
 
     Usage::
 
-        solr = pysolr.Solr('http://localhost:8983/solr')
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>')
         # With a 10 second timeout.
-        solr = pysolr.Solr('http://localhost:8983/solr', timeout=10)
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>', timeout=10)
 
         # with a dict as a default results class instead of pysolr.Results
-        solr = pysolr.Solr('http://localhost:8983/solr', results_cls=dict)
+        solr = pysolr.Solr('http://localhost:8983/solr/<core_name>', results_cls=dict)
 
     """
 
@@ -392,7 +382,7 @@ class Solr:
             else:
                 handler = custom_handler
 
-        params_encoded = safe_urlencode(params, True)
+        params_encoded = urlencode(params, doseq=True)
 
         if len(params_encoded) < 1024:
             # Typical case.
@@ -446,7 +436,7 @@ class Solr:
         path_handler = handler
         if self.use_qt_param:
             path_handler = "select"
-            query_vars.append("qt=%s" % safe_urlencode(handler, True))
+            query_vars.append("qt=%s" % urlencode(handler, doseq=True))
 
         path = path_handler
 
@@ -1208,7 +1198,7 @@ class Solr:
 
         """
         params = kwargs
-        params_encoded = safe_urlencode(params, True)
+        params_encoded = urlencode(params, doseq=True)
 
         if len(params_encoded) < 1024:
             # Typical case.

@@ -79,8 +79,8 @@ Basic usage looks like:
 import pysolr
 
 # Create a client instance. The timeout and authentication options are not required.
-# Solr URL format: http://host:port/solr/<CORE_NAME>
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", always_commit=True, [timeout=10], [auth=<type of authentication>])
+# Solr URL format: http://host:port/solr/<core_name>
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", always_commit=True, [timeout=10], [auth=<type of authentication>])
 
 # Note that auto_commit defaults to False for performance. You can set
 # `auto_commit=True` to have commands always update the index immediately, make
@@ -162,14 +162,14 @@ Simply point the URL to the index core:
 
 ```python
 # Setup a Solr instance. The timeout is optional.
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", timeout=10)
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", timeout=10)
 ```
 
 ### Custom Request Handlers
 
 ```python
 # Setup a Solr instance. The trailing slash is optional.
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", search_handler="/autocomplete", use_qt_param=False)
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", search_handler="/autocomplete", use_qt_param=False)
 ```
 
 If `use_qt_param` is `True` it is essential that the name of the handler
@@ -194,7 +194,7 @@ handler in `search` explicitly overrides the `search_handler` setting
 from requests_kerberos import HTTPKerberosAuth, OPTIONAL
 kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
 
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", auth=kerberos_auth)
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", auth=kerberos_auth)
 ```
 
 ```python
@@ -210,7 +210,7 @@ solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
 
 ```python
 # Setup a Solr instance in an https environment
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", verify="path/to/cert.pem")
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", verify="path/to/cert.pem")
 ```
 
 ```python
@@ -225,7 +225,7 @@ solr = pysolr.SolrCloud(zookeeper, "collection", verify="path/to/cert.perm")
 ```python
 # Setup a Solr instance. The trailing slash is optional.
 # All requests to Solr will be immediately committed because `always_commit=True`:
-solr = pysolr.Solr("http://localhost:8983/solr/my_core", search_handler="/autocomplete", always_commit=True)
+solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", search_handler="/autocomplete", always_commit=True)
 ```
 
 `always_commit` signals to the Solr object to either commit or not

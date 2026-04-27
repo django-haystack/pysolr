@@ -1,5 +1,5 @@
 from unittest.mock import Mock
-from urllib.parse import unquote_plus
+from urllib.parse import unquote_plus, urlencode
 
 import pytest
 import requests
@@ -10,7 +10,6 @@ from pysolr import (
     clean_xml_string,
     force_bytes,
     force_unicode,
-    safe_urlencode,
     sanitize,
     unescape_html,
 )
@@ -26,17 +25,15 @@ class TestUtils:
             unescape_html("Hello &doesnotexist; world") == "Hello &doesnotexist; world"
         )
 
-    def test_safe_urlencode(self):
+    def test_urlencode(self):
         assert (
-            force_unicode(
-                unquote_plus(safe_urlencode({"test": "Hello ☃! Helllo world!"}))
-            )
+            force_unicode(unquote_plus(urlencode({"test": "Hello ☃! Helllo world!"})))
             == "test=Hello ☃! Helllo world!"
         )
         assert (
             force_unicode(
                 unquote_plus(
-                    safe_urlencode({"test": ["Hello ☃!", "Helllo world!"]}, True)
+                    urlencode({"test": ["Hello ☃!", "Helllo world!"]}, doseq=True)
                 )
             )
             == "test=Hello \u2603!&test=Helllo world!"
@@ -44,7 +41,7 @@ class TestUtils:
         assert (
             force_unicode(
                 unquote_plus(
-                    safe_urlencode({"test": ("Hello ☃!", "Helllo world!")}, True)
+                    urlencode({"test": ("Hello ☃!", "Helllo world!")}, doseq=True)
                 )
             )
             == "test=Hello \u2603!&test=Helllo world!"
