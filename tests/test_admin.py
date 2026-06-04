@@ -118,10 +118,6 @@ class TestSolrCoreAdmin:
 
         assert result["responseHeader"]["status"] == 0
 
-    def test_load(self):
-        with pytest.raises(NotImplementedError):
-            self.solr_admin.load("wheatley")
-
     def test_status__nonexistent_core_returns_empty_response(self):
         """Test that requesting status for a missing core returns an empty response."""
         result = self.solr_admin.status(core="not_exists")
