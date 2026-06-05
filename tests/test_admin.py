@@ -6,10 +6,19 @@ from pysolr import SolrCoreAdmin, SolrError
 
 
 class TestSolrCoreAdmin:
-    def setup_method(self):
-        self.solr_admin = SolrCoreAdmin("http://localhost:8983/solr/admin/cores")
+    """Test the SolrCoreAdmin class."""
 
-        # Unload any leftover demo cores before each test
+    @classmethod
+    def setup_class(cls):
+        """
+        Initialize a shared SolrCoreAdmin instance for all test methods.
+        """
+        cls.solr_admin = SolrCoreAdmin("http://localhost:8983/solr/admin/cores")
+
+    def setup_method(self):
+        """
+        Ensure no demo cores or related state remain before each test.
+        """
         self._unload_demo_cores()
 
     def _unload_demo_cores(self):
