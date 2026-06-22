@@ -10,6 +10,7 @@ repos:
           - id: check-case-conflict
           - id: check-docstring-first
           - id: check-executables-have-shebangs
+          - id: check-shebang-scripts-are-executable
           - id: check-json
           - id: check-merge-conflict
           - id: check-symlinks
@@ -34,6 +35,17 @@ repos:
           - id: codespell
             additional_dependencies:
                 - tomli
+
+    - repo: https://github.com/shellcheck-py/shellcheck-py
+      rev: v0.11.0.1
+      hooks:
+          - id: shellcheck
+
+    - repo: https://github.com/scop/pre-commit-shfmt
+      rev: v3.13.1-1
+      hooks:
+          - id: shfmt
+            args: ["--indent=4", "--case-indent", "--write"]
 
     - repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.15.15
