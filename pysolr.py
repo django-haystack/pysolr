@@ -29,11 +29,23 @@ from urllib.parse import quote, urlencode
 __all__ = ["Solr"]
 
 
+# ---------------------------
+# Constants
+# ---------------------------
 DATETIME_REGEX = re.compile(
     r"^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})(\.\d+)?Z$"  # NOQA: E501
 )
+
 # dict key used to add nested documents to a document
 NESTED_DOC_KEY = "_childDocuments_"
+
+# All C0 controls except tab, newline and carriage return, which are valid whitespace.
+_CONTROL_CHARS = "".join(
+    chr(code) for code in range(0x20) if code not in (0x09, 0x0A, 0x0D)
+)
+
+# Translation table that deletes the control characters.
+_CONTROL_CHARS_TABLE = str.maketrans("", "", _CONTROL_CHARS)
 
 VALID_XML_CHARS_REGEX = re.compile(
     "[^\u0020-\ud7ff\u0009\u000a\u000d\ue000-\ufffd\U00010000-\U0010ffff]+"
@@ -56,6 +68,9 @@ if os.environ.get("DEBUG_PYSOLR", "").lower() in {"true", "1"}:
     LOG.addHandler(stream)
 
 
+# ---------------------------
+# Functions
+# ---------------------------
 def force_unicode(value):
     """
     Forces a bytestring to become a Unicode string.
@@ -119,10 +134,27 @@ def clean_xml_string(s):
     return VALID_XML_CHARS_REGEX.sub("", s)
 
 
+def sanitize(data):
+    """
+    Removes invalid control characters from ``data``.
+
+    The value is coerced to a Unicode string and all C0 control characters
+    are stripped, except for tab, newline and carriage return, which are
+    valid whitespace.
+    """
+    return force_unicode(data).translate(_CONTROL_CHARS_TABLE)
+
+
+# ---------------------------
+# Exceptions
+# ---------------------------
 class SolrError(Exception):
     pass
 
 
+# ---------------------------
+# Classes
+# ---------------------------
 class Results:
     """
     Default results class for wrapping decoded (from JSON) solr responses.
@@ -1275,7 +1307,7 @@ class SolrCoreAdmin:
         session = self.get_session()
 
         self.log.debug(
-            "Starting Solr admin request to '%s' with params %s",
+            "Starting Solr core admin request to '%s' with params %s",
             url,
             params,
         )
@@ -1286,6 +1318,7 @@ class SolrCoreAdmin:
                 params=params,
                 headers=headers,
                 auth=self.auth,
+                timeout=self.timeout,
             )
             resp.raise_for_status()
             return resp.json()
@@ -1307,6 +1340,7 @@ class SolrCoreAdmin:
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
             ) from e
+
         except requests.exceptions.RequestException as e:
             self.log.exception("Request to Solr failed for URL %s", url)
             raise SolrError(f"Request failed: {e}") from e
@@ -1376,50 +1410,6 @@ class SolrCoreAdmin:
         """
         params = {"action": "UNLOAD", "core": core}
         return self._send_request(self.url, params=params)
-
-
-# Using two-tuples to preserve order.
-REPLACEMENTS = (
-    # Nuke nasty control characters.
-    (b"\x00", b""),  # Start of heading
-    (b"\x01", b""),  # Start of heading
-    (b"\x02", b""),  # Start of text
-    (b"\x03", b""),  # End of text
-    (b"\x04", b""),  # End of transmission
-    (b"\x05", b""),  # Enquiry
-    (b"\x06", b""),  # Acknowledge
-    (b"\x07", b""),  # Ring terminal bell
-    (b"\x08", b""),  # Backspace
-    (b"\x0b", b""),  # Vertical tab
-    (b"\x0c", b""),  # Form feed
-    (b"\x0e", b""),  # Shift out
-    (b"\x0f", b""),  # Shift in
-    (b"\x10", b""),  # Data link escape
-    (b"\x11", b""),  # Device control 1
-    (b"\x12", b""),  # Device control 2
-    (b"\x13", b""),  # Device control 3
-    (b"\x14", b""),  # Device control 4
-    (b"\x15", b""),  # Negative acknowledge
-    (b"\x16", b""),  # Synchronous idle
-    (b"\x17", b""),  # End of transmission block
-    (b"\x18", b""),  # Cancel
-    (b"\x19", b""),  # End of medium
-    (b"\x1a", b""),  # Substitute character
-    (b"\x1b", b""),  # Escape
-    (b"\x1c", b""),  # File separator
-    (b"\x1d", b""),  # Group separator
-    (b"\x1e", b""),  # Record separator
-    (b"\x1f", b""),  # Unit separator
-)
-
-
-def sanitize(data):
-    fixed_string = force_bytes(data)
-
-    for bad, good in REPLACEMENTS:
-        fixed_string = fixed_string.replace(bad, good)
-
-    return force_unicode(fixed_string)
 
 
 class SolrCloud(Solr):
