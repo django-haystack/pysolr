@@ -1,8 +1,62 @@
-.tox
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+venv.bak/
+env.bak/
+
+# Environment variables
+.env
+.envrc
+
+# Test / coverage
+.coverage
+.coverage.*
+*.cover
+*.py.cover
+*.lcov
+coverage.xml
+nosetests.xml
+htmlcov/
+cover/
+.pytest_cache/
+.hypothesis/
+.tox/
+.nox/
+
+# Type checkers
+.mypy_cache/
+.pyright/
+
+# Linters / formatters
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# Build tools
+.pybuilder/
+target/
+
+# Logs
+logs/
+*.log
+
+# Apache Solr
 solr*.tgz
-solr-app
-solr
-solr.*
-venv
-logs
-__pycache__
+solr/
+solr-app/
