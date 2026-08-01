@@ -1,77 +1,74 @@
 ci:
-    autoupdate_schedule: monthly
+  autoupdate_schedule: monthly
+
 repos:
-    - repo: https://github.com/pre-commit/pre-commit-hooks
-      rev: v6.0.0
-      hooks:
-          - id: check-added-large-files
-            args: ["--maxkb=128"]
-          - id: check-ast
-          - id: check-case-conflict
-          - id: check-docstring-first
-          - id: check-executables-have-shebangs
-          - id: check-shebang-scripts-are-executable
-          - id: check-json
-          - id: check-merge-conflict
-          - id: check-symlinks
-          - id: check-toml
-          - id: check-xml
-          - id: check-yaml
-          - id: debug-statements
-          - id: detect-aws-credentials
-            args: ["--allow-missing-credentials"]
-          - id: detect-private-key
-          - id: end-of-file-fixer
-          - id: fix-byte-order-marker
-          - id: mixed-line-ending
-            args: ["--fix=lf"]
-          - id: pretty-format-json
-            args: ["--autofix", "--no-sort-keys", "--indent=4"]
-          - id: trailing-whitespace
-
-    - repo: https://github.com/codespell-project/codespell
-      rev: v2.4.2
-      hooks:
-          - id: codespell
-            additional_dependencies:
-                - tomli
-
-    - repo: https://github.com/shellcheck-py/shellcheck-py
-      rev: v0.11.0.1
-      hooks:
-          - id: shellcheck
-
-    - repo: https://github.com/scop/pre-commit-shfmt
-      rev: v3.13.1-1
-      hooks:
-          - id: shfmt
-            args: ["--indent=4", "--case-indent", "--write"]
-
-    - repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.15.20
-      hooks:
-          - id: ruff-check
-            args: [--fix]
-          - id: ruff-format
-
-    - repo: https://github.com/tox-dev/pyproject-fmt
-      rev: v2.25.1
-      hooks:
-          - id: pyproject-fmt
-
-    - repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.25
-      hooks:
-          - id: validate-pyproject
-
-    - repo: https://github.com/astral-sh/uv-pre-commit
-      rev: 0.11.26
-      hooks:
-          - id: uv-lock
-
-    - repo: https://github.com/executablebooks/mdformat
-      rev: 1.0.0
-      hooks:
-          - id: mdformat
-            additional_dependencies:
-                - mdformat-gfm
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=128"]
+      - id: check-ast
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: detect-aws-credentials
+        args: ["--allow-missing-credentials"]
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: pretty-format-json
+        args: ["--autofix", "--no-sort-keys", "--indent=4"]
+      - id: trailing-whitespace
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.2
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.13.1-1
+    hooks:
+      - id: shfmt
+        args: ["--indent=4", "--case-indent", "--write"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.20
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.25.1
+    hooks:
+      - id: pyproject-fmt
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.25
+    hooks:
+      - id: validate-pyproject
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.11.26
+    hooks:
+      - id: uv-lock
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        additional_dependencies:
+          - mdformat-gfm
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt

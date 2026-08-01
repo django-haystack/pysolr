@@ -1,40 +1,37 @@
 name: ci
 permissions:
-    contents: read
+  contents: read
 on:
-    push:
-        branches: [master]
-    pull_request:
-        branches: [master]
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
 jobs:
-    test:
-        name: Test (Python ${{ matrix.python }}, Solr ${{ matrix.solr }})
-        strategy:
-            fail-fast: false
-            matrix:
-                python: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
-                solr: ["9", "10"]
-        runs-on: ubuntu-latest
-        env:
-            UV_PYTHON: ${{ matrix.python }}
-            SOLR_VERSION: ${{ matrix.solr }}
-            UV_LOCKED: 1
-            UV_NO_DEV: 1
-            PYTHONUNBUFFERED: 1
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-              with:
-                  persist-credentials: false
-
-            - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-              with:
-                  python-version: ${{ matrix.python }}
-                  allow-prereleases: true
-
-            - name: Install uv
-              uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-              with:
-                  version: "0.11.6"
-
-            - name: Run tests
-              run: uv run --extra=solrcloud run-tests.py
+  test:
+    name: Test (Python ${{ matrix.python }}, Solr ${{ matrix.solr }})
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.14t"]
+        solr: ["9", "10"]
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: ${{ matrix.python }}
+      SOLR_VERSION: ${{ matrix.solr }}
+      UV_LOCKED: 1
+      UV_NO_DEV: 1
+      PYTHONUNBUFFERED: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+          allow-prereleases: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+        with:
+          version: "0.11.6"
+      - name: Run tests
+        run: uv run --extra=solrcloud run-tests.py
