@@ -1,0 +1,6 @@
+formatter:
+  type: basic
+  force_quote_style: double
+  max_line_length: 120
+  pad_line_comments: 2
+  retain_line_breaks_single: true
