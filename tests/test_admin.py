@@ -15,6 +15,13 @@ class TestSolrCoreAdmin:
         """
         cls.solr_admin = SolrCoreAdmin("http://localhost:8983/solr/admin/cores")
 
+    @classmethod
+    def teardown_class(cls):
+        """Close the shared requests session (if created) after all tests."""
+        session = getattr(cls.solr_admin, "session", None)
+        if session is not None:
+            session.close()
+
     def setup_method(self):
         """
         Ensure no demo cores or related state remain before each test.
