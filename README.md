@@ -169,7 +169,11 @@ solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", timeout=10)
 
 ```python
 # Setup a Solr instance. The trailing slash is optional.
-solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", search_handler="/autocomplete", use_qt_param=False)
+solr = pysolr.Solr(
+    "http://localhost:8983/solr/<core_name>",
+    search_handler="/autocomplete",
+    use_qt_param=False,
+)
 ```
 
 If `use_qt_param` is `True` it is essential that the name of the handler
@@ -192,7 +196,10 @@ handler in `search` explicitly overrides the `search_handler` setting
 ```python
 # Setup a Solr instance in a kerborized environment
 from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+
+kerberos_auth = HTTPKerberosAuth(
+    mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False
+)
 
 solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", auth=kerberos_auth)
 ```
@@ -200,7 +207,10 @@ solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", auth=kerberos_auth)
 ```python
 # Setup a CloudSolr instance in a kerborized environment
 from requests_kerberos import HTTPKerberosAuth, OPTIONAL
-kerberos_auth = HTTPKerberosAuth(mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False)
+
+kerberos_auth = HTTPKerberosAuth(
+    mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False
+)
 
 zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
@@ -225,7 +235,11 @@ solr = pysolr.SolrCloud(zookeeper, "collection", verify="path/to/cert.perm")
 ```python
 # Setup a Solr instance. The trailing slash is optional.
 # All requests to Solr will be immediately committed because `always_commit=True`:
-solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", search_handler="/autocomplete", always_commit=True)
+solr = pysolr.Solr(
+    "http://localhost:8983/solr/<core_name>",
+    search_handler="/autocomplete",
+    always_commit=True,
+)
 ```
 
 `always_commit` signals to the Solr object to either commit or not
