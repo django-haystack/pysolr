@@ -48,12 +48,31 @@ class TestUtils:
         )
 
     def test_sanitize(self):
+        """All C0 control characters are stripped out of the string."""
         assert (
             sanitize(
                 "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19h\x1ae\x1bl\x1cl\x1do\x1e\x1f"  # NOQA: E501
             )
             == "hello"
         )
+
+    def test_sanitize__preserves_valid_whitespace(self):
+        """Tab, newline and carriage return are valid and must be kept."""
+        assert sanitize("a\tb\nc\rd") == "a\tb\nc\rd"
+
+    def test_sanitize__leaves_normal_text_untouched(self):
+        """Regular text, including non-ASCII, passes through unchanged."""
+        assert sanitize("Hello ☃ world!") == "Hello ☃ world!"
+        assert sanitize("") == ""
+
+    def test_sanitize__accepts_bytes(self):
+        """Bytes are decoded to unicode before stripping control characters."""
+        assert sanitize(b"he\x00ll\x01o") == "hello"
+
+    def test_sanitize__accepts_non_string(self):
+        """Non-string values are coerced to their unicode representation."""
+        assert sanitize(123) == "123"
+        assert sanitize(None) == "None"
 
     def test_force_unicode(self):
         assert force_unicode(b"Hello \xe2\x98\x83") == "Hello ☃"
