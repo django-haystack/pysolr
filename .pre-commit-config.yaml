@@ -58,6 +58,7 @@ repos:
     rev: v2.29.3
     hooks:
       - id: pyproject-fmt
+        args: ["--max-supported-python=3.15"]
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: "0.26"
