@@ -193,24 +193,26 @@ handler in `search` explicitly overrides the `search_handler` setting
 
 ### Custom Authentication
 
+pysolr now uses [httpx2](https://github.com/pydantic/httpx2) as its HTTP
+client, so the `auth` argument accepts any httpx-compatible authentication
+object (or a plain `(username, password)` tuple). For Kerberos/SPNEGO, use
+[httpx-gssapi](https://github.com/pythongssapi/httpx-gssapi) (the httpx
+counterpart to `requests-kerberos`):
+
 ```python
 # Setup a Solr instance in a kerborized environment
-from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+from httpx_gssapi import HTTPSPNEGOAuth, OPTIONAL
 
-kerberos_auth = HTTPKerberosAuth(
-    mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False
-)
+kerberos_auth = HTTPSPNEGOAuth(mutual_authentication=OPTIONAL)
 
 solr = pysolr.Solr("http://localhost:8983/solr/<core_name>", auth=kerberos_auth)
 ```
 
 ```python
 # Setup a CloudSolr instance in a kerborized environment
-from requests_kerberos import HTTPKerberosAuth, OPTIONAL
+from httpx_gssapi import HTTPSPNEGOAuth, OPTIONAL
 
-kerberos_auth = HTTPKerberosAuth(
-    mutual_authentication=OPTIONAL, sanitize_mutual_error_response=False
-)
+kerberos_auth = HTTPSPNEGOAuth(mutual_authentication=OPTIONAL)
 
 zookeeper = pysolr.ZooKeeper("zkhost1:2181/solr, zkhost2:2181,...,zkhostN:2181")
 solr = pysolr.SolrCloud(zookeeper, "collection", auth=kerberos_auth)
