@@ -1,8 +1,8 @@
 import datetime
 import random
-import time
 from io import StringIO
 from unittest.mock import Mock
+from urllib.parse import parse_qs
 from xml.etree import ElementTree  # noqa: ICN001
 
 import pytest
@@ -649,20 +649,29 @@ class BaseSolrClientTests:
         assert "doc_7" == res.docs[0]["id"]
 
     def test_add_with_commit_within(self):
-        assert len(self.solr.search("commitWithin")) == 0
+        """
+        commitWithin is forwarded to Solr as an update query parameter.
 
+        When the document actually becomes searchable is Solr's decision, so
+        that is not asserted here.
+        """
         commit_within_ms = 50
+
         self.solr.add(
             [
                 {"id": "doc_6", "title": "commitWithin test"},
             ],
             commitWithin=commit_within_ms,
         )
-        # we should not see the doc immediately
-        assert len(self.solr.search("commitWithin")) == 0
-        # but we should see it after commitWithin period (+ small grace period)
-        time.sleep((commit_within_ms / 1000.0) + 0.01)
-        assert len(self.solr.search("commitWithin")) == 1
+
+        args, _kwargs = self.solr._send_request.call_args
+        handler, _, query = args[1].partition("?")
+        query_params = parse_qs(query)
+
+        assert handler == "update"
+        assert query_params["commitWithin"] == [str(commit_within_ms)]
+        # commitWithin is ignored by Solr if the update also asks for a commit
+        assert "commit" not in query_params
 
     def test_field_update_inc(self):
         originalDocs = self.solr.search("doc")
