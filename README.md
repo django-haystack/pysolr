@@ -5,7 +5,7 @@ Solr](https://solr.apache.org/). It provides an interface that queries
 the server and returns results based on the query.
 
 [![PyPI](https://img.shields.io/pypi/v/pysolr.svg)](https://pypi.org/project/pysolr/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.14t%20%7C%203.15%20%7C%203.15t-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14%20%7C%203.14t%20%7C%203.15%20%7C%203.15t-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![Solr 9+](https://img.shields.io/badge/Solr-9+-d9411e?logo=apache&logoColor=white)](https://solr.apache.org/)
 [![CI Status](https://github.com/django-haystack/pysolr/actions/workflows/ci.yml/badge.svg)](https://github.com/django-haystack/pysolr/actions)
 [![PyPI downloads](https://img.shields.io/pypi/dm/pysolr.svg)](https://pypi.org/project/pysolr/)
@@ -52,7 +52,7 @@ ______________________________________________________________________
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Requests 2.32.5+
 - **Optional** - `simplejson`
 - **Optional** - `kazoo` for SolrCloud mode
