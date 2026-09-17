@@ -21,7 +21,6 @@ jobs:
         solr: ["9", "10"]
     runs-on: ubuntu-latest
     env:
-      UV_PYTHON: ${{ matrix.python }}
       SOLR_VERSION: ${{ matrix.solr }}
       UV_LOCKED: 1
       UV_NO_DEV: 1
@@ -39,7 +38,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
-          version: "0.11.6"
+          version: "0.12.15"
+          python-version: ${{ matrix.python }}
 
       - name: Run tests
         run: uv run --extra=solrcloud run-tests.py
