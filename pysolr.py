@@ -1180,11 +1180,18 @@ class Solr:
         }
         params.update(kwargs)
         filename = quote(file_obj.name.encode("utf-8"))
+        # httpx2 multipart uploads require binary content: a text-mode file or
+        # ``io.StringIO`` yields ``str`` and raises ``TypeError``. ``requests``
+        # accepted either, so read the payload and encode text to bytes to keep
+        # ``extract()`` backwards compatible with text file objects.
+        file_content = file_obj.read()
+        if isinstance(file_content, str):
+            file_content = file_content.encode("utf-8")
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
             resp = self._send_request(
-                "post", handler, body=params, files={"file": (filename, file_obj)}
+                "post", handler, body=params, files={"file": (filename, file_content)}
             )
         except (IOError, SolrError):
             self.log.exception("Failed to extract document metadata")
