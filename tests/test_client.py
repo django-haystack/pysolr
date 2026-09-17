@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 from urllib.parse import unquote_plus, urlencode
 
-import httpx2 as httpx
+import httpx2
 import pytest
 
 from pysolr import (
@@ -160,7 +160,7 @@ class TestSolr(SolrTestCaseMixin, BaseSolrClientTests):
     def test__send_request_to_bad_path(self):
         """
         Verify that a connection failure to an unreachable Solr URL raises
-        SolrError and preserves the original httpx.ConnectError
+        SolrError and preserves the original httpx2.ConnectError
         as the chained cause.
         """
         # Test a non-existent URL:
@@ -170,9 +170,9 @@ class TestSolr(SolrTestCaseMixin, BaseSolrClientTests):
             self.solr._send_request("get", "select/?q=doc&wt=json")
 
         # The raised SolrError should preserve the original
-        # httpx ConnectError as its cause
+        # httpx2 ConnectError as its cause
         assert ctx.value.__cause__ is not None
-        assert isinstance(ctx.value.__cause__, httpx.ConnectError)
+        assert isinstance(ctx.value.__cause__, httpx2.ConnectError)
 
     def test_send_request_to_bad_core(self):
         # Test a bad core on a valid URL:
