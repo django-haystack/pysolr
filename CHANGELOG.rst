@@ -42,6 +42,11 @@ Changes
   ``decoder=`` / ``encoder=`` arguments to ``Solr`` — a ``simplejson`` decoder
   and encoder work there unchanged.
 
+- Drop the now-unused ``requests`` runtime dependency. Since the migration to
+  httpx2 (#598) pysolr no longer imports ``requests``, so it has been removed
+  from the project dependencies and the regenerated ``uv.lock``. [Priya
+  Sundaram]
+
 - Logging: pass full request body + headers as extra data. [Chris Adams]
 
   This doesn't affect the normal logging output but is helpful for
