@@ -25,12 +25,10 @@ except ImportError:
 # failed decode raises the stdlib ``JSONDecodeError``. Keep a direct reference to
 # it here so we can catch it narrowly even when ``json`` above is bound to
 # ``simplejson`` (whose ``JSONDecodeError`` is a distinct class).
-from json import JSONDecodeError as StdJSONDecodeError
-
-
 import contextlib
 import html.entities as htmlentities
 from http.client import HTTPException
+from json import JSONDecodeError as StdJSONDecodeError
 from urllib.parse import quote, urlencode
 
 __all__ = ["Solr"]
