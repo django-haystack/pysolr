@@ -31,7 +31,6 @@ classifiers = [
 ]
 dependencies = [
   "httpx2>=2.13",
-  "requests>=2.32.5",
 ]
 optional-dependencies.solrcloud = [ "kazoo>=2.5" ]
 urls.Homepage = "https://github.com/django-haystack/pysolr/"

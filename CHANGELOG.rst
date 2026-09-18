@@ -31,6 +31,22 @@ New
 Changes
 ~~~~~~~
 
+- Drop the optional ``simplejson`` shim in favour of the standard-library
+  ``json`` module. [Priya Sundaram]
+
+  pysolr previously imported ``simplejson as json`` when it was installed and
+  fell back to stdlib ``json`` otherwise, so ``pysolr.json`` could resolve to
+  either module. It now always uses stdlib ``json``. If you relied on
+  simplejson-specific behaviour (e.g. ``Decimal`` handling or its C speedups),
+  pass your own ``json.JSONDecoder``/``json.JSONEncoder`` via the existing
+  ``decoder=`` / ``encoder=`` arguments to ``Solr`` — a ``simplejson`` decoder
+  and encoder work there unchanged.
+
+- Drop the now-unused ``requests`` runtime dependency. Since the migration to
+  httpx2 (#598) pysolr no longer imports ``requests``, so it has been removed
+  from the project dependencies and the regenerated ``uv.lock``. [Priya
+  Sundaram]
+
 - Logging: pass full request body + headers as extra data. [Chris Adams]
 
   This doesn't affect the normal logging output but is helpful for
