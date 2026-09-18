@@ -21,7 +21,7 @@ usage() {
 # Function to get running Solr version
 get_solr_version() {
     local version
-    version=$(docker compose -f docker/docker-compose-solr.yml exec -T solr-standalone solr --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+    version=$(docker compose -f docker/compose.yaml exec -T solr-standalone solr --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
     echo "${version:-unknown}"
 }
 
@@ -43,8 +43,8 @@ case "$1" in
         echo -e "${BLUE}→ SOLR_VERSION environment variable: ${SOLR_VERSION:-not set (default: 9 will be used)}${NC}"
 
         # Start docker compose in detached mode
-        echo -e "${BLUE}→ Running \`docker compose -f docker/docker-compose-solr.yml up -d --quiet-pull\`...${NC}"
-        docker compose -f docker/docker-compose-solr.yml up -d --quiet-pull
+        echo -e "${BLUE}→ Running \`docker compose -f docker/compose.yaml up -d --quiet-pull\`...${NC}"
+        docker compose -f docker/compose.yaml up -d --quiet-pull
 
         # Wait for the solr-init container to finish (60-second timeout)
         echo -e "${BLUE}→ Waiting for solr-init container to complete (timeout: 60 seconds)...${NC}"
@@ -78,8 +78,8 @@ case "$1" in
         echo -e "${CYAN}=== Starting Solr Docker Test Environment Teardown ===${NC}"
 
         # Stop docker compose and remove volumes
-        echo -e "${BLUE}→ Running \`docker compose -f docker/docker-compose-solr.yml down -v\`...${NC}"
-        docker compose -f docker/docker-compose-solr.yml down -v
+        echo -e "${BLUE}→ Running \`docker compose -f docker/compose.yaml down -v\`...${NC}"
+        docker compose -f docker/compose.yaml down -v
 
         echo -e "${GREEN}✓ Teardown completed successfully!${NC}"
         echo -e "${GREEN}✓ All containers and volumes removed${NC}"

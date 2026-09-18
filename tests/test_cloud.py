@@ -30,7 +30,7 @@ class ProxyZooKeeper(ZooKeeper):
         solr-node0:8983  →  localhost:8993   (host port)
         solr-node1:8983  →  localhost:8994   (host port)
 
-    (From docker/docker-compose-solr.yml):
+    (From docker/compose.yaml):
         solr-node0 -> "8993:8983"
         solr-node1 -> "8994:8983"
 

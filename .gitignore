@@ -58,5 +58,5 @@ logs/
 
 # Apache Solr
 solr*.tgz
-solr/
-solr-app/
+/solr/
+/solr-app/
