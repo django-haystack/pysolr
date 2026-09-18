@@ -6,7 +6,6 @@ services:
   # -------------------------------------------------------------
   zookeeper:
     image: zookeeper:3.9
-    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -19,7 +18,6 @@ services:
   # -------------------------------------------------------------
   tika:
     image: apache/tika:3.2.3.0
-    container_name: tika
     ports:
       - "9998:9998"
     networks:
@@ -30,7 +28,6 @@ services:
   # -------------------------------------------------------------
   solr-standalone:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-standalone
     ports:
       - "8983:8983"
     volumes:
@@ -82,7 +79,6 @@ services:
   # -------------------------------------------------------------
   solr-node0:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-node0
     ports:
       - "8993:8983"
     environment:
@@ -109,7 +105,6 @@ services:
   # -------------------------------------------------------------
   solr-node1:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-node1
     ports:
       - "8994:8983"
     environment:
@@ -136,7 +131,6 @@ services:
   # -------------------------------------------------------------
   solr-init:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-init
     depends_on:
       solr-node0:
         condition: service_healthy

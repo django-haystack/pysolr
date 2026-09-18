@@ -46,11 +46,15 @@ case "$1" in
         echo -e "${BLUE}→ Running \`docker compose -f docker/compose.yaml up -d --quiet-pull\`...${NC}"
         docker compose -f docker/compose.yaml up -d --quiet-pull
 
+        # Resolve the container id, since compose names containers after the project.
+        # -a is required because solr-init is a one-shot that has often already exited.
+        INIT_CONTAINER=$(docker compose -f docker/compose.yaml ps -aq solr-init)
+
         # Wait for the solr-init container to finish (60-second timeout)
         echo -e "${BLUE}→ Waiting for solr-init container to complete (timeout: 60 seconds)...${NC}"
-        if timeout 60 docker container wait solr-init; then
+        if timeout 60 docker container wait "$INIT_CONTAINER"; then
             # Capture the exit code of the solr-init container
-            EXIT_CODE=$(docker inspect solr-init --format='{{.State.ExitCode}}')
+            EXIT_CODE=$(docker inspect "$INIT_CONTAINER" --format='{{.State.ExitCode}}')
             echo -e "${BLUE}→ solr-init container exited with code: ${EXIT_CODE}${NC}"
 
             if [ "$EXIT_CODE" -eq 0 ]; then
@@ -63,13 +67,13 @@ case "$1" in
             else
                 echo -e "${RED}✗ Error: solr-init container failed with exit code ${EXIT_CODE}${NC}"
                 echo -e "${YELLOW}Fetching logs from solr-init:${NC}"
-                docker logs solr-init
+                docker logs "$INIT_CONTAINER"
                 exit 1
             fi
         else
             echo -e "${RED}✗ Error: Timeout waiting for solr-init container${NC}"
             echo -e "${YELLOW}Fetching logs from solr-init:${NC}"
-            docker logs solr-init
+            docker logs "$INIT_CONTAINER"
             exit 1
         fi
         ;;
