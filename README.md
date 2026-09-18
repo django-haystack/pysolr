@@ -53,7 +53,7 @@ ______________________________________________________________________
 ## Requirements
 
 - Python 3.11+
-- Requests 2.32.5+
+- `httpx2` 2.13+
 - **Optional** - `kazoo` for SolrCloud mode
 
 ## Installation
