@@ -7,6 +7,17 @@ Changelog
 New
 ~~~
 
+- Replace ``requests`` with ``httpx2`` as the HTTP client (closes #597).
+  [Priya Sundaram]
+
+  pysolr now depends on `httpx2 <https://github.com/pydantic/httpx2>`_, the
+  Pydantic-maintained fork of httpx, instead of ``requests``. The ``auth``
+  argument now accepts any httpx-compatible auth object (or an
+  ``(username, password)`` tuple); Kerberos/SPNEGO users should switch from
+  ``requests-kerberos`` to `httpx-gssapi
+  <https://github.com/pythongssapi/httpx-gssapi>`_. A custom ``session=``
+  must now be an ``httpx2.Client`` rather than a ``requests.Session``.
+
 - Support for nested documents (closes #170) [Chris Adams]
 
   This adds support for Solr's nested documents in `Solr.add`

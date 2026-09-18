@@ -1,5 +1,6 @@
 import ast
 import datetime
+import io
 import logging
 import os
 import random
@@ -7,7 +8,7 @@ import re
 import time
 from xml.etree import ElementTree  # noqa: ICN001
 
-import requests
+import httpx2
 
 try:
     from kazoo.client import KazooClient, KazooState
@@ -20,10 +21,14 @@ try:
 except ImportError:
     import json
 
-
+# httpx2's ``Response.json()`` decodes with the *stdlib* ``json`` module, so a
+# failed decode raises the stdlib ``JSONDecodeError``. Keep a direct reference to
+# it here so we can catch it narrowly even when ``json`` above is bound to
+# ``simplejson`` (whose ``JSONDecodeError`` is a distinct class).
 import contextlib
 import html.entities as htmlentities
 from http.client import HTTPException
+from json import JSONDecodeError as StdJSONDecodeError
 from urllib.parse import quote, urlencode
 
 __all__ = ["Solr"]
@@ -274,16 +279,15 @@ class Solr:
 
     def get_session(self):
         """
-        Returns a requests Session object to use for sending requests to Solr.
+        Returns an ``httpx2.Client`` to use for sending requests to Solr.
 
-        The session is created lazily on first call to this method, and is
+        The client is created lazily on first call to this method, and is
         reused for all subsequent requests.
 
-        :return: requests.Session instance
+        :return: httpx2.Client instance
         """
         if self.session is None:
-            self.session = requests.Session()
-            self.session.verify = self.verify
+            self.session = httpx2.Client(verify=self.verify, follow_redirects=True)
         return self.session
 
     def _get_log(self):
@@ -320,7 +324,7 @@ class Solr:
         session = self.get_session()
 
         try:
-            requests_method = getattr(session, method)
+            http_method = getattr(session, method)
         except AttributeError as e:
             raise SolrError(f"Unable to use unknown HTTP method '{method}'.") from e
 
@@ -330,20 +334,32 @@ class Solr:
 
         if bytes_body is not None:
             bytes_body = force_bytes(body)
+
+        # httpx2 separates a raw request body (``content``) from form fields
+        # (``data``), whereas requests accepted either under ``data``. A dict
+        # body (used by ``extract`` alongside ``files`` for multipart uploads)
+        # maps to ``data``; everything else is a raw bytes/str ``content``.
+        # httpx2's per-method helpers also reject ``content``/``files`` for verbs
+        # that take no body, so only pass them when actually set.
+        request_kwargs = {
+            "headers": headers,
+            "timeout": self.timeout,
+            "auth": self.auth,
+        }
+        if isinstance(bytes_body, dict):
+            request_kwargs["data"] = bytes_body
+        elif bytes_body is not None:
+            request_kwargs["content"] = bytes_body
+        if files is not None:
+            request_kwargs["files"] = files
+
         try:
-            resp = requests_method(
-                url,
-                data=bytes_body,
-                headers=headers,
-                files=files,
-                timeout=self.timeout,
-                auth=self.auth,
-            )
-        except requests.exceptions.Timeout as err:
+            resp = http_method(url, **request_kwargs)
+        except httpx2.TimeoutException as err:
             error_message = "Connection to server '%s' timed out: %s"
             self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err)) from err
-        except requests.exceptions.ConnectionError as err:
+        except httpx2.ConnectError as err:
             error_message = "Failed to connect to server at %s: %s"
             self.log.exception(error_message, url, err)
             raise SolrError(error_message % (url, err)) from err
@@ -1169,11 +1185,20 @@ class Solr:
         }
         params.update(kwargs)
         filename = quote(file_obj.name.encode("utf-8"))
+        # httpx2 multipart uploads require binary content. A text-mode file or
+        # ``io.StringIO`` yields ``str``, which httpx2 rejects (``requests``
+        # accepted either). Encode only text streams; pass binary file objects
+        # straight through so httpx2 can stream them without buffering a second
+        # copy of the (possibly large) file in memory.
+        if isinstance(file_obj, io.TextIOBase):
+            file_payload = file_obj.read().encode("utf-8")
+        else:
+            file_payload = file_obj
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
             resp = self._send_request(
-                "post", handler, body=params, files={"file": (filename, file_obj)}
+                "post", handler, body=params, files={"file": (filename, file_payload)}
             )
         except (IOError, SolrError):
             self.log.exception("Failed to extract document metadata")
@@ -1260,16 +1285,15 @@ class SolrCoreAdmin:
 
     def get_session(self):
         """
-        Returns a requests Session object to use for sending requests to Solr.
+        Returns an ``httpx2.Client`` to use for sending requests to Solr.
 
-        The session is created lazily on first call to this method, and is
+        The client is created lazily on first call to this method, and is
         reused for all subsequent requests.
 
-        :return: requests.Session instance
+        :return: httpx2.Client instance
         """
         if self.session is None:
-            self.session = requests.Session()
-            self.session.verify = self.verify
+            self.session = httpx2.Client(verify=self.verify, follow_redirects=True)
         return self.session
 
     def _get_log(self):
@@ -1309,7 +1333,7 @@ class SolrCoreAdmin:
             resp.raise_for_status()
             return resp.json()
 
-        except requests.exceptions.HTTPError as e:
+        except httpx2.HTTPStatusError as e:
             error_url = e.response.url
             error_msg = e.response.text
             error_code = e.response.status_code
@@ -1321,13 +1345,17 @@ class SolrCoreAdmin:
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
             ) from e
 
-        except requests.exceptions.JSONDecodeError as e:
+        except StdJSONDecodeError as e:
+            # httpx2's ``Response.json()`` uses the stdlib ``json`` module, so a
+            # decode failure raises the stdlib ``JSONDecodeError`` (aliased above
+            # as ``StdJSONDecodeError``) regardless of whether ``simplejson`` is
+            # installed and bound to ``json`` in this module.
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
             ) from e
 
-        except requests.exceptions.RequestException as e:
+        except httpx2.RequestError as e:
             self.log.exception("Request to Solr failed for URL %s", url)
             raise SolrError(f"Request failed: {e}") from e
 
@@ -1437,7 +1465,7 @@ class SolrCloud(Solr):
             try:
                 self.url = self.zookeeper.getRandomURL(self.collection)
                 return Solr._send_request(self, method, path, body, headers, files)
-            except (SolrError, requests.exceptions.RequestException):
+            except (SolrError, httpx2.RequestError):
                 LOG.exception(
                     "%s %s failed on retry %s, will retry after %0.1fs",
                     method,
