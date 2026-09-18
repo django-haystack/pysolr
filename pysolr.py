@@ -1341,11 +1341,13 @@ class SolrCoreAdmin:
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
             ) from e
 
-        except json.JSONDecodeError as e:
-            # httpx2's ``Response.json()`` raises ``json.JSONDecodeError`` when
-            # the body is not valid JSON. Catch it specifically so an unrelated
-            # ``ValueError`` from future changes in the ``try`` block isn't
-            # masked as a JSON-decoding failure.
+        except ValueError as e:
+            # Deliberately broad: httpx2's ``Response.json()`` decodes with the
+            # *stdlib* ``json`` module and raises ``json.JSONDecodeError``, but
+            # this module binds ``json`` to ``simplejson`` when it is installed.
+            # A narrow ``except json.JSONDecodeError`` would then be simplejson's
+            # class and miss the stdlib error. ``ValueError`` is the common base
+            # of both, so it matches regardless of which JSON library is present.
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
