@@ -15,20 +15,10 @@ try:
 except ImportError:
     KazooClient = KazooState = None
 
-try:
-    # Prefer simplejson, if installed.
-    import simplejson as json
-except ImportError:
-    import json
-
-# httpx2's ``Response.json()`` decodes with the *stdlib* ``json`` module, so a
-# failed decode raises the stdlib ``JSONDecodeError``. Keep a direct reference to
-# it here so we can catch it narrowly even when ``json`` above is bound to
-# ``simplejson`` (whose ``JSONDecodeError`` is a distinct class).
 import contextlib
 import html.entities as htmlentities
+import json
 from http.client import HTTPException
-from json import JSONDecodeError as StdJSONDecodeError
 from urllib.parse import quote, urlencode
 
 __all__ = ["Solr"]
@@ -1345,11 +1335,9 @@ class SolrCoreAdmin:
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
             ) from e
 
-        except StdJSONDecodeError as e:
-            # httpx2's ``Response.json()`` uses the stdlib ``json`` module, so a
-            # decode failure raises the stdlib ``JSONDecodeError`` (aliased above
-            # as ``StdJSONDecodeError``) regardless of whether ``simplejson`` is
-            # installed and bound to ``json`` in this module.
+        except json.JSONDecodeError as e:
+            # httpx2's ``Response.json()`` decodes with the stdlib ``json``
+            # module, so a decode failure raises ``json.JSONDecodeError``.
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
