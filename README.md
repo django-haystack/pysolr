@@ -54,7 +54,6 @@ ______________________________________________________________________
 
 - Python 3.11+
 - Requests 2.32.5+
-- **Optional** - `simplejson`
 - **Optional** - `kazoo` for SolrCloud mode
 
 ## Installation
