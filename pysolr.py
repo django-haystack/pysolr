@@ -21,6 +21,12 @@ try:
 except ImportError:
     import json
 
+# httpx2's ``Response.json()`` decodes with the *stdlib* ``json`` module, so a
+# failed decode raises the stdlib ``JSONDecodeError``. Keep a direct reference to
+# it here so we can catch it narrowly even when ``json`` above is bound to
+# ``simplejson`` (whose ``JSONDecodeError`` is a distinct class).
+from json import JSONDecodeError as StdJSONDecodeError
+
 
 import contextlib
 import html.entities as htmlentities
@@ -1341,13 +1347,11 @@ class SolrCoreAdmin:
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
             ) from e
 
-        except ValueError as e:
-            # Deliberately broad: httpx2's ``Response.json()`` decodes with the
-            # *stdlib* ``json`` module and raises ``json.JSONDecodeError``, but
-            # this module binds ``json`` to ``simplejson`` when it is installed.
-            # A narrow ``except json.JSONDecodeError`` would then be simplejson's
-            # class and miss the stdlib error. ``ValueError`` is the common base
-            # of both, so it matches regardless of which JSON library is present.
+        except StdJSONDecodeError as e:
+            # httpx2's ``Response.json()`` uses the stdlib ``json`` module, so a
+            # decode failure raises the stdlib ``JSONDecodeError`` (aliased above
+            # as ``StdJSONDecodeError``) regardless of whether ``simplejson`` is
+            # installed and bound to ``json`` in this module.
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
