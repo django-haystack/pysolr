@@ -16,7 +16,7 @@ New
   ``(username, password)`` tuple); Kerberos/SPNEGO users should switch from
   ``requests-kerberos`` to `httpx-gssapi
   <https://github.com/pythongssapi/httpx-gssapi>`_. A custom ``session=``
-  must now be an ``httpx.Client`` rather than a ``requests.Session``.
+  must now be an ``httpx2.Client`` rather than a ``requests.Session``.
 
 - Support for nested documents (closes #170) [Chris Adams]
 

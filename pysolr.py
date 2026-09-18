@@ -1,5 +1,6 @@
 import ast
 import datetime
+import io
 import logging
 import os
 import random
@@ -1180,18 +1181,20 @@ class Solr:
         }
         params.update(kwargs)
         filename = quote(file_obj.name.encode("utf-8"))
-        # httpx2 multipart uploads require binary content: a text-mode file or
-        # ``io.StringIO`` yields ``str`` and raises ``TypeError``. ``requests``
-        # accepted either, so read the payload and encode text to bytes to keep
-        # ``extract()`` backwards compatible with text file objects.
-        file_content = file_obj.read()
-        if isinstance(file_content, str):
-            file_content = file_content.encode("utf-8")
+        # httpx2 multipart uploads require binary content. A text-mode file or
+        # ``io.StringIO`` yields ``str``, which httpx2 rejects (``requests``
+        # accepted either). Encode only text streams; pass binary file objects
+        # straight through so httpx2 can stream them without buffering a second
+        # copy of the (possibly large) file in memory.
+        if isinstance(file_obj, io.TextIOBase):
+            file_payload = file_obj.read().encode("utf-8")
+        else:
+            file_payload = file_obj
         try:
             # We'll provide the file using its true name as Tika may use that
             # as a file type hint:
             resp = self._send_request(
-                "post", handler, body=params, files={"file": (filename, file_content)}
+                "post", handler, body=params, files={"file": (filename, file_payload)}
             )
         except (IOError, SolrError):
             self.log.exception("Failed to extract document metadata")
@@ -1338,9 +1341,11 @@ class SolrCoreAdmin:
                 f"Solr returned HTTP error {error_code}. Response body: {error_msg}"
             ) from e
 
-        except ValueError as e:
-            # httpx2's ``Response.json()`` raises ``json.JSONDecodeError`` (a
-            # ``ValueError`` subclass) when the body is not valid JSON.
+        except json.JSONDecodeError as e:
+            # httpx2's ``Response.json()`` raises ``json.JSONDecodeError`` when
+            # the body is not valid JSON. Catch it specifically so an unrelated
+            # ``ValueError`` from future changes in the ``try`` block isn't
+            # masked as a JSON-decoding failure.
             self.log.exception("Failed to decode JSON response from Solr at %s", url)
             raise SolrError(
                 f"Failed to decode JSON response: {e}. Response text: {resp.text}"
