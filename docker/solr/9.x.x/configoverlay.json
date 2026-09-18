@@ -1,0 +1,8 @@
+{
+    "requestHandler": {
+        "/mlt": {
+            "name": "/mlt",
+            "class": "solr.MoreLikeThisHandler"
+        }
+    }
+}

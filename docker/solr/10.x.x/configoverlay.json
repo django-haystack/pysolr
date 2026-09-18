@@ -1,0 +1,21 @@
+{
+    "requestHandler": {
+        "/mlt": {
+            "name": "/mlt",
+            "class": "solr.MoreLikeThisHandler"
+        },
+        "/update/extract": {
+            "name": "/update/extract",
+            "class": "solr.extraction.ExtractingRequestHandler",
+            "startup": "lazy",
+            "tikaserver.url": "http://tika:9998",
+            "defaults": {
+                "lowernames": "true",
+                "uprefix": "ignored_",
+                "captureAttr": "true",
+                "fmap.a": "links",
+                "fmap.div": "ignored_"
+            }
+        }
+    }
+}

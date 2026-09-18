@@ -1,10 +1,11 @@
+name: pysolr
+
 services:
   # -------------------------------------------------------------
   # ZOOKEEPER
   # -------------------------------------------------------------
   zookeeper:
     image: zookeeper:3.9
-    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
@@ -17,7 +18,6 @@ services:
   # -------------------------------------------------------------
   tika:
     image: apache/tika:3.2.3.0
-    container_name: tika
     ports:
       - "9998:9998"
     networks:
@@ -28,13 +28,12 @@ services:
   # -------------------------------------------------------------
   solr-standalone:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-standalone
     ports:
       - "8983:8983"
     volumes:
-      - ./solr_configs/${SOLR_VERSION:-9}.x.x:/pysolr_configset:ro
+      - ./solr/${SOLR_VERSION:-9}.x.x/configoverlay.json:/pysolr_configoverlay.json:ro
     environment:
-      - PYSOLR_CONFIGSET=/pysolr_configset
+      - PYSOLR_CONFIG_OVERLAY=/pysolr_configoverlay.json
       - SITECORE_CONFIGSET=/var/solr/data/sitecore_configset
       - SOLR_CORE_NAME=core0
       - SOLR_MODULES=extraction
@@ -46,11 +45,8 @@ services:
       # Copy tech products configset as base for sitecore_configset
       cp -r $$TECHPRODUCTS_CONFIGSET $$SITECORE_CONFIGSET
 
-      # Override with pysolr-specific configset configuration
-      cp $$PYSOLR_CONFIGSET/solrconfig.xml $$SITECORE_CONFIGSET/conf/solrconfig.xml
-
-      # Rename managed-schema.xml to schema.xml
-      mv "$$SITECORE_CONFIGSET/conf/managed-schema.xml" "$$SITECORE_CONFIGSET/conf/schema.xml"
+      # Layer pysolr's test requirements over the upstream solrconfig.xml
+      cp $$PYSOLR_CONFIG_OVERLAY $$SITECORE_CONFIGSET/conf/configoverlay.json
 
       # Create main core with sitecore configset
       # Syntax: precreate-core <core> <configset>
@@ -83,7 +79,6 @@ services:
   # -------------------------------------------------------------
   solr-node0:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-node0
     ports:
       - "8993:8983"
     environment:
@@ -110,7 +105,6 @@ services:
   # -------------------------------------------------------------
   solr-node1:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-node1
     ports:
       - "8994:8983"
     environment:
@@ -137,7 +131,6 @@ services:
   # -------------------------------------------------------------
   solr-init:
     image: solr:${SOLR_VERSION:-9}
-    container_name: solr-init
     depends_on:
       solr-node0:
         condition: service_healthy
@@ -146,10 +139,10 @@ services:
       solr-standalone:
         condition: service_healthy
     volumes:
-      - ./solr_configs/${SOLR_VERSION:-9}.x.x:/pysolr_configset:ro
-      - ./scripts/solr-init.sh:/solr-init.sh:ro
+      - ./solr/${SOLR_VERSION:-9}.x.x/configoverlay.json:/pysolr_configoverlay.json:ro
+      - ./solr/solr-init.sh:/solr-init.sh:ro
     environment:
-      - PYSOLR_CONFIGSET=/pysolr_configset
+      - PYSOLR_CONFIG_OVERLAY=/pysolr_configoverlay.json
       - SITECORE_CONFIGSET=/var/solr/data/sitecore_configset
       - SOLR_COLLECTION_NAME=core0
       - TECHPRODUCTS_CONFIGSET=/opt/solr/server/solr/configsets/sample_techproducts_configs
@@ -164,4 +157,3 @@ services:
 networks:
   search:
     driver: bridge
-    name: search

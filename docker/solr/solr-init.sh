@@ -5,10 +5,9 @@ echo "Solr init starting ..."
 
 echo "Preparing sitecore_configset..."
 cp -r "$TECHPRODUCTS_CONFIGSET" "$SITECORE_CONFIGSET"
-cp "$PYSOLR_CONFIGSET/solrconfig.xml" "$SITECORE_CONFIGSET/conf/solrconfig.xml"
 
-# Rename managed-schema.xml to schema.xml before uploading the configset to ZooKeeper
-mv "$SITECORE_CONFIGSET/conf/managed-schema.xml" "$SITECORE_CONFIGSET/conf/schema.xml"
+# Layer pysolr's test requirements over the upstream solrconfig.xml
+cp "$PYSOLR_CONFIG_OVERLAY" "$SITECORE_CONFIGSET/conf/configoverlay.json"
 
 echo "Uploading sitecore_configset to Zookeeper..."
 solr zk upconfig -n sitecore_configset -d "$SITECORE_CONFIGSET"
