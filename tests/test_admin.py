@@ -17,7 +17,7 @@ class TestSolrCoreAdmin:
 
     @classmethod
     def teardown_class(cls):
-        """Close the shared httpx client (if created) after all tests."""
+        """Close the shared httpx2 client (if created) after all tests."""
         session = getattr(cls.solr_admin, "session", None)
         if session is not None:
             session.close()
