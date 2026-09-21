@@ -55,8 +55,3 @@ target/
 # Logs
 logs/
 *.log
-
-# Apache Solr
-solr*.tgz
-/solr/
-/solr-app/
