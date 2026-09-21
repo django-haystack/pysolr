@@ -49,6 +49,7 @@ build.targets.sdist.exclude = [ ".github" ]
 
 [tool.uv]
 default-groups = [ "dev", "test" ]
+exclude-newer = "P5D"
 
 [tool.ruff]
 lint.select = [
