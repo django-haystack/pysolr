@@ -59,6 +59,7 @@ jobs:
             exit 0
           fi
           git config user.name "github-actions[bot]"
+          # https://api.github.com/users/github-actions%5Bbot%5D
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch --force-create update-pre-commit-hooks
           git add .pre-commit-config.yaml
