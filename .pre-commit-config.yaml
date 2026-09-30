@@ -1,6 +1,3 @@
-ci:
-  autoupdate_schedule: monthly
-
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
@@ -18,7 +15,6 @@ repos:
       - id: check-toml
       - id: check-xml
       - id: check-yaml
-      - id: debug-statements
       - id: detect-aws-credentials
         args: ["--allow-missing-credentials"]
       - id: detect-private-key
