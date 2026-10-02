@@ -262,28 +262,28 @@ and details about the `autoCommit` and `commitWithin` options.
 
 ## Contributing to pysolr
 
-For consistency, this project uses [pre-commit](https://pre-commit.com/)
+For consistency, this project uses [prek](https://prek.j178.dev/)
 to manage Git commit hooks.
 
-Instead of installing `pre-commit` globally, you can run it directly using
+Instead of installing `prek` globally, you can run it directly using
 [`uv`](https://docs.astral.sh/uv/):
 
 - Install the Git hooks:
 
   ```bash
-  uv run pre-commit install
+  uv run prek install
   ```
 
 - Run checks manually:
 
   ```bash
-  uv run pre-commit run
+  uv run prek run
   ```
 
 - To check all files (e.g. in CI or full validation):
 
   ```bash
-  uv run pre-commit run --all-files
+  uv run prek run --all-files
   ```
 
 ## Running Tests

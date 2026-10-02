@@ -37,7 +37,7 @@ urls.Homepage = "https://github.com/django-haystack/pysolr/"
 
 [dependency-groups]
 dev = [
-  "pre-commit>=4.4",
+  "prek>=0.5.3",
 ]
 test = [
   "coverage",
