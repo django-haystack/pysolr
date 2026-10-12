@@ -16,3 +16,14 @@ Ref: [Config API](https://solr.apache.org/guide/solr/9_0/configuration-guide/con
 it.
 
 Ref: [MoreLikeThis](https://solr.apache.org/guide/solr/9_0/query-guide/morelikethis.html)
+
+## `/update/extract`
+
+Solr 9.11 dropped the in-process extraction backend, so Tika runs as a separate service.
+`tikaserver.url` defaults to `http://localhost:9998`, which resolves to the Solr
+container itself, so it points at the `tika` compose service instead.
+
+The entry repeats the upstream defaults because an overlay replaces a handler rather
+than merging into it.
+
+Ref: [Indexing with Tika](https://solr.apache.org/guide/solr/9_11/indexing-guide/indexing-with-tika.html)
