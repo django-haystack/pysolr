@@ -162,7 +162,7 @@ solr.delete(q="*:*")
 
 ```python
 zookeeper = pysolr.ZooKeeper("zkhost1:2181,zkhost2:2181,zkhost3:2181")
-solr = pysolr.SolrCloud(zookeeper, "collection1", auth=<type of authentication>)
+solr = pysolr.SolrCloud(zookeeper, "collection1", auth=YOUR_SELECTED_AUTH_TYPE)
 ```
 
 ### Multicore Index
