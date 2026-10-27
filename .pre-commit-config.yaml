@@ -76,6 +76,9 @@ repos:
     hooks:
       - id: mdformat
         additional_dependencies:
+          - mdformat-beautysh
+          - mdformat-black
+          - mdformat-config
           - mdformat-gfm
 
   - repo: https://github.com/rhysd/actionlint
