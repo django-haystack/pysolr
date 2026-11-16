@@ -675,7 +675,7 @@ class Solr:
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)
 
-                return datetime.datetime(
+                return datetime.datetime(  # noqa: DTZ001 we want naive datetime
                     date_values["year"],
                     date_values["month"],
                     date_values["day"],

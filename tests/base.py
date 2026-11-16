@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 import random
 from io import StringIO
 from unittest.mock import Mock
@@ -321,19 +321,19 @@ class BaseSolrClientTests:
         assert self.solr._from_python("\x01test\x02") == "test"
 
     def test__from_python_dates(self):
+        assert self.solr._from_python(dt.date(2013, 1, 18)) == "2013-01-18T00:00:00Z"
         assert (
-            self.solr._from_python(datetime.date(2013, 1, 18)) == "2013-01-18T00:00:00Z"
-        )
-        assert (
-            self.solr._from_python(datetime.datetime(2013, 1, 18, 0, 30, 28))
+            self.solr._from_python(
+                dt.datetime(2013, 1, 18, 0, 30, 28, tzinfo=dt.timezone.utc)
+            )
             == "2013-01-18T00:30:28Z"
         )
 
-        class FakeTimeZone(datetime.tzinfo):
+        class FakeTimeZone(dt.tzinfo):
             offset = 0
 
             def utcoffset(self, dt):
-                return datetime.timedelta(minutes=self.offset)
+                return dt.timedelta(minutes=self.offset)
 
             def dst(self):
                 return None
@@ -341,7 +341,7 @@ class BaseSolrClientTests:
         # Check a UTC timestamp
         assert (
             self.solr._from_python(
-                datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
+                dt.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
             )
             == "2013-01-18T00:30:28Z"
         )
@@ -350,17 +350,17 @@ class BaseSolrClientTests:
         FakeTimeZone.offset = -(5 * 60)
         assert (
             self.solr._from_python(
-                datetime.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
+                dt.datetime(2013, 1, 18, 0, 30, 28, tzinfo=FakeTimeZone())
             )
             == "2013-01-18T05:30:28Z"
         )
 
     def test__to_python(self):
-        assert self.solr._to_python("2013-01-18T00:00:00Z") == datetime.datetime(
-            2013, 1, 18
+        assert self.solr._to_python("2013-01-18T00:00:00Z") == dt.datetime(
+            2013, 1, 18, tzinfo=dt.timezone.utc
         )
-        assert self.solr._to_python("2013-01-18T00:30:28Z") == datetime.datetime(
-            2013, 1, 18, 0, 30, 28
+        assert self.solr._to_python("2013-01-18T00:30:28Z") == dt.datetime(
+            2013, 1, 18, 0, 30, 28, tzinfo=dt.timezone.utc
         )
         assert self.solr._to_python("true")
         assert not self.solr._to_python("false")
