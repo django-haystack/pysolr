@@ -1,5 +1,5 @@
 import ast
-import datetime
+import datetime as dt
 import io
 import logging
 import os
@@ -675,7 +675,7 @@ class Solr:
                 for dk, dv in date_values.items():
                     date_values[dk] = int(dv)
 
-                return datetime.datetime(
+                return dt.datetime(
                     date_values["year"],
                     date_values["month"],
                     date_values["day"],
