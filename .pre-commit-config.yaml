@@ -34,7 +34,7 @@ repos:
           - tomli
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1-1
+    rev: v0.11.0.1
     hooks:
       - id: shellcheck
 
@@ -45,7 +45,7 @@ repos:
         args: ["--indent=4", "--case-indent", "--write"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.4
+    rev: v0.17.5
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -63,7 +63,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.13.7"
+    rev: "0.13.8"
     hooks:
       - id: uv-lock
 
