@@ -117,15 +117,6 @@ class TestAsyncRealtimeGetRequest:
         with pytest.raises(SolrError, match="timed out"):
             await solr.realtime_get(["doc1"])
 
-    @async_test
-    async def test_context_manager_closes_session(self):
-        solr = AsyncSolr(BASE_URL, session=_mock_client(lambda r: _json_response({})))
-
-        async with solr:
-            pass
-
-        assert solr.session.is_closed
-
 
 class TestAsyncRealtimeGetLive:
     """Realtime get sees uncommitted writes on a live Solr (core0)."""
@@ -142,3 +133,49 @@ class TestAsyncRealtimeGetLive:
 
         # The test schema stores title as multi-valued, so Solr returns a list.
         assert docs == [{"id": "rtg-test-1", "title": ["uncommitted"]}]
+
+
+class TestAsyncRealtimeGetReviewFixes:
+    """Regressions for the Copilot review on django-haystack/pysolr#625."""
+
+    @async_test
+    async def test_caller_session_is_not_closed_by_aclose(self):
+        client = _mock_client(lambda r: _json_response({}))
+        solr = AsyncSolr(BASE_URL, session=client)
+
+        await solr.aclose()
+
+        assert not client.is_closed
+
+    @async_test
+    async def test_session_created_by_asyncsolr_is_closed_on_exit(self):
+        solr = AsyncSolr(BASE_URL)
+        solr.get_session()
+
+        await solr.aclose()
+
+        assert solr.session.is_closed
+
+    @async_test
+    async def test_request_forces_json_response_writer(self):
+        seen = {}
+
+        def handler(request):
+            seen["wt"] = request.url.params.get("wt")
+            return _json_response({"response": {"numFound": 0, "docs": []}})
+
+        solr = AsyncSolr(BASE_URL, session=_mock_client(handler))
+
+        await solr.realtime_get(["doc1"])
+
+        assert seen["wt"] == "json"
+
+    @async_test
+    async def test_any_request_error_becomes_solr_error(self):
+        def handler(request):
+            raise httpx2.ReadError("connection reset", request=request)
+
+        solr = AsyncSolr(BASE_URL, session=_mock_client(handler))
+
+        with pytest.raises(SolrError):
+            await solr.realtime_get(["doc1"])

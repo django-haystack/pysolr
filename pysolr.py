@@ -1265,6 +1265,9 @@ class AsyncSolr:
         self.verify = verify
         self.auth = auth
         self.session = session
+        # Only close a session this class created. A caller-provided one (e.g. a
+        # shared client) stays open for its owner.
+        self._owns_session = session is None
 
     def get_session(self):
         """
@@ -1272,11 +1275,12 @@ class AsyncSolr:
         """
         if self.session is None:
             self.session = httpx2.AsyncClient(verify=self.verify, follow_redirects=True)
+            self._owns_session = True
         return self.session
 
     async def aclose(self):
-        """Close the underlying HTTP client, if one was created."""
-        if self.session is not None:
+        """Close the HTTP client, but only if this instance created it."""
+        if self.session is not None and self._owns_session:
             await self.session.aclose()
 
     async def __aenter__(self):
@@ -1296,7 +1300,9 @@ class AsyncSolr:
         :return: List of document dicts.
         :raises SolrError: On a connection error, timeout or non-200 response.
         """
-        params = {"ids": ",".join(ids)}
+        # Force JSON: Solr picks the response writer from `wt`, or from the
+        # handler's default, and the default can be XML.
+        params = {"ids": ",".join(ids), "wt": "json"}
         if fl is not None:
             params["fl"] = fl
         url = f"{self.url.rstrip('/')}/get"
@@ -1309,6 +1315,8 @@ class AsyncSolr:
             raise SolrError(f"Connection to server '{url}' timed out: {err}") from err
         except httpx2.ConnectError as err:
             raise SolrError(f"Failed to connect to server at {url}: {err}") from err
+        except httpx2.RequestError as err:
+            raise SolrError(f"Request to {url} failed: {err}") from err
 
         if resp.status_code != 200:
             raise SolrError(
