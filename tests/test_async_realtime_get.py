@@ -108,6 +108,16 @@ class TestAsyncRealtimeGetRequest:
             await solr.realtime_get(["doc1"])
 
     @async_test
+    async def test_timeout_raises_solr_error(self):
+        def handler(request):
+            raise httpx2.ReadTimeout("slow", request=request)
+
+        solr = AsyncSolr(BASE_URL, session=_mock_client(handler))
+
+        with pytest.raises(SolrError, match="timed out"):
+            await solr.realtime_get(["doc1"])
+
+    @async_test
     async def test_context_manager_closes_session(self):
         solr = AsyncSolr(BASE_URL, session=_mock_client(lambda r: _json_response({})))
 

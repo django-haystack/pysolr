@@ -158,6 +158,28 @@ solr.delete(id=["doc_1", "doc_2"])
 solr.delete(q="*:*")
 ```
 
+### Async realtime get
+
+`AsyncSolr` is an async client for Solr's realtime get handler (`/get`). It
+returns the stored documents for the given ids, including uncommitted writes.
+Only `realtime_get` is covered so far; use `Solr` for everything else.
+
+```python
+import asyncio
+
+from pysolr import AsyncSolr
+
+
+async def main():
+    async with AsyncSolr("http://localhost:8983/solr/core0") as solr:
+        docs = await solr.realtime_get(["doc_1", "doc_2"], fl="id,title")
+        # Missing ids are left out, so `docs` can be shorter than the id list.
+        print(docs)
+
+
+asyncio.run(main())
+```
+
 ### For SolrCloud mode, initialize your Solr like this:
 
 ```python
