@@ -45,14 +45,14 @@ repos:
         args: ["--indent=4", "--case-indent", "--write"]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.17.5
+    rev: v0.17.6
     hooks:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.30.6
+    rev: v2.31.1
     hooks:
       - id: pyproject-fmt
         args: ["--max-supported-python=3.15"]
@@ -63,7 +63,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: "0.13.8"
+    rev: "0.13.9"
     hooks:
       - id: uv-lock
 
