@@ -7,6 +7,10 @@ Changelog
 New
 ~~~
 
+- Add ``AsyncSolr.realtime_get``, an async client for the realtime get
+  handler (``/get``), built on ``httpx2.AsyncClient``. It returns the stored
+  documents for the given ids, including uncommitted writes. Refs #624.
+
 - Replace ``requests`` with ``httpx2`` as the HTTP client (closes #597).
   [Priya Sundaram]
 

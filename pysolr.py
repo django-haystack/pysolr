@@ -21,7 +21,7 @@ import json
 from http.client import HTTPException
 from urllib.parse import quote, urlencode
 
-__all__ = ["Solr"]
+__all__ = ["AsyncSolr", "Solr"]
 
 
 DATETIME_REGEX = re.compile(
@@ -1244,6 +1244,85 @@ class Solr:
             return self._send_request(
                 "post", path, body=params_encoded, headers=headers
             )
+
+
+class AsyncSolr:
+    """
+    Async client for the Solr realtime get handler (``/get``).
+
+    Covers realtime get only. Use :class:`Solr` for the synchronous API.
+
+    :param url: Core or collection URL, e.g. ``http://localhost:8983/solr/core0``.
+    :param timeout: Request timeout in seconds.
+    :param verify: Verify TLS certificates.
+    :param auth: Optional httpx2 auth.
+    :param session: Optional ``httpx2.AsyncClient`` to use, e.g. in tests.
+    """
+
+    def __init__(self, url, timeout=60, verify=True, auth=None, session=None):
+        self.url = url
+        self.timeout = timeout
+        self.verify = verify
+        self.auth = auth
+        self.session = session
+        # Only close a session this class created. A caller-provided one (e.g. a
+        # shared client) stays open for its owner.
+        self._owns_session = session is None
+
+    def get_session(self):
+        """
+        Return the ``httpx2.AsyncClient`` used for requests, creating it on first use.
+        """
+        if self.session is None:
+            self.session = httpx2.AsyncClient(verify=self.verify, follow_redirects=True)
+            self._owns_session = True
+        return self.session
+
+    async def aclose(self):
+        """Close the HTTP client, but only if this instance created it."""
+        if self.session is not None and self._owns_session:
+            await self.session.aclose()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.aclose()
+
+    async def realtime_get(self, ids, fl=None):
+        """
+        Return the stored documents for ``ids``, including uncommitted writes.
+
+        Missing ids are left out of the result, so the list can be shorter than ``ids``.
+
+        :param ids: Document ids to fetch.
+        :param fl: Optional comma-separated list of fields to return.
+        :return: List of document dicts.
+        :raises SolrError: On a connection error, timeout or non-200 response.
+        """
+        # Force JSON: Solr picks the response writer from `wt`, or from the
+        # handler's default, and the default can be XML.
+        params = {"ids": ",".join(ids), "wt": "json"}
+        if fl is not None:
+            params["fl"] = fl
+        url = f"{self.url.rstrip('/')}/get"
+
+        try:
+            resp = await self.get_session().get(
+                url, params=params, timeout=self.timeout, auth=self.auth
+            )
+        except httpx2.TimeoutException as err:
+            raise SolrError(f"Connection to server '{url}' timed out: {err}") from err
+        except httpx2.ConnectError as err:
+            raise SolrError(f"Failed to connect to server at {url}: {err}") from err
+        except httpx2.RequestError as err:
+            raise SolrError(f"Request to {url} failed: {err}") from err
+
+        if resp.status_code != 200:
+            raise SolrError(
+                f"Solr responded with an error (HTTP {resp.status_code}): {resp.text}"
+            )
+        return resp.json()["response"]["docs"]
 
 
 class SolrCoreAdmin:
